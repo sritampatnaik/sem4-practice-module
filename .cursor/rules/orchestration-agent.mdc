@@ -1,0 +1,11 @@
+---
+description: Instructions for the Orchestration agent owner (Sritam).
+globs: src/agents/orchestration/**
+alwaysApply: false
+---
+
+# Orchestration agent
+
+Follow `src/agents/orchestration/README.md`.
+
+You own routing (`router.ts`), concierge prompts, and usually the chat glue in `src/app/api/chat/route.ts`. Classify intent/subject/grade. Do not teach Math/Physics/Chemistry here. Do not generate quizzes here. Bump `ORCHESTRATION_PROMPT_VERSION` / `ROUTING_PROMPT_VERSION` when prompts change.

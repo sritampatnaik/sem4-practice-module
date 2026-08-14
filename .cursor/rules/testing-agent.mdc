@@ -1,0 +1,11 @@
+---
+description: Instructions for the Testing agent owner (Muhammad Harun Bin Abdul Rashid).
+globs: src/agents/testing/**
+alwaysApply: false
+---
+
+# Testing agent
+
+Follow `src/agents/testing/README.md`.
+
+Work only in `src/agents/testing/`. Quizzes and flashcards must go through `createMcqSet` / `createFlashcards` so the UI widgets render. Original items only; never recreate live SEAB papers. Bump `TESTING_PROMPT_VERSION` on prompt edits.

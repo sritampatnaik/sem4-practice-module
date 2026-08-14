@@ -1,0 +1,13 @@
+services:
+  langflow:
+    image: langflowai/langflow:latest
+    ports:
+      - "7860:7860"
+    environment:
+      LANGFLOW_AUTO_LOGIN: "true"
+      LANGFLOW_NATIVE_TRACING: "true"
+    volumes:
+      - langflow-data:/app/langflow
+
+volumes:
+  langflow-data:

@@ -1,0 +1,11 @@
+---
+description: Instructions for the Chemistry agent owner (Lizabeth Annabel Tukiman).
+globs: src/agents/chemistry/**
+alwaysApply: false
+---
+
+# Chemistry agent
+
+Follow `src/agents/chemistry/README.md`.
+
+Work only in `src/agents/chemistry/` and `data/syllabus/chemistry.md`. Keep periodicTable and reactionBalancer. Bump `CHEMISTRY_PROMPT_VERSION` on prompt edits. Do not import other specialists.

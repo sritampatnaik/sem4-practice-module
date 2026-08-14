@@ -1,0 +1,11 @@
+---
+description: Instructions for the Math agent owner (Gu Haixiang).
+globs: src/agents/math/**
+alwaysApply: false
+---
+
+# Math agent
+
+Follow `src/agents/math/README.md`.
+
+Work only in `src/agents/math/` and `data/syllabus/math.md`. Keep equationSolver, documentSearch, and webSearch. Bump `MATH_PROMPT_VERSION` on prompt edits. Do not import other specialists. Do not invent SEAB paper content.

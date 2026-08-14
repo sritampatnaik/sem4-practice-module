@@ -1,0 +1,18 @@
+---
+description: METS architecture and team split. Read before explaining or changing the project.
+alwaysApply: true
+---
+
+# METS
+
+Hierarchical Singapore tutor: Orchestration routes, then exactly one of Math, Physics, Chemistry, or Testing answers.
+
+Explain the system from `docs/HOW-IT-WORKS.md` and `AGENTS.md`. Per-person instructions:
+
+- Orchestration: `src/agents/orchestration/README.md`
+- Math: `src/agents/math/README.md`
+- Physics: `src/agents/physics/README.md`
+- Chemistry: `src/agents/chemistry/README.md`
+- Testing: `src/agents/testing/README.md`
+
+Stay in the requested agent folder. Specialists must not import each other. Do not add a database unless asked.

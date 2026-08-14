@@ -1,0 +1,11 @@
+---
+description: Instructions for the Physics agent owner (Chua Hieng Weih).
+globs: src/agents/physics/**
+alwaysApply: false
+---
+
+# Physics agent
+
+Follow `src/agents/physics/README.md`.
+
+Work only in `src/agents/physics/` and `data/syllabus/physics.md`. Keep formulaLookup and unitConverter. Always include units in teaching prompts. Bump `PHYSICS_PROMPT_VERSION` on prompt edits. Do not import other specialists.
