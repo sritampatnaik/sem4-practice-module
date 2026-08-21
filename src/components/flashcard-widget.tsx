@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FlashcardSet } from "@/agents/_shared/types";
+import { MarkdownBody } from "./markdown-body";
 
 export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
   const [index, setIndex] = useState(0);
@@ -29,12 +30,12 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
           <p className="text-[0.7rem] tracking-[0.2em] uppercase text-[var(--ink-soft)]">
             {flipped ? "Answer" : "Prompt"} · {card.topic}
           </p>
-          <p
+          <MarkdownBody
+            text={flipped ? card.back : card.front}
+            inline
             className="mt-3 font-[family-name:var(--font-fraunces)] text-2xl leading-snug"
             style={{ fontVariationSettings: '"SOFT" 50, "WONK" 1' }}
-          >
-            {flipped ? card.back : card.front}
-          </p>
+          />
           <p className="mt-4 text-xs text-[var(--ink-soft)]">Tap to flip</p>
         </div>
       </button>

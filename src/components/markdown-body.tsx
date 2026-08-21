@@ -1,19 +1,62 @@
 "use client";
 
+import type { CSSProperties, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-export function MarkdownBody({ text }: { text: string }) {
+type MarkdownBodyProps = {
+  text: string;
+  className?: string;
+  inline?: boolean;
+  style?: CSSProperties;
+};
+
+function InlineTag({ children }: { children?: ReactNode }) {
+  return <span>{children}</span>;
+}
+
+export function MarkdownBody({
+  text,
+  className,
+  inline = false,
+  style,
+}: MarkdownBodyProps) {
+  const wrapperClassName = ["markdown-body", inline ? "markdown-inline" : "", className]
+    .filter(Boolean)
+    .join(" ");
+
+  const content = (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[rehypeKatex]}
+      components={
+        inline
+          ? {
+              p: InlineTag,
+              ul: InlineTag,
+              ol: InlineTag,
+              li: InlineTag,
+            }
+          : undefined
+      }
+    >
+      {text}
+    </ReactMarkdown>
+  );
+
+  if (inline) {
+    return (
+      <span className={wrapperClassName} style={style}>
+        {content}
+      </span>
+    );
+  }
+
   return (
-    <div className="markdown-body">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-      >
-        {text}
-      </ReactMarkdown>
+    <div className={wrapperClassName} style={style}>
+      {content}
     </div>
   );
 }
