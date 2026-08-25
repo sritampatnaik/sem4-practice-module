@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { McqSet } from "@/agents/_shared/types";
+import { MarkdownBody } from "./markdown-body";
 
 export function QuizWidget({ quiz }: { quiz: McqSet }) {
   const [index, setIndex] = useState(0);
@@ -53,7 +54,10 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
           {index + 1} / {quiz.items.length}
         </p>
       </div>
-      <p className="mt-3 text-[1.05rem] leading-7">{item.question}</p>
+      <MarkdownBody
+        text={item.question}
+        className="mt-3 text-[1.05rem] leading-7"
+      />
       <ul className="mt-3 grid gap-2">
         {item.options.map((option) => {
           const isPicked = picked === option.id;
@@ -85,7 +89,11 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
                 <span className="mt-0.5 font-[family-name:var(--font-fraunces)] text-sm">
                   {option.id.toUpperCase()}
                 </span>
-                <span>{option.label}</span>
+                <MarkdownBody
+                  text={option.label}
+                  inline
+                  className="min-w-0 flex-1"
+                />
               </button>
             </li>
           );
@@ -93,7 +101,7 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
       </ul>
       {revealed ? (
         <div className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
-          <p>{item.explanation}</p>
+          <MarkdownBody text={item.explanation} />
           <button
             type="button"
             className="mt-3 border border-[var(--ink)] bg-[var(--ink)] px-3 py-1.5 text-[var(--paper)]"

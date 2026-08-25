@@ -120,6 +120,34 @@ select {
   font-size: 1.08em;
 }
 
+.markdown-inline {
+  display: inline;
+  line-height: inherit;
+}
+
+.markdown-inline p,
+.markdown-inline ul,
+.markdown-inline ol,
+.markdown-inline li {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.markdown-inline ul,
+.markdown-inline ol {
+  list-style: none;
+}
+
+.markdown-inline .katex-display {
+  display: inline-block;
+  margin: 0;
+}
+
+.markdown-inline .katex {
+  font-size: 1em;
+}
+
 *:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
