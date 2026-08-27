@@ -36,6 +36,10 @@ loadDotEnv(join(repoRoot, ".env"));
 if (!process.env.LANGFUSE_HOST) {
   process.env.LANGFUSE_HOST = process.env.LANGFUSE_BASE_URL;
 }
+if (!process.env.LANGFUSE_HOST) {
+  console.error("Set LANGFUSE_HOST or LANGFUSE_BASE_URL in .env.local.");
+  process.exit(1);
+}
 
 const publicKey = process.env.LANGFUSE_PUBLIC_KEY ?? "";
 const secretKey = process.env.LANGFUSE_SECRET_KEY ?? "";
