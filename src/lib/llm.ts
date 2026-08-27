@@ -28,6 +28,9 @@ export function getModel() {
       "OPENAI_API_KEY is missing. Copy .env.example to .env.local and add your key.",
     );
   }
+  process.env.OPENAI_API_KEY = apiKey;
+  const modelId = getModelId();
+  if (modelId) process.env.OPENAI_MODEL = modelId;
 
-  return openai(getModelId());
+  return openai(modelId);
 }
