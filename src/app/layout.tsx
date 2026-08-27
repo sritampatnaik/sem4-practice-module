@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { Atkinson_Hyperlegible, Fraunces } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const atkinson = Atkinson_Hyperlegible({
-  variable: "--font-atkinson",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
-  weight: ["400", "700"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -19,13 +18,14 @@ export const metadata: Metadata = {
     "Singapore-aligned multi-agent tutor for Mathematics, Physics, Chemistry, and testing.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html
-      lang="en"
-      className={`${atkinson.variable} ${fraunces.variable} h-full`}
-    >
-      <body className="min-h-full">{children}</body>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} h-full`}>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }
