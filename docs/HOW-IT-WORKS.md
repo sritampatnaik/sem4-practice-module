@@ -49,7 +49,7 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 - Langflow copies: `langflow/prompts/`
 - Version strings: `MATH_PROMPT_VERSION`, etc. Bump on every prompt edit.
 - Traces: `logs/prompts.jsonl` and the right-hand Routing log in the UI
-- Langfuse eval skeleton (datasets + example judges, not live tracing): `langfuse/evals/`. Seed with `npm run langfuse:seed-evals`. Run the judges against real agents with `npm run langfuse:run-evals`.
+- Eval catalog: `src/evals/catalog/` (ten items per suite, gold scaffolds). Desk UI at `/evals`. CLI: `npm run evals`. Optional Langfuse sync: `npm run langfuse:seed-evals`.
 
 ## What is deliberately unfinished
 

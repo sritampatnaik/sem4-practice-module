@@ -38,14 +38,16 @@ Each person has a dedicated instruction file. Open yours before editing, and poi
 
 Also see [TEAM.md](./TEAM.md) and [AGENTS.md](./AGENTS.md) (what Cursor/other agents read).
 
-## Langfuse evals
+## Evals
 
-Optional offline eval skeleton (routing + one dataset per agent, a few example items, three judges). See [langfuse/evals/README.md](./langfuse/evals/README.md). Chat is not traced to Langfuse yet.
+Ten gold-scaffolded items per agent suite, scored for accuracy, latency, and estimated cost. Open [/evals](http://localhost:3000/evals) after `npm run dev`, or:
 
 ```bash
-npm run langfuse:seed-evals
-npm run langfuse:run-evals
+npm run evals
+npm run evals -- --suite=routing
 ```
+
+Optional Langfuse sync: `npm run langfuse:seed-evals`. See [langfuse/evals/README.md](./langfuse/evals/README.md). Chat is not traced to Langfuse yet.
 
 ## Langflow
 
