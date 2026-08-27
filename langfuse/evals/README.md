@@ -45,3 +45,15 @@ node langfuse/evals/seed.mjs
 Score configs and evaluators are created only if the name is missing. Dataset items upsert on stable ids (`mets-item-*`).
 
 Evaluator prompts use `{{input}}`, `{{output}}`, and `{{expected_output}}`. Default create-time mappings only allow observation fields (`input` / `output` / `metadata` / `tool_calls`). When you run an experiment, map `expected_output` to the dataset item expected output in the Langfuse UI.
+
+## Run the evaluators
+
+This runs the real METS router and specialists on each seeded item, then the three judge prompts from `seed.json` (plus a concierge check). Scores are written onto Langfuse dataset runs. Hosted Langfuse LLM-as-judge rules are not required; the same prompts run locally via `OPENAI_API_KEY`.
+
+```bash
+# .env.local also needs OPENAI_API_KEY (same key the chat desk uses)
+npx tsx --tsconfig tsconfig.json langfuse/evals/run-experiment.ts
+# or: npm run langfuse:run-evals
+```
+
+Do not put this command in a Cloud Agent `install` script. Seed and experiments are one-off; install should stay `npm ci`.

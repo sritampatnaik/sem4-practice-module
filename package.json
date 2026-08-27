@@ -7,11 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "langfuse:seed-evals": "node langfuse/evals/seed.mjs"
+    "langfuse:seed-evals": "node langfuse/evals/seed.mjs",
+    "langfuse:run-evals": "tsx --tsconfig tsconfig.json langfuse/evals/run-experiment.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.96",
     "@ai-sdk/react": "^3.0.258",
+    "@langfuse/client": "^5.10.2",
+    "@langfuse/otel": "^5.10.2",
+    "@opentelemetry/sdk-trace-node": "^2.10.0",
     "ai": "^6.0.255",
     "katex": "^0.18.4",
     "mathjs": "^15.2.0",
@@ -32,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }
