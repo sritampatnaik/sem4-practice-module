@@ -78,28 +78,43 @@ const tmpDir = join(here, ".tmp");
 mkdirSync(tmpDir, { recursive: true });
 
 function cli(args, { allowFail = false } = {}) {
-  const result = spawnSync("npx", ["--yes", "langfuse-cli", "api", ...args, "--json"], {
-    cwd: repoRoot,
-    env: process.env,
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  if (result.status !== 0 && !allowFail) {
-    const err = (result.stderr || result.stdout || "").trim();
-    throw new Error(`langfuse-cli ${args.join(" ")} failed:\n${err}`);
-  }
+  const prefix = [];
+  const envFile = join(repoRoot, ".env.local");
+  if (existsSync(envFile)) prefix.push("--env", envFile);
+  prefix.push("--host", host);
+  const result = spawnSync(
+    "npx",
+    ["--yes", "langfuse-cli", ...prefix, "api", ...args, "--json"],
+    {
+      cwd: repoRoot,
+      env: process.env,
+      encoding: "utf8",
+      maxBuffer: 10 * 1024 * 1024,
+    },
+  );
   const text = (result.stdout || "").trim();
-  if (!text) return { ok: result.status === 0, data: null, raw: result.stderr || "" };
+  let envelope = null;
   try {
-    return { ok: result.status === 0, data: JSON.parse(text), raw: text };
+    envelope = text ? JSON.parse(text) : null;
   } catch {
-    return { ok: result.status === 0, data: text, raw: text };
+    envelope = null;
   }
+  // langfuse-cli --json prints { status, headers, body }
+  const status = envelope?.status ?? (result.status === 0 ? 200 : 500);
+  const body = envelope && typeof envelope === "object" && "body" in envelope ? envelope.body : envelope;
+  const ok = status >= 200 && status < 300;
+  if (!ok && !allowFail) {
+    const err = JSON.stringify(body ?? text ?? result.stderr, null, 2);
+    throw new Error(`langfuse-cli ${args.join(" ")} failed (${status}):\n${err}`);
+  }
+  return { ok, status, body, raw: text };
 }
 
-function unwrap(payload) {
-  if (payload && typeof payload === "object" && "data" in payload) return payload.data;
-  return payload;
+function rowsFrom(body) {
+  if (Array.isArray(body)) return body;
+  if (body && Array.isArray(body.data)) return body.data;
+  if (body && Array.isArray(body.configs)) return body.configs;
+  return [];
 }
 
 function writeBody(name, body) {
@@ -109,11 +124,9 @@ function writeBody(name, body) {
 }
 
 function listNames(resource, nameKey = "name") {
-  const { data } = cli([resource, "list", "--all"]);
-  const list = unwrap(data);
-  const rows = Array.isArray(list) ? list : list?.data ?? list?.configs ?? [];
+  const { body } = cli([resource, "list", "--all"]);
   return new Set(
-    (Array.isArray(rows) ? rows : [])
+    rowsFrom(body)
       .map((row) => row?.[nameKey])
       .filter((name) => typeof name === "string"),
   );
@@ -199,13 +212,12 @@ for (const evaluator of seed.evaluators) {
 }
 
 function summarizeList(resource, extra = []) {
-  const { data } = cli([resource, "list", "--all", ...extra]);
-  const list = unwrap(data);
-  const rows = Array.isArray(list) ? list : list?.data ?? list?.configs ?? [];
-  return (Array.isArray(rows) ? rows : []).map((row) => ({
+  const { body } = cli([resource, "list", "--all", ...extra]);
+  return rowsFrom(body).map((row) => ({
     id: row.id,
     name: row.name,
     dataType: row.dataType ?? row.outputDefinition?.dataType,
+    scope: row.scope,
   }));
 }
 
@@ -222,16 +234,14 @@ const verification = {
 };
 
 for (const dataset of seed.datasets) {
-  const { data } = cli([
+  const { body } = cli([
     "dataset-items",
     "list",
     "--dataset-name",
     dataset.name,
     "--all",
   ]);
-  const list = unwrap(data);
-  const rows = Array.isArray(list) ? list : list?.data ?? [];
-  verification.datasetItems[dataset.name] = (Array.isArray(rows) ? rows : []).map((row) => row.id);
+  verification.datasetItems[dataset.name] = rowsFrom(body).map((row) => row.id);
 }
 
 const reportPath = join(here, "seed-report.json");
