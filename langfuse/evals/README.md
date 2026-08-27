@@ -51,7 +51,8 @@ Evaluator prompts use `{{input}}`, `{{output}}`, and `{{expected_output}}`. Defa
 This runs the real METS router and specialists on each seeded item, then the three judge prompts from `seed.json` (plus a concierge check). Scores are written onto Langfuse dataset runs. Hosted Langfuse LLM-as-judge rules are not required; the same prompts run locally via `OPENAI_API_KEY`.
 
 ```bash
-# .env.local also needs OPENAI_API_KEY (same key the chat desk uses)
+# .env.local also needs OPENAI_API_KEY (same key the chat desk uses).
+# Value must be the key itself (sk-...), not OPENAI_API_KEY=sk-...
 npx tsx --tsconfig tsconfig.json langfuse/evals/run-experiment.ts
 # or: npm run langfuse:run-evals
 ```
