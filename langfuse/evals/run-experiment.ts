@@ -141,6 +141,23 @@ function redact(value: string | undefined) {
   return `set (len=${value.length})`;
 }
 
+function stripEnvAssignment(name: string) {
+  const raw = process.env[name];
+  if (!raw) return;
+  let value = raw.trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  const prefix = `${name}=`;
+  if (value.startsWith(prefix)) {
+    value = value.slice(prefix.length).trim();
+  }
+  process.env[name] = value;
+}
+
 function pretty(value: unknown) {
   if (typeof value === "string") return value;
   return JSON.stringify(value, null, 2);
@@ -365,6 +382,9 @@ function summarizeResult(entry: { job: Job; result: ExperimentResult; formatted:
 async function main() {
   loadDotEnv(join(repoRoot, ".env.local"));
   loadDotEnv(join(repoRoot, ".env"));
+  stripEnvAssignment("OPENAI_API_KEY");
+  stripEnvAssignment("LANGFUSE_PUBLIC_KEY");
+  stripEnvAssignment("LANGFUSE_SECRET_KEY");
 
   if (!process.env.LANGFUSE_HOST && process.env.LANGFUSE_BASE_URL) {
     process.env.LANGFUSE_HOST = process.env.LANGFUSE_BASE_URL;
