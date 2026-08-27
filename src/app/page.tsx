@@ -30,8 +30,10 @@ function getSnapshot() {
   return snapshot;
 }
 
+const SERVER_SNAPSHOT = { profile: null, sessionId: null };
+
 function getServerSnapshot() {
-  return { profile: null, sessionId: null };
+  return SERVER_SNAPSHOT;
 }
 
 function hydrateFromStorage() {

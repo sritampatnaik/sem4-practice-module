@@ -8,6 +8,11 @@ const HISTORY_FILE = path.join(LOG_DIR, "eval-history.json");
 
 let history: EvalRun[] = loadHistory();
 
+export function refreshEvalHistory() {
+  history = loadHistory();
+  return history;
+}
+
 export { toEvalRunRecord } from "./history";
 
 function isEvalRun(value: unknown): value is EvalRun {

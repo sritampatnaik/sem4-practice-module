@@ -106,16 +106,24 @@ async function readSse(
   }
 }
 
-export function EvalsDesk() {
-  const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
+export function EvalsDesk({ initial }: { initial?: CatalogResponse }) {
+  const [catalog, setCatalog] = useState<CatalogResponse | null>(initial ?? null);
   const [selected, setSelected] = useState<EvalSuiteId | "all">("all");
-  const [run, setRun] = useState<EvalRun | null>(null);
+  const [run, setRun] = useState<EvalRun | null>(initial?.lastRun ?? null);
   const [liveItems, setLiveItems] = useState<EvalItemResult[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [history, setHistory] = useState<EvalRunRecord[]>(readHistory);
-  const [compareId, setCompareId] = useState<string | null>(null);
+  const [history, setHistory] = useState<EvalRunRecord[]>(() =>
+    mergeEvalHistory(initial?.history, initial?.lastRun ? [initial.lastRun] : [], readHistory()),
+  );
+  const [compareId, setCompareId] = useState<string | null>(() => {
+    const merged = mergeEvalHistory(
+      initial?.history,
+      initial?.lastRun ? [initial.lastRun] : [],
+    );
+    return merged.find((entry) => entry.id !== initial?.lastRun?.id)?.id ?? null;
+  });
 
   useEffect(() => {
     void fetch("/api/evals")
