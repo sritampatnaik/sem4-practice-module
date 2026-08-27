@@ -43,3 +43,5 @@ node langfuse/evals/seed.mjs
 ```
 
 Score configs and evaluators are created only if the name is missing. Dataset items upsert on stable ids (`mets-item-*`).
+
+Evaluator prompts use `{{input}}`, `{{output}}`, and `{{expected_output}}`. Default create-time mappings only allow observation fields (`input` / `output` / `metadata` / `tool_calls`). When you run an experiment, map `expected_output` to the dataset item expected output in the Langfuse UI.

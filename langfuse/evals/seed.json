@@ -456,12 +456,7 @@
         "score": {
           "description": "True if agent, intent, and subject all match expected_output; false otherwise."
         }
-      },
-      "mapping": [
-        { "variable": "input", "source": "input" },
-        { "variable": "output", "source": "output" },
-        { "variable": "expected_output", "source": "expected_output" }
-      ]
+      }
     },
     {
       "type": "llm_as_judge",
@@ -477,12 +472,7 @@
           "minValue": 1,
           "maxValue": 5
         }
-      },
-      "mapping": [
-        { "variable": "input", "source": "input" },
-        { "variable": "output", "source": "output" },
-        { "variable": "expected_output", "source": "expected_output" }
-      ]
+      }
     },
     {
       "type": "llm_as_judge",
@@ -496,12 +486,7 @@
         "score": {
           "description": "True if exactly one valid widget tool was used with original, on-band items."
         }
-      },
-      "mapping": [
-        { "variable": "input", "source": "input" },
-        { "variable": "output", "source": "output" },
-        { "variable": "expected_output", "source": "expected_output" }
-      ]
+      }
     }
   ]
 }
