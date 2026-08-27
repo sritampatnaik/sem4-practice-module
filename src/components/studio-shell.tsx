@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import Link from "next/link";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PromptLogEntry, RoutingDecision, StudentProfile } from "@/agents/_shared/types";
@@ -99,13 +100,21 @@ export function StudioShell({
             ))}
           </dl>
         </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="text-left text-xs tracking-[0.16em] uppercase text-[oklch(0.78_0.04_75)]"
-        >
-          New student cover
-        </button>
+        <div className="grid gap-3">
+          <Link
+            href="/evals"
+            className="text-left text-xs tracking-[0.16em] uppercase text-[oklch(0.78_0.04_75)]"
+          >
+            Agent evals
+          </Link>
+          <button
+            type="button"
+            onClick={onReset}
+            className="text-left text-xs tracking-[0.16em] uppercase text-[oklch(0.78_0.04_75)]"
+          >
+            New student cover
+          </button>
+        </div>
       </aside>
 
       <main className="foolscap grain relative flex min-w-0 flex-1 flex-col">
