@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "langfuse:seed-evals": "node langfuse/evals/seed.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.96",

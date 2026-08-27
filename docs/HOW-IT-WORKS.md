@@ -49,6 +49,7 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 - Langflow copies: `langflow/prompts/`
 - Version strings: `MATH_PROMPT_VERSION`, etc. Bump on every prompt edit.
 - Traces: `logs/prompts.jsonl` and the right-hand Routing log in the UI
+- Langfuse eval skeleton (datasets + example judges, not live tracing): `langfuse/evals/`
 
 ## What is deliberately unfinished
 

@@ -35,6 +35,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Langfuse seed run artefacts
+/langfuse/evals/.tmp
+/langfuse/evals/seed-report.json
+
 # local prompt logs
 /logs
 

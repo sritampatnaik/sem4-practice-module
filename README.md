@@ -38,6 +38,14 @@ Each person has a dedicated instruction file. Open yours before editing, and poi
 
 Also see [TEAM.md](./TEAM.md) and [AGENTS.md](./AGENTS.md) (what Cursor/other agents read).
 
+## Langfuse evals
+
+Optional offline eval skeleton (routing + one dataset per agent, a few example items, three judges). See [langfuse/evals/README.md](./langfuse/evals/README.md). Chat is not traced to Langfuse yet.
+
+```bash
+node langfuse/evals/seed.mjs
+```
+
 ## Langflow
 
 Optional prompt-log console. See [langflow/README.md](./langflow/README.md).
