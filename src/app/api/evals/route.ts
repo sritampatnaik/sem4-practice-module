@@ -1,10 +1,12 @@
-import { listEvalSuites } from "@/evals";
+import { listEvalRunRecords, listEvalSuites } from "@/evals";
 import { getLastEvalRun } from "@/evals/store";
+import { getModelId } from "@/lib/llm";
 
 export async function GET() {
   return Response.json({
-    model: process.env.OPENAI_MODEL?.trim() || "gpt-4o",
+    model: getModelId(),
     suites: listEvalSuites(),
     lastRun: getLastEvalRun(),
+    history: listEvalRunRecords(),
   });
 }
