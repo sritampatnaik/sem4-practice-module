@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { FlashcardSet } from "@/agents/_shared/types";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { MarkdownBody } from "./markdown-body";
 
 export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
@@ -13,36 +15,35 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
 
   return (
     <section className="mt-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-xs tracking-[0.18em] uppercase text-[var(--ink-soft)]">
+      <div className="flex items-center justify-between gap-3">
+        <Chip>
           {deck.subject} · {deck.title}
-        </p>
-        <p className="text-xs text-[var(--ink-soft)]">
+        </Chip>
+        <p className="text-xs text-[var(--bui-ink-3)]">
           {index + 1} / {deck.cards.length}
         </p>
       </div>
       <button
         type="button"
         onClick={() => setFlipped((value) => !value)}
-        className="mt-3 flex min-h-40 w-full items-center justify-center border border-[oklch(0.8_0.03_85)] bg-[oklch(0.98_0.012_85)] px-6 py-8 text-center"
+        className="ui-card mt-3 flex min-h-40 w-full items-center justify-center px-6 py-8 text-center"
       >
         <div>
-          <p className="text-[0.7rem] tracking-[0.2em] uppercase text-[var(--ink-soft)]">
+          <p className="ui-label">
             {flipped ? "Answer" : "Prompt"} · {card.topic}
           </p>
           <MarkdownBody
             text={flipped ? card.back : card.front}
             inline
-            className="mt-3 font-[family-name:var(--font-fraunces)] text-2xl leading-snug"
-            style={{ fontVariationSettings: '"SOFT" 50, "WONK" 1' }}
+            className="mt-3 text-2xl leading-snug font-semibold tracking-tight"
           />
-          <p className="mt-4 text-xs text-[var(--ink-soft)]">Tap to flip</p>
+          <p className="mt-4 text-xs text-[var(--bui-ink-3)]">Tap to flip</p>
         </div>
       </button>
       <div className="mt-3 flex gap-2">
-        <button
+        <Button
           type="button"
-          className="border border-[var(--ink)] px-3 py-1.5 text-sm disabled:opacity-40"
+          variant="secondary"
           disabled={index === 0}
           onClick={() => {
             setIndex((value) => Math.max(0, value - 1));
@@ -50,10 +51,9 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
           }}
         >
           Previous
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="border border-[var(--ink)] bg-[var(--ink)] px-3 py-1.5 text-sm text-[var(--paper)] disabled:opacity-40"
           disabled={index === deck.cards.length - 1}
           onClick={() => {
             setIndex((value) => Math.min(deck.cards.length - 1, value + 1));
@@ -61,7 +61,7 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
           }}
         >
           Next card
-        </button>
+        </Button>
       </div>
     </section>
   );

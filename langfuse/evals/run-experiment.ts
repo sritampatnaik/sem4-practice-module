@@ -25,6 +25,7 @@ function loadDotEnv(path: string) {
     }
   }
 }
+import { saveEvalRun } from "../../src/evals/store";
 import { EVAL_SUITE_IDS } from "../../src/evals/types";
 import { runEvalSuites } from "../../src/evals/runner";
 import type { EvalSuiteId } from "../../src/evals/types";
@@ -56,6 +57,7 @@ async function main() {
     }
     if (event.type === "done") {
       lastRun = event.run;
+      saveEvalRun(event.run);
     }
   }
   if (!lastRun) {

@@ -88,6 +88,16 @@ export type EvalSuiteSummary = {
   totalTokens: number;
 };
 
+export type EvalRunTotals = {
+  itemCount: number;
+  passed: number;
+  accuracy: number;
+  avgLatencyMs: number;
+  p50LatencyMs: number;
+  totalCostUsd: number;
+  totalTokens: number;
+};
+
 export type EvalRun = {
   id: string;
   startedAt: string;
@@ -96,13 +106,16 @@ export type EvalRun = {
   suiteIds: EvalSuiteId[];
   items: EvalItemResult[];
   suites: EvalSuiteSummary[];
-  totals: {
-    itemCount: number;
-    passed: number;
-    accuracy: number;
-    avgLatencyMs: number;
-    p50LatencyMs: number;
-    totalCostUsd: number;
-    totalTokens: number;
-  };
+  totals: EvalRunTotals;
+};
+
+/** Compact run record kept for model-to-model comparison. */
+export type EvalRunRecord = {
+  id: string;
+  startedAt: string;
+  finishedAt: string;
+  model: string;
+  suiteIds: EvalSuiteId[];
+  suites: EvalSuiteSummary[];
+  totals: EvalRunTotals;
 };

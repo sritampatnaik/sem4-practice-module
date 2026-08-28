@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { McqSet } from "@/agents/_shared/types";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { MarkdownBody } from "./markdown-body";
 
 export function QuizWidget({ quiz }: { quiz: McqSet }) {
@@ -17,20 +19,16 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
 
   if (done) {
     return (
-      <section className="mt-4 border border-[oklch(0.8_0.03_85)] bg-[oklch(0.98_0.012_85)] p-4">
-        <p className="text-xs tracking-[0.18em] uppercase text-[var(--ink-soft)]">
-          {quiz.subject} · marked script
-        </p>
-        <h3
-          className="mt-2 font-[family-name:var(--font-fraunces)] text-2xl"
-          style={{ fontVariationSettings: '"SOFT" 40, "WONK" 1' }}
-        >
+      <section className="ui-card mt-4 p-4">
+        <Chip>{quiz.subject} · marked</Chip>
+        <h3 className="mt-3 text-2xl font-semibold tracking-tight">
           {score} / {quiz.items.length}
         </h3>
-        <p className="mt-1 text-sm text-[var(--ink-soft)]">{quiz.title}</p>
-        <button
+        <p className="mt-1 text-sm text-[var(--bui-ink-2)]">{quiz.title}</p>
+        <Button
           type="button"
-          className="mt-4 text-sm underline underline-offset-4"
+          variant="secondary"
+          className="mt-4"
           onClick={() => {
             setIndex(0);
             setPicked(null);
@@ -39,24 +37,24 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
           }}
         >
           Sit it again
-        </button>
+        </Button>
       </section>
     );
   }
 
   return (
-    <section className="mt-4 border border-[oklch(0.8_0.03_85)] bg-[oklch(0.98_0.012_85)] p-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-xs tracking-[0.18em] uppercase text-[var(--ink-soft)]">
+    <section className="ui-card mt-4 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <Chip>
           {quiz.subject} · {item.topic}
-        </p>
-        <p className="text-xs text-[var(--ink-soft)]">
+        </Chip>
+        <p className="text-xs text-[var(--bui-ink-3)]">
           {index + 1} / {quiz.items.length}
         </p>
       </div>
       <MarkdownBody
         text={item.question}
-        className="mt-3 text-[1.05rem] leading-7"
+        className="mt-3 text-[0.98rem] leading-7"
       />
       <ul className="mt-3 grid gap-2">
         {item.options.map((option) => {
@@ -74,19 +72,17 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
                     setScore((value) => value + 1);
                   }
                 }}
-                className="flex w-full items-start gap-3 border px-3 py-2 text-left transition-colors disabled:cursor-default"
+                className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors disabled:cursor-default"
                 style={{
-                  borderColor: showMark
+                  background: isPicked ? "var(--bui-hover)" : "var(--bui-surface)",
+                  boxShadow: showMark
                     ? isCorrect
-                      ? "oklch(0.5 0.1 155)"
-                      : "oklch(0.52 0.14 25)"
-                    : "oklch(0.82 0.03 85)",
-                  background: isPicked
-                    ? "oklch(0.95 0.02 85)"
-                    : "transparent",
+                      ? "0 0 0 1px var(--bui-green)"
+                      : "0 0 0 1px var(--bui-red)"
+                    : "var(--bui-shadow-hairline)",
                 }}
               >
-                <span className="mt-0.5 font-[family-name:var(--font-fraunces)] text-sm">
+                <span className="mt-0.5 text-sm font-semibold text-[var(--bui-ink-2)]">
                   {option.id.toUpperCase()}
                 </span>
                 <MarkdownBody
@@ -100,11 +96,11 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
         })}
       </ul>
       {revealed ? (
-        <div className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
+        <div className="mt-3 text-sm leading-6 text-[var(--bui-ink-2)]">
           <MarkdownBody text={item.explanation} />
-          <button
+          <Button
             type="button"
-            className="mt-3 border border-[var(--ink)] bg-[var(--ink)] px-3 py-1.5 text-[var(--paper)]"
+            className="mt-3"
             onClick={() => {
               if (index + 1 >= quiz.items.length) {
                 setDone(true);
@@ -115,7 +111,7 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
             }}
           >
             {index + 1 >= quiz.items.length ? "See mark" : "Next question"}
-          </button>
+          </Button>
         </div>
       ) : null}
     </section>
