@@ -37,11 +37,23 @@ function getServerSnapshot() {
 }
 
 function hydrateFromStorage() {
+  const sessionId = getSessionId();
   snapshot = {
     profile: loadProfile(),
-    sessionId: getSessionId(),
+    sessionId,
   };
   emit();
+  void fetch(`/api/student?sessionId=${encodeURIComponent(sessionId)}`)
+    .then((response) => response.json())
+    .then((payload: { profile?: StudentProfile | null }) => {
+      if (!payload.profile) return;
+      saveProfile(payload.profile);
+      snapshot = { profile: payload.profile, sessionId };
+      emit();
+    })
+    .catch(() => {
+      // Keep the local profile if the database is offline.
+    });
 }
 
 if (typeof window !== "undefined") {
@@ -59,9 +71,15 @@ export default function Home() {
     return (
       <OnboardingDesk
         onComplete={(next) => {
+          const sessionId = getSessionId();
           saveProfile(next);
-          snapshot = { profile: next, sessionId: getSessionId() };
+          snapshot = { profile: next, sessionId };
           emit();
+          void fetch("/api/student", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId, profile: next }),
+          });
         }}
       />
     );
@@ -73,9 +91,15 @@ export default function Home() {
       profile={profile}
       sessionId={sessionId}
       onReset={() => {
+        const previous = sessionId;
         clearLocalStudent();
         snapshot = { profile: null, sessionId: null };
         emit();
+        if (previous) {
+          void fetch(`/api/student?sessionId=${encodeURIComponent(previous)}`, {
+            method: "DELETE",
+          });
+        }
       }}
     />
   );
