@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -24,12 +27,18 @@ export function NavLink({
   active?: boolean;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+  const matched =
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = active ?? matched;
   return (
     <Link
       href={href}
       className={cn(
         "rounded-lg px-2.5 py-1.5 text-sm no-underline transition-colors",
-        active
+        isActive
           ? "bg-[var(--bui-field)] font-medium text-[var(--bui-ink)] shadow-[var(--bui-shadow-hairline)]"
           : "text-[var(--bui-ink-2)] hover:bg-[var(--bui-hover)] hover:text-[var(--bui-ink)]",
       )}

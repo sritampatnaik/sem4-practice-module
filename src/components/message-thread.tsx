@@ -2,6 +2,7 @@
 
 import type { AgentId, FlashcardSet, McqSet, RoutingDecision } from "@/agents/_shared/types";
 import { Chip } from "@/components/ui/chip";
+import { ToolChip } from "@/components/ui/tool-chip";
 import { AGENT_COPY } from "@/lib/agent-copy";
 import type { MetsUIMessage } from "@/lib/ui-types";
 import { FlashcardWidget } from "./flashcard-widget";
@@ -56,9 +57,7 @@ export function MessageThread({
             >
               {message.parts.map((part, index) => {
                 if (part.type === "text" && part.text.trim()) {
-                  return isUser ? (
-                    <p key={`${message.id}-t-${index}`}>{part.text}</p>
-                  ) : (
+                  return (
                     <MarkdownBody key={`${message.id}-t-${index}`} text={part.text} />
                   );
                 }
@@ -98,20 +97,20 @@ export function MessageThread({
 
                   if (toolPart.state === "output-error") {
                     return (
-                      <p
+                      <ToolChip
                         key={`${message.id}-e-${index}`}
-                        className="mt-2 text-sm text-[var(--bui-red)]"
-                      >
-                        Tool {toolLabel(toolPart.type)} failed.
-                      </p>
+                        name={toolLabel(toolPart.type)}
+                        state="error"
+                      />
                     );
                   }
 
                   return (
-                    <Chip key={`${message.id}-tool-${index}`} className="mt-2">
-                      {toolPart.state === "output-available" ? "Used" : "Using"}{" "}
-                      {toolLabel(toolPart.type)}
-                    </Chip>
+                    <ToolChip
+                      key={`${message.id}-tool-${index}`}
+                      name={toolLabel(toolPart.type)}
+                      state={toolPart.state === "output-available" ? "done" : "running"}
+                    />
                   );
                 }
 

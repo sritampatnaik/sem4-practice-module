@@ -7,8 +7,13 @@ import type { PromptLogEntry, RoutingDecision, StudentProfile } from "@/agents/_
 import { AppFrame, NavLink } from "@/components/app-frame";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
+import { FollowUps } from "@/components/ui/follow-ups";
+import { LoadingState } from "@/components/ui/loading-state";
+import { PromptBar } from "@/components/ui/prompt-bar";
+import { Thinking } from "@/components/ui/thinking";
 import { AGENT_COPY } from "@/lib/agent-copy";
 import type { MetsUIMessage } from "@/lib/ui-types";
+import { MarkdownBody } from "./markdown-body";
 import { MessageThread } from "./message-thread";
 
 type TracePayload = {
@@ -16,6 +21,12 @@ type TracePayload = {
   routing: RoutingDecision[];
   logs: PromptLogEntry[];
 };
+
+const STARTERS = [
+  "How do I differentiate x² sin x at H2?",
+  "Convert 72 km/h to m/s and show the working.",
+  "Balance Fe + O₂ → Fe₂O₃, then quiz me on redox.",
+];
 
 function gradeLabel(gradeLevel: StudentProfile["gradeLevel"]) {
   if (gradeLevel === "jc") return "Junior College";
@@ -84,9 +95,7 @@ export function StudioShell({
     <AppFrame
       nav={
         <>
-          <NavLink href="/" active>
-            Tutor
-          </NavLink>
+          <NavLink href="/">Tutor</NavLink>
           <NavLink href="/evals">Evals</NavLink>
         </>
       }
@@ -127,14 +136,16 @@ export function StudioShell({
           <ol className="mt-5 grid gap-3 overflow-y-auto text-sm">
             {(traces?.routing.length ? traces.routing : routing ? [routing] : []).map(
               (item, index) => (
-                <li key={`${item.agent}-${item.rationale}-${index}`} className="ui-inset p-3">
-                  <p className="ui-label">
-                    {item.intent} → {item.agent}
-                  </p>
-                  <p className="mt-1.5 leading-5 text-[var(--bui-ink)]">{item.rationale}</p>
-                  <p className="mt-1 text-xs text-[var(--bui-ink-3)]">
-                    v{item.promptVersion} · {Math.round(item.confidence * 100)}%
-                  </p>
+                <li key={`${item.agent}-${item.rationale}-${index}`}>
+                  <Thinking
+                    defaultOpen={index === 0}
+                    summary={`${item.intent} → ${item.agent} · ${Math.round(item.confidence * 100)}%`}
+                  >
+                    <p className="leading-5 text-[var(--bui-ink)]">{item.rationale}</p>
+                    <p className="mt-1 text-xs text-[var(--bui-ink-3)]">
+                      v{item.promptVersion}
+                    </p>
+                  </Thinking>
                 </li>
               ),
             )}
@@ -145,8 +156,7 @@ export function StudioShell({
       <div className="flex h-[calc(100vh-3.4rem)] min-w-0 flex-col">
         <header className="flex items-end justify-between gap-4 px-5 pt-5 pb-3 sm:px-8">
           <div>
-            <p className="ui-label">Tutorial · last 10 chats remembered</p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight">
+            <p className="text-2xl font-semibold tracking-tight">
               {profile.name}&rsquo;s session
             </p>
           </div>
@@ -160,14 +170,20 @@ export function StudioShell({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 sm:px-8">
           {messages.length === 0 ? (
-            <EmptyDesk name={profile.name} />
+            <EmptyDesk
+              name={profile.name}
+              onPick={(text) => {
+                setInput(text);
+              }}
+            />
           ) : (
             <MessageThread messages={messages} routing={routing} />
           )}
           {busy ? (
-            <p className="mt-5 text-sm text-[var(--bui-ink-2)]">
-              {status === "submitted" ? "Reading your question…" : "Writing…"}
-            </p>
+            <LoadingState
+              className="mt-5"
+              label={status === "submitted" ? "Reading your question" : "Writing"}
+            />
           ) : null}
           {error ? (
             <p className="mt-4 text-sm text-[var(--bui-red)]">
@@ -178,60 +194,40 @@ export function StudioShell({
           <div ref={bottomRef} />
         </div>
 
-        <form
-          className="px-5 pb-5 sm:px-8"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submit();
-          }}
-        >
-          <div className="ui-card flex items-end gap-3 px-4 py-3">
-            <label className="sr-only" htmlFor="tutor-input">
-              Ask to learn, or ask to be tested
-            </label>
-            <textarea
-              id="tutor-input"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  submit();
-                }
-              }}
-              rows={2}
-              placeholder="Explain chemical bonding for O-Level, or give me five kinematics MCQs."
-              className="min-h-[3rem] flex-1 resize-none border-0 bg-transparent py-1.5 outline-none"
-            />
-            {busy ? (
-              <Button type="button" variant="secondary" onClick={() => stop()}>
-                Stop
-              </Button>
-            ) : (
-              <Button type="submit" disabled={!input.trim()}>
-                Send
-              </Button>
-            )}
-          </div>
-        </form>
+        <div className="px-5 pb-5 sm:px-8">
+          <PromptBar
+            id="tutor-input"
+            value={input}
+            onChange={setInput}
+            onSubmit={submit}
+            onStop={stop}
+            busy={busy}
+            placeholder="Explain chemical bonding for O-Level, or give me five kinematics MCQs."
+          />
+        </div>
       </div>
     </AppFrame>
   );
 }
 
-function EmptyDesk({ name }: { name: string }) {
+function EmptyDesk({
+  name,
+  onPick,
+}: {
+  name: string;
+  onPick: (text: string) => void;
+}) {
   return (
     <div className="max-w-lg pt-6">
       <p className="text-3xl font-semibold tracking-tight">Hello, {name}.</p>
-      <p className="mt-3 leading-7 text-[var(--bui-ink-2)]">
-        Ask for a worked example, a syllabus check, or a short quiz. METS routes
-        you to Math, Physics, Chemistry, or Testing.
-      </p>
-      <ul className="mt-5 grid gap-2 text-sm text-[var(--bui-ink-2)]">
-        <li className="ui-inset px-3 py-2">How do I differentiate x² sin x at H2?</li>
-        <li className="ui-inset px-3 py-2">Convert 72 km/h to m/s and show the working.</li>
-        <li className="ui-inset px-3 py-2">Balance Fe + O₂ → Fe₂O₃, then quiz me on redox.</li>
-      </ul>
+      <div className="mt-3 text-[var(--bui-ink-2)]">
+        <MarkdownBody
+          text={String.raw`Ask for a worked example, a syllabus check, or a short quiz. METS routes you to Math, Physics, Chemistry, or Testing. Equations typeset as maths, for example $F = ma$ or $$x = \dfrac{-b \pm \sqrt{b^{2}-4ac}}{2a}.$$`}
+        />
+      </div>
+      <div className="mt-5">
+        <FollowUps items={STARTERS} onPick={onPick} />
+      </div>
     </div>
   );
 }

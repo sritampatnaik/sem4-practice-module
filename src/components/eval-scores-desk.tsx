@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { EvalModelPicker } from "@/components/eval-model-picker";
 import { Button } from "@/components/ui/button";
+import { FilterChips } from "@/components/ui/filter-chips";
+import { LoadingState } from "@/components/ui/loading-state";
+import { TaskRow } from "@/components/ui/task-row";
 import { cn } from "@/lib/cn";
 import { DEFAULT_EVAL_MODEL_ID, findEvalModel, resolveEvalModel } from "@/lib/models";
 import {
@@ -468,18 +471,30 @@ export function EvalScoresDesk({ initial }: { initial?: CatalogResponse }) {
       </section>
 
       {busy ? (
-        <p className="text-sm text-[var(--bui-ink-2)]">
-          Scoring {runningSuiteIds.join(", ")}
-          {runningSuiteIds.length === 1
-            ? ` with ${suiteModels[runningSuiteIds[0]!] ?? "the selected model"}`
-            : ""}
-          {" · "}
-          {liveItems.filter((item) => runningSuiteIds.includes(item.suiteId)).length} item
-          {liveItems.filter((item) => runningSuiteIds.includes(item.suiteId)).length === 1
-            ? ""
-            : "s"}{" "}
-          in this run
-        </p>
+        <section className="ui-card px-4 py-3">
+          <LoadingState
+            label={
+              runningSuiteIds.length === 1
+                ? `Scoring ${runningSuiteIds[0]} with ${suiteModels[runningSuiteIds[0]!] ?? "the selected model"}`
+                : "Scoring selected evals"
+            }
+          />
+          <div className="mt-3 grid gap-0.5">
+            {runningSuiteIds.map((suiteId) => {
+              const scored = liveItems.filter((item) => item.suiteId === suiteId).length;
+              const done = suiteSummaries.some((suite) => suite.suiteId === suiteId);
+              const name = catalog?.suites.find((suite) => suite.id === suiteId)?.name ?? suiteId;
+              return (
+                <TaskRow
+                  key={suiteId}
+                  title={name}
+                  status={done ? "done" : scored ? "running" : "pending"}
+                  detail={done ? "done" : `${scored} item${scored === 1 ? "" : "s"}`}
+                />
+              );
+            })}
+          </div>
+        </section>
       ) : null}
 
       {error ? <p className="text-sm text-[var(--bui-red)]">{error}</p> : null}
@@ -616,21 +631,14 @@ function AgentFilter({
           Compare, best model, and previous runs stay scoped to the selected agent.
         </p>
       </div>
-      <label className="grid gap-1 text-sm">
-        <span className="ui-label">Agent</span>
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value as EvalSuiteId | "all")}
-          className="ui-field ui-select min-w-48"
-        >
-          <option value="all">All agents</option>
-          {suites.map((suite) => (
-            <option key={suite.id} value={suite.id}>
-              {suite.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <FilterChips
+        value={value}
+        onChange={onChange}
+        options={[
+          { id: "all", label: "All agents" },
+          ...suites.map((suite) => ({ id: suite.id, label: suite.name })),
+        ]}
+      />
     </div>
   );
 }

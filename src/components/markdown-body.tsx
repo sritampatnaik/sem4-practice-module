@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { normalizeMathText } from "@/lib/math-text";
 
 type MarkdownBodyProps = {
   text: string;
@@ -30,7 +31,7 @@ export function MarkdownBody({
   const content = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
-      rehypePlugins={[rehypeKatex]}
+      rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
       components={
         inline
           ? {
@@ -42,7 +43,7 @@ export function MarkdownBody({
           : undefined
       }
     >
-      {text}
+      {normalizeMathText(text)}
     </ReactMarkdown>
   );
 
