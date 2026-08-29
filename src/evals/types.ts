@@ -28,6 +28,58 @@ export type EvalScaffold = {
   mustInclude?: string[];
   mustNotInclude?: string[];
   requiredTools?: string[];
+  source?: string;
+};
+
+export type DatasetInput = {
+  message: string;
+  profile: StudentProfile;
+};
+
+export type DatasetOutput = {
+  must: string[];
+  mustNot: string[];
+  agent: AgentId;
+  intent: Intent;
+  subject: Subject | "none";
+  gradeLevel: GradeLevel;
+};
+
+export type DatasetMetadata = {
+  band: GradeLevel;
+  agent: AgentId;
+  source: string;
+  id?: string;
+  title?: string;
+  suite?: EvalSuiteId;
+  contract?: string;
+  goldReply?: string;
+};
+
+/** Langfuse-style item the datasets editor reads and writes. */
+export type DatasetItemJson = {
+  input: DatasetInput;
+  output: DatasetOutput;
+  metadata: DatasetMetadata;
+};
+
+export type CatalogItemDraft = {
+  id: string;
+  suiteId: EvalSuiteId;
+  kind: EvalKind;
+  title: string;
+  prompt: string;
+  goldReply: string;
+  contract: string;
+  requiredTools: string[];
+  mustInclude: string[];
+  mustNotInclude: string[];
+  targetAgent: AgentId;
+  gradeLevel: GradeLevel;
+  routing?: GoldRouting;
+  profile?: StudentProfile;
+  source?: string;
+  dataset?: DatasetItemJson;
 };
 
 export type EvalItem = {
@@ -86,6 +138,12 @@ export type EvalSuiteSummary = {
   p50LatencyMs: number;
   totalCostUsd: number;
   totalTokens: number;
+  model?: string;
+};
+
+export type EvalJob = {
+  suiteId: EvalSuiteId;
+  model: string;
 };
 
 export type EvalRunTotals = {

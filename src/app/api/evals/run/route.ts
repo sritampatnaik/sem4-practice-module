@@ -1,36 +1,30 @@
-import { EVAL_SUITE_IDS } from "@/evals/types";
+import { refreshEvaluators } from "@/evals/evaluators";
+import { parseEvalJobs } from "@/evals/jobs";
 import { runEvalSuites } from "@/evals/runner";
 import { saveEvalRun } from "@/evals/store";
-import type { EvalSuiteId } from "@/evals/types";
+import { requireProviderKey } from "@/lib/llm";
 
-export const maxDuration = 300;
-
-function asSuiteIds(value: unknown): EvalSuiteId[] | undefined {
-  if (!Array.isArray(value) || value.length === 0) return undefined;
-  const ids = value.filter((item): item is EvalSuiteId =>
-    EVAL_SUITE_IDS.includes(item as EvalSuiteId),
-  );
-  return ids.length ? ids : undefined;
-}
+export const maxDuration = 600;
 
 export async function POST(req: Request) {
-  if (!process.env.OPENAI_API_KEY) {
+  const body = (await req.json().catch(() => ({}))) as {
+    jobs?: unknown;
+    suiteIds?: unknown;
+    suiteId?: unknown;
+    model?: unknown;
+  };
+  const jobs = parseEvalJobs(body);
+  const models = [...new Set(jobs.map((job) => job.model))];
+  try {
+    for (const model of models) requireProviderKey(model);
+  } catch (error) {
     return Response.json(
-      {
-        error:
-          "OPENAI_API_KEY is not set. Add it to .env.local and restart the dev server.",
-      },
+      { error: error instanceof Error ? error.message : "Model API key is missing." },
       { status: 500 },
     );
   }
 
-  const body = (await req.json().catch(() => ({}))) as {
-    suiteIds?: unknown;
-    suiteId?: unknown;
-  };
-  const suiteIds =
-    asSuiteIds(body.suiteIds) ??
-    (typeof body.suiteId === "string" ? asSuiteIds([body.suiteId]) : undefined);
+  await refreshEvaluators();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -39,9 +33,9 @@ export async function POST(req: Request) {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
       try {
-        for await (const event of runEvalSuites({ suiteIds })) {
+        for await (const event of runEvalSuites({ jobs })) {
           if (event.type === "done") {
-            saveEvalRun(event.run);
+            await saveEvalRun(event.run);
           }
           write(event.type, event);
         }

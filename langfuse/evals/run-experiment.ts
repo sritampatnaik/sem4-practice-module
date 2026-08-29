@@ -57,7 +57,7 @@ async function main() {
     }
     if (event.type === "done") {
       lastRun = event.run;
-      saveEvalRun(event.run);
+      await saveEvalRun(event.run);
     }
   }
   if (!lastRun) {

@@ -1,4 +1,4 @@
-import type { EvalSuite, EvalSuiteId } from "../types";
+import type { EvalSuite } from "../types";
 import { chemistryItems } from "./chemistry";
 import { conciergeItems } from "./concierge";
 import { mathItems } from "./math";
@@ -50,34 +50,3 @@ export const EVAL_SUITES: EvalSuite[] = [
     items: testingItems,
   },
 ];
-
-export function listEvalSuites() {
-  return EVAL_SUITES.map((suite) => ({
-    id: suite.id,
-    name: suite.name,
-    description: suite.description,
-    kind: suite.kind,
-    itemCount: suite.items.length,
-    items: suite.items.map((item) => ({
-      id: item.id,
-      title: item.title,
-      prompt: item.prompt,
-      goldReply: item.scaffold.goldReply,
-      contract: item.scaffold.contract,
-      requiredTools: item.scaffold.requiredTools ?? [],
-      targetAgent: item.targetAgent,
-    })),
-  }));
-}
-
-export function getEvalSuite(id: EvalSuiteId) {
-  const suite = EVAL_SUITES.find((entry) => entry.id === id);
-  if (!suite) {
-    throw new Error(`Unknown eval suite '${id}'.`);
-  }
-  return suite;
-}
-
-export function allEvalItems() {
-  return EVAL_SUITES.flatMap((suite) => suite.items);
-}

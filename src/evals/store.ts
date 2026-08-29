@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import type { Json } from "@/lib/database.types";
 import { EVAL_HISTORY_LIMIT, toEvalRunRecord } from "./history";
 import type { EvalRun, EvalRunRecord } from "./types";
 
@@ -8,8 +10,9 @@ const HISTORY_FILE = path.join(LOG_DIR, "eval-history.json");
 
 let history: EvalRun[] = loadHistory();
 
-export function refreshEvalHistory() {
-  history = loadHistory();
+export async function refreshEvalHistory() {
+  const remote = await loadHistoryFromSupabase();
+  history = remote ?? loadHistory();
   return history;
 }
 
@@ -48,9 +51,44 @@ function persistHistory(runs: EvalRun[]) {
   }
 }
 
-export function saveEvalRun(run: EvalRun) {
+async function loadHistoryFromSupabase(): Promise<EvalRun[] | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("eval_runs")
+    .select("id, started_at, finished_at, model, suite_ids, suites, totals, items")
+    .order("finished_at", { ascending: false })
+    .limit(EVAL_HISTORY_LIMIT);
+  if (error || !data) return null;
+  const runs = data.map((row) => ({
+    id: row.id,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    model: row.model,
+    suiteIds: row.suite_ids,
+    suites: row.suites,
+    totals: row.totals,
+    items: row.items,
+  }));
+  return runs.filter(isEvalRun);
+}
+
+export async function saveEvalRun(run: EvalRun) {
   history = [run, ...history.filter((item) => item.id !== run.id)].slice(0, EVAL_HISTORY_LIMIT);
   persistHistory(history);
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    await supabase.from("eval_runs").upsert({
+      id: run.id,
+      started_at: run.startedAt,
+      finished_at: run.finishedAt,
+      model: run.model,
+      suite_ids: run.suiteIds,
+      suites: run.suites as unknown as Json,
+      totals: run.totals as unknown as Json,
+      items: run.items as unknown as Json,
+    });
+  }
   return history[0] ?? run;
 }
 

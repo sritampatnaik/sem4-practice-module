@@ -7,9 +7,9 @@ The live desk runs those items and scores **accuracy** against the gold scaffold
 ## Run from the app
 
 1. `npm run dev`
-2. Open [/evals](http://localhost:3000/evals)
-3. Run one suite or all 60 items
-4. Expand a row to compare gold scaffold vs live output
+2. Open [/evals/datasets](http://localhost:3000/evals/datasets) to edit gold JSON, [/evals/evaluators](http://localhost:3000/evals/evaluators) to pick code or LLM-as-judge, then [/evals/scores](http://localhost:3000/evals/scores) to run and read history
+3. Run all suites from Scores
+4. Expand a dataset row to edit input / output / metadata JSON
 
 The page keeps the last five runs in `localStorage` so you can compare accuracy / latency / cost after you change a prompt or model.
 

@@ -2,18 +2,13 @@ import { createAgent } from "@/agents";
 import { routeStudentTurn } from "@/agents/orchestration/router";
 import { DEFAULT_PROFILE, type AgentRuntimeContext } from "@/agents/_shared/types";
 import { sanitizeStudentMessage } from "@/lib/guardrails";
-import { getModelId } from "@/lib/llm";
-import { EVAL_SUITES, getEvalSuite } from "./catalog";
+import { getModelId, runWithModel } from "@/lib/llm";
+import { EVAL_SUITES } from "./catalog";
+import { getEvalSuite } from "./live-catalog";
 import { estimateCostUsd, percentile } from "./pricing";
-import { scoreAgainstScaffold } from "./score";
-import type {
-  EvalItem,
-  EvalItemResult,
-  EvalRun,
-  EvalSuiteId,
-  EvalSuiteSummary,
-  GoldRouting,
-} from "./types";
+import { summarizeSuiteItems } from "./metrics";
+import { evaluateItem } from "./evaluate";
+import type { EvalItem, EvalItemResult, EvalJob, EvalRun, EvalSuiteId, GoldRouting } from "./types";
 
 const DEFAULT_CONCURRENCY = 2;
 
@@ -104,7 +99,7 @@ async function runAgentItem(item: EvalItem): Promise<Omit<EvalItemResult, "accur
 export async function runEvalItem(item: EvalItem): Promise<EvalItemResult> {
   try {
     const raw = item.kind === "routing" ? await runRoutingItem(item) : await runAgentItem(item);
-    const scored = scoreAgainstScaffold({
+    const scored = await evaluateItem({
       item,
       actualText: raw.actualText,
       toolCalls: raw.toolCalls,
@@ -142,37 +137,10 @@ export async function runEvalItem(item: EvalItem): Promise<EvalItemResult> {
   }
 }
 
-function summarizeSuite(
-  suiteId: EvalSuiteId,
-  name: string,
-  items: EvalItemResult[],
-): EvalSuiteSummary {
-  const latencies = items.map((item) => item.latencyMs);
-  const accuracy =
-    items.length === 0 ? 0 : items.reduce((sum, item) => sum + item.accuracy, 0) / items.length;
-  return {
-    suiteId,
-    name,
-    itemCount: items.length,
-    passed: items.filter((item) => item.passed).length,
-    accuracy: Number(accuracy.toFixed(3)),
-    avgLatencyMs: Math.round(
-      latencies.length ? latencies.reduce((sum, value) => sum + value, 0) / latencies.length : 0,
-    ),
-    p50LatencyMs: Math.round(percentile(latencies, 50)),
-    totalCostUsd: Number(items.reduce((sum, item) => sum + item.costUsd, 0).toFixed(6)),
-    totalTokens: items.reduce((itemSum, item) => itemSum + item.inputTokens + item.outputTokens, 0),
-  };
-}
-
 export function summarizeRun(items: EvalItemResult[], suiteIds: EvalSuiteId[]): EvalRun {
   const suites = suiteIds.map((suiteId) => {
     const meta = EVAL_SUITES.find((suite) => suite.id === suiteId);
-    return summarizeSuite(
-      suiteId,
-      meta?.name ?? suiteId,
-      items.filter((item) => item.suiteId === suiteId),
-    );
+    return summarizeSuiteItems(suiteId, meta?.name ?? suiteId, items);
   });
   const latencies = items.map((item) => item.latencyMs);
   const accuracy =
@@ -181,7 +149,7 @@ export function summarizeRun(items: EvalItemResult[], suiteIds: EvalSuiteId[]): 
     id: `run-${Date.now().toString(36)}`,
     startedAt: items[0] ? new Date().toISOString() : new Date().toISOString(),
     finishedAt: new Date().toISOString(),
-    model: getModelId(),
+    model: runModelLabel(items),
     suiteIds,
     items,
     suites,
@@ -213,21 +181,34 @@ async function mapPool<T, R>(items: T[], concurrency: number, mapper: (item: T) 
   return results;
 }
 
+function runModelLabel(items: EvalItemResult[]) {
+  const models = [...new Set(items.map((item) => item.model).filter(Boolean))];
+  if (models.length === 1) return models[0]!;
+  if (models.length) return models.join(" + ");
+  return getModelId();
+}
+
 export async function* runEvalSuites(options: {
   suiteIds?: EvalSuiteId[];
+  jobs?: EvalJob[];
   concurrency?: number;
   onItem?: (item: EvalItemResult) => void;
 }) {
-  const suiteIds = options.suiteIds?.length
-    ? options.suiteIds
-    : EVAL_SUITES.map((suite) => suite.id);
+  const jobs: EvalJob[] = options.jobs?.length
+    ? options.jobs
+    : (options.suiteIds?.length
+        ? options.suiteIds
+        : EVAL_SUITES.map((suite) => suite.id)
+      ).map((suiteId) => ({ suiteId, model: getModelId() }));
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
   const collected: EvalItemResult[] = [];
   const startedAt = new Date().toISOString();
 
-  for (const suiteId of suiteIds) {
-    const suite = getEvalSuite(suiteId);
-    const results = await mapPool(suite.items, concurrency, runEvalItem);
+  for (const job of jobs) {
+    const suite = getEvalSuite(job.suiteId);
+    const results = await runWithModel(job.model, () =>
+      mapPool(suite.items, concurrency, runEvalItem),
+    );
     for (const result of results) {
       collected.push(result);
       options.onItem?.(result);
@@ -235,11 +216,14 @@ export async function* runEvalSuites(options: {
     }
     yield {
       type: "suite" as const,
-      summary: summarizeSuite(suiteId, suite.name, results),
+      summary: summarizeSuiteItems(job.suiteId, suite.name, results),
     };
   }
 
-  const run = summarizeRun(collected, suiteIds);
+  const run = summarizeRun(
+    collected,
+    jobs.map((job) => job.suiteId),
+  );
   run.startedAt = startedAt;
   run.finishedAt = new Date().toISOString();
   yield { type: "done" as const, run };

@@ -23,15 +23,21 @@ export const physicsItems: EvalItem[] = [
     kind: "teaching",
     title: "Quantum is A-Level",
     prompt: "Is quantum physics in O-Level or A-Level?",
-    profile: secondaryAlex,
+    profile: {
+      name: "Alex",
+      notes: [],
+      diagnostic: {},
+      gradeLevel: "secondary",
+    },
     targetAgent: "physics",
     scaffold: {
       contract: "Search syllabus. A-Level / JC, not O-Level. No university dump.",
       goldReply:
         "Quantum physics sits in A-Level / JC Physics, not O-Level. O-Level stops at waves, electricity, and nuclear physics at intro level.",
-      mustInclude: ["a-level"],
-      mustNotInclude: ["schrodinger equation", "hilbert space"],
+      mustInclude: ["A-Level / JC, not O-Level"],
+      mustNotInclude: ["dump university quantum content"],
       requiredTools: ["documentSearch"],
+      source: "readme-smoke",
     },
   },
   {

@@ -1,22 +1,5 @@
-import { EvalsDesk } from "@/components/evals-desk";
-import { listEvalSuites } from "@/evals";
-import {
-  getLastEvalRun,
-  listEvalRunRecords,
-  refreshEvalHistory,
-} from "@/evals/store";
-import { getModelId } from "@/lib/llm";
+import { redirect } from "next/navigation";
 
 export default function EvalsPage() {
-  refreshEvalHistory();
-  return (
-    <EvalsDesk
-      initial={{
-        model: getModelId(),
-        suites: listEvalSuites(),
-        lastRun: getLastEvalRun(),
-        history: listEvalRunRecords(),
-      }}
-    />
-  );
+  redirect("/evals/datasets");
 }

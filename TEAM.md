@@ -26,4 +26,4 @@ Each agent exports `*_PROMPT_VERSION`. Bump it when you edit `prompts.ts` so Lan
 
 ## Later (not in this slice)
 
-Supabase for student profiles, and pgvector for syllabus embeddings. RAG currently reads markdown in `data/syllabus/`.
+Student profiles, chat memory, and evals persist in Supabase. pgvector for syllabus embeddings is still later. RAG currently reads markdown in `data/syllabus/`.

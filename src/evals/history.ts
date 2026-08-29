@@ -1,4 +1,4 @@
-import type { EvalRun, EvalRunRecord } from "./types";
+import type { EvalRun, EvalRunRecord, EvalSuiteId } from "./types";
 
 export const EVAL_HISTORY_LIMIT = 30;
 
@@ -61,4 +61,82 @@ export function groupEvalRunsByModel(history: EvalRunRecord[]): ModelAgg[] {
       };
     })
     .sort((a, b) => b.bestAccuracy - a.bestAccuracy);
+}
+
+/** One scored agent from one run. Newest first. */
+export type SuiteResult = {
+  runId: string;
+  finishedAt: string;
+  suiteId: EvalSuiteId;
+  name: string;
+  model: string;
+  accuracy: number;
+  avgLatencyMs: number;
+  p50LatencyMs: number;
+  totalCostUsd: number;
+  totalTokens: number;
+  passed: number;
+  itemCount: number;
+};
+
+export function flattenSuiteResults(history: EvalRunRecord[]): SuiteResult[] {
+  const rows: SuiteResult[] = [];
+  for (const run of history) {
+    for (const suite of run.suites ?? []) {
+      if (!suite.itemCount) continue;
+      const model = suite.model && !suite.model.includes(" + ") ? suite.model : run.model;
+      rows.push({
+        runId: run.id,
+        finishedAt: run.finishedAt,
+        suiteId: suite.suiteId,
+        name: suite.name,
+        model,
+        accuracy: suite.accuracy,
+        avgLatencyMs: suite.avgLatencyMs,
+        p50LatencyMs: suite.p50LatencyMs,
+        totalCostUsd: suite.totalCostUsd,
+        totalTokens: suite.totalTokens,
+        passed: suite.passed,
+        itemCount: suite.itemCount,
+      });
+    }
+  }
+  return rows.sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt));
+}
+
+export type SuiteModelAgg = ModelAgg & {
+  suiteId: EvalSuiteId;
+  name: string;
+};
+
+export function groupSuiteResultsByModel(results: SuiteResult[]): SuiteModelAgg[] {
+  const groups = new Map<string, SuiteResult[]>();
+  for (const row of results) {
+    const key = `${row.suiteId}::${row.model}`;
+    const list = groups.get(key) ?? [];
+    list.push(row);
+    groups.set(key, list);
+  }
+  return [...groups.values()]
+    .map((rows) => {
+      const sorted = [...rows].sort(
+        (a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt),
+      );
+      const latest = sorted[0]!;
+      return {
+        suiteId: latest.suiteId,
+        name: latest.name,
+        model: latest.model,
+        runs: rows.length,
+        bestAccuracy: Math.max(...rows.map((entry) => entry.accuracy)),
+        latestAccuracy: latest.accuracy,
+        bestLatencyMs: Math.min(...rows.map((entry) => entry.avgLatencyMs)),
+        lastFinishedAt: latest.finishedAt,
+      };
+    })
+    .sort((a, b) => a.suiteId.localeCompare(b.suiteId) || b.bestAccuracy - a.bestAccuracy);
+}
+
+export function resultsForSuite(results: SuiteResult[], suiteId: EvalSuiteId) {
+  return results.filter((row) => row.suiteId === suiteId);
 }
