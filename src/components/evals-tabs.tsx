@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 const TABS = [
+  { href: "/evals/readme", label: "Read me" },
   { href: "/evals/datasets", label: "Datasets" },
   { href: "/evals/evaluators", label: "Evaluators" },
   { href: "/evals/scores", label: "Scores" },
@@ -46,8 +47,8 @@ export function EvalsChrome({ children }: { children: ReactNode }) {
         <p className="ui-label">Evaluation desk</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">Evals</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--bui-ink-2)]">
-          Datasets hold the gold JSON. Evaluators score the live reply. Scores keep
-          every previous run.
+          Read me is the team guide. Datasets hold gold JSON. Evaluators score the
+          live reply. Scores keep every previous run.
         </p>
       </header>
       <EvalsTabs />
