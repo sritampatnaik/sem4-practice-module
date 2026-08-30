@@ -3,6 +3,7 @@ import {
   GRADE_LEVELS,
   INTENTS,
   SUBJECTS,
+  isSchoolGrade,
   type AgentId,
   type GradeLevel,
   type Intent,
@@ -75,6 +76,7 @@ function asProfile(value: unknown, fallback: GradeLevel): StudentProfile {
   return {
     name: typeof raw.name === "string" && raw.name.trim() ? raw.name : "Alex",
     gradeLevel,
+    grade: isSchoolGrade(raw.grade) ? raw.grade : undefined,
     diagnostic,
     notes: Array.isArray(raw.notes)
       ? raw.notes.filter((note): note is string => typeof note === "string")

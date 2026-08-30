@@ -44,15 +44,21 @@ export async function rememberTurn(
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
+  const userId = /^[0-9a-f-]{36}$/i.test(sessionId) ? sessionId : undefined;
   if (profile) {
-    await upsertStudentSession(sessionId, profile);
+    await upsertStudentSession(sessionId, profile, userId);
   } else {
-    await upsertStudentSession(sessionId, {
-      name: "Student",
-      gradeLevel: "secondary",
-      diagnostic: {},
-      notes: [],
-    });
+    await upsertStudentSession(
+      sessionId,
+      {
+        name: "Student",
+        gradeLevel: "secondary",
+        grade: "sec3",
+        diagnostic: {},
+        notes: [],
+      },
+      userId,
+    );
   }
   await supabase.from("chat_memory").insert({
     session_id: sessionId,

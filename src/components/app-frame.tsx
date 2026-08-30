@@ -50,11 +50,13 @@ export function NavLink({
 
 export function AppFrame({
   nav,
+  actions,
   sidebar,
   rail,
   children,
 }: {
   nav?: ReactNode;
+  actions?: ReactNode;
   sidebar?: ReactNode;
   rail?: ReactNode;
   children: ReactNode;
@@ -72,6 +74,7 @@ export function AppFrame({
             <BrandMark />
             <nav className="flex items-center gap-1">{nav}</nav>
           </div>
+          {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
         </header>
         <div className="flex min-h-0 min-w-0 flex-1">
           <main className="min-w-0 flex-1">{children}</main>

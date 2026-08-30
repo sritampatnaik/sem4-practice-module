@@ -103,29 +103,35 @@ export type Database = {
         Row: {
           created_at: string;
           diagnostic: Json;
+          grade: string | null;
           grade_level: string;
           id: string;
           name: string;
           notes: Json;
           updated_at: string;
+          user_id: string | null;
         };
         Insert: {
           created_at?: string;
           diagnostic?: Json;
+          grade?: string | null;
           grade_level: string;
           id: string;
           name?: string;
           notes?: Json;
           updated_at?: string;
+          user_id?: string | null;
         };
         Update: {
           created_at?: string;
           diagnostic?: Json;
+          grade?: string | null;
           grade_level?: string;
           id?: string;
           name?: string;
           notes?: Json;
           updated_at?: string;
+          user_id?: string | null;
         };
         Relationships: [];
       };

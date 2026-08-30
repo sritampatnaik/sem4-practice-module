@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PromptLogEntry, RoutingDecision, StudentProfile } from "@/agents/_shared/types";
+import { schoolGradeLabel } from "@/agents/_shared/types";
 import { AppFrame, NavLink } from "@/components/app-frame";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -28,18 +29,19 @@ const STARTERS = [
   "Balance Fe + O₂ → Fe₂O₃, then quiz me on redox.",
 ];
 
-function gradeLabel(gradeLevel: StudentProfile["gradeLevel"]) {
-  if (gradeLevel === "jc") return "Junior College";
-  return gradeLevel[0].toUpperCase() + gradeLevel.slice(1);
+function gradeLabel(profile: StudentProfile) {
+  return schoolGradeLabel(profile.grade, profile.gradeLevel);
 }
 
 export function StudioShell({
   profile,
   sessionId,
+  email,
   onReset,
 }: {
   profile: StudentProfile;
   sessionId: string;
+  email?: string;
   onReset: () => void;
 }) {
   const [input, setInput] = useState("");
@@ -99,12 +101,20 @@ export function StudioShell({
           <NavLink href="/evals">Evals</NavLink>
         </>
       }
+      actions={
+        <Button type="button" variant="ghost" onClick={onReset}>
+          Sign out
+        </Button>
+      }
       sidebar={
         <>
           <div className="flex-1">
             <p className="ui-label">Student</p>
             <h1 className="mt-2 text-xl font-semibold tracking-tight">{profile.name}</h1>
-            <p className="mt-1 text-sm text-[var(--bui-ink-2)]">{gradeLabel(profile.gradeLevel)}</p>
+            <p className="mt-1 text-sm text-[var(--bui-ink-2)]">{gradeLabel(profile)}</p>
+            {email ? (
+              <p className="mt-1 truncate text-xs text-[var(--bui-ink-3)]">{email}</p>
+            ) : null}
             <dl className="mt-8 grid gap-4">
               {(["math", "physics", "chemistry"] as const).map((subject) => (
                 <div key={subject}>
@@ -116,9 +126,6 @@ export function StudioShell({
               ))}
             </dl>
           </div>
-          <Button type="button" variant="ghost" className="justify-start px-2" onClick={onReset}>
-            New student
-          </Button>
         </>
       }
       rail={

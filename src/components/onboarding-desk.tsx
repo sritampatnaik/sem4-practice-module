@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { GradeLevel, StudentProfile } from "@/agents/_shared/types";
+import type { GradeLevel, SchoolGrade, StudentProfile } from "@/agents/_shared/types";
+import {
+  GRADE_LEVELS,
+  SCHOOL_GRADE_META,
+  SCHOOL_GRADES,
+  bandForGrade,
+} from "@/agents/_shared/types";
 import { Button } from "@/components/ui/button";
 import {
   DIAGNOSTICS,
@@ -9,21 +15,22 @@ import {
   scoreAnswer,
 } from "@/lib/profile-storage";
 
-const BANDS: Array<{ id: GradeLevel; title: string; line: string }> = [
-  { id: "primary", title: "Primary", line: "P4 to P6 model drawing and matter" },
-  { id: "secondary", title: "Secondary", line: "O-Level / N-Level papers" },
-  { id: "jc", title: "Junior College", line: "A-Level H1 and H2" },
-];
+const BAND_COPY: Record<GradeLevel, { title: string; line: string }> = {
+  primary: { title: "Primary", line: "P1 to P6" },
+  secondary: { title: "Secondary", line: "Sec 1 to Sec 5" },
+  jc: { title: "Junior College", line: "JC 1 and JC 2" },
+};
 
 function buildProfile(options: {
   name: string;
-  gradeLevel: GradeLevel;
+  grade: SchoolGrade;
   diagnostic?: StudentProfile["diagnostic"];
   notes: string[];
 }): StudentProfile {
   return {
     name: options.name.trim() || "Student",
-    gradeLevel: options.gradeLevel,
+    grade: options.grade,
+    gradeLevel: bandForGrade(options.grade),
     diagnostic: options.diagnostic ?? {},
     notes: options.notes,
   };
@@ -35,19 +42,20 @@ export function OnboardingDesk({
   onComplete: (profile: StudentProfile) => void;
 }) {
   const [name, setName] = useState("");
-  const [gradeLevel, setGradeLevel] = useState<GradeLevel>("secondary");
+  const [grade, setGrade] = useState<SchoolGrade>("sec3");
   const [step, setStep] = useState<"cover" | "diagnostic">("cover");
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
+  const gradeLevel = bandForGrade(grade);
   const questions = useMemo(() => DIAGNOSTICS[gradeLevel], [gradeLevel]);
 
   function skipOnboarding() {
     onComplete(
       buildProfile({
         name,
-        gradeLevel,
+        grade,
         notes: [
-          "Onboarding skipped. Infer grade and prior knowledge from the conversation.",
+          `Year: ${SCHOOL_GRADE_META[grade].label}. Onboarding skipped. Infer prior knowledge from the conversation.`,
         ],
       }),
     );
@@ -57,9 +65,9 @@ export function OnboardingDesk({
     onComplete(
       buildProfile({
         name,
-        gradeLevel,
+        grade,
         notes: [
-          "Diagnostics skipped. Infer prior knowledge from the conversation.",
+          `Year: ${SCHOOL_GRADE_META[grade].label}. Diagnostics skipped. Infer prior knowledge from the conversation.`,
         ],
       }),
     );
@@ -94,36 +102,43 @@ export function OnboardingDesk({
                 placeholder="As on your exercise book"
               />
             </label>
-            <fieldset className="grid gap-3">
-              <legend className="ui-label">Grade band</legend>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {BANDS.map((band) => {
-                  const selected = gradeLevel === band.id;
-                  return (
-                    <button
-                      key={band.id}
-                      type="button"
-                      onClick={() => setGradeLevel(band.id)}
-                      className="rounded-xl px-3 py-3 text-left transition-colors"
-                      style={{
-                        background: selected
-                          ? "var(--bui-accent-tint)"
-                          : "var(--bui-surface)",
-                        boxShadow: selected
-                          ? "0 0 0 1px var(--bui-accent)"
-                          : "var(--bui-shadow-hairline)",
-                      }}
-                    >
-                      <span className="block text-[0.95rem] font-semibold">
-                        {band.title}
-                      </span>
-                      <span className="mt-1 block text-xs leading-5 text-[var(--bui-ink-2)]">
-                        {band.line}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <fieldset className="grid gap-4">
+              <legend className="ui-label">Which year are you in?</legend>
+              {GRADE_LEVELS.map((band) => (
+                <div key={band} className="grid gap-2">
+                  <p className="text-sm font-medium text-[var(--bui-ink)]">
+                    {BAND_COPY[band].title}
+                    <span className="ml-2 font-normal text-[var(--bui-ink-3)]">
+                      {BAND_COPY[band].line}
+                    </span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {SCHOOL_GRADES.filter((id) => SCHOOL_GRADE_META[id].band === band).map(
+                      (id) => {
+                        const selected = grade === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setGrade(id)}
+                            className="rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                            style={{
+                              background: selected
+                                ? "var(--bui-accent-tint)"
+                                : "var(--bui-surface)",
+                              boxShadow: selected
+                                ? "0 0 0 1px var(--bui-accent)"
+                                : "var(--bui-shadow-hairline)",
+                            }}
+                          >
+                            {SCHOOL_GRADE_META[id].short}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              ))}
             </fieldset>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Button type="submit">Continue</Button>
@@ -138,7 +153,9 @@ export function OnboardingDesk({
             onSubmit={(event) => {
               event.preventDefault();
               const diagnostic: StudentProfile["diagnostic"] = {};
-              const notes: string[] = [];
+              const notes: string[] = [
+                `Year: ${SCHOOL_GRADE_META[grade].label}.`,
+              ];
               for (const question of questions) {
                 const answer = answers[question.id] ?? "";
                 const correct = scoreAnswer(answer, question.acceptable);
@@ -150,7 +167,7 @@ export function OnboardingDesk({
               onComplete(
                 buildProfile({
                   name,
-                  gradeLevel,
+                  grade,
                   diagnostic,
                   notes,
                 }),
@@ -158,8 +175,9 @@ export function OnboardingDesk({
             }}
           >
             <p className="text-sm leading-6 text-[var(--bui-ink-2)]">
-              Three quick checks so the specialists can pitch explanations.
-              Guessing is allowed. You can skip this step.
+              Three quick checks for {SCHOOL_GRADE_META[grade].label} so the
+              specialists can pitch explanations. Guessing is allowed. You can
+              skip this step.
             </p>
             {questions.map((question) => (
               <label key={question.id} className="grid gap-2">

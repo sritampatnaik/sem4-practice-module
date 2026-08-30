@@ -1,19 +1,26 @@
-import { GRADE_LEVELS, type StudentProfile } from "@/agents/_shared/types";
 import {
-  deleteStudentSession,
-  getStudentSession,
-  upsertStudentSession,
-} from "@/lib/students";
+  GRADE_LEVELS,
+  bandForGrade,
+  isSchoolGrade,
+  type StudentProfile,
+} from "@/agents/_shared/types";
+import { getAuthUser } from "@/lib/auth";
+import { getStudentByUserId, upsertStudentSession } from "@/lib/students";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 function asProfile(value: unknown): StudentProfile | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
   if (typeof raw.name !== "string") return null;
-  if (!GRADE_LEVELS.includes(raw.gradeLevel as StudentProfile["gradeLevel"])) return null;
+  const grade = isSchoolGrade(raw.grade) ? raw.grade : undefined;
+  const gradeLevel = grade
+    ? bandForGrade(grade)
+    : (raw.gradeLevel as StudentProfile["gradeLevel"]);
+  if (!GRADE_LEVELS.includes(gradeLevel)) return null;
   return {
     name: raw.name,
-    gradeLevel: raw.gradeLevel as StudentProfile["gradeLevel"],
+    gradeLevel,
+    grade,
     diagnostic:
       raw.diagnostic && typeof raw.diagnostic === "object" && !Array.isArray(raw.diagnostic)
         ? (raw.diagnostic as StudentProfile["diagnostic"])
@@ -24,42 +31,38 @@ function asProfile(value: unknown): StudentProfile | null {
   };
 }
 
-export async function GET(req: Request) {
-  const sessionId = new URL(req.url).searchParams.get("sessionId");
-  if (!sessionId) {
-    return Response.json({ error: "sessionId is required." }, { status: 400 });
+export async function GET() {
+  const user = await getAuthUser();
+  if (!user) {
+    return Response.json({ error: "Sign in first." }, { status: 401 });
   }
-  const profile = await getStudentSession(sessionId);
+  const profile = await getStudentByUserId(user.id);
   return Response.json({
     configured: isSupabaseConfigured(),
+    user,
     profile,
+    sessionId: user.id,
   });
 }
 
 export async function PUT(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as {
-    sessionId?: unknown;
-    profile?: unknown;
-  };
-  if (typeof body.sessionId !== "string" || !body.sessionId) {
-    return Response.json({ error: "sessionId is required." }, { status: 400 });
+  const user = await getAuthUser();
+  if (!user) {
+    return Response.json({ error: "Sign in first." }, { status: 401 });
   }
+  const body = (await req.json().catch(() => ({}))) as { profile?: unknown };
   const profile = asProfile(body.profile);
   if (!profile) {
     return Response.json({ error: "A valid student profile is required." }, { status: 400 });
   }
-  const result = await upsertStudentSession(body.sessionId, profile);
+  const result = await upsertStudentSession(user.id, profile, user.id);
   if (!result.ok && result.reason !== "unconfigured") {
     return Response.json({ error: result.reason }, { status: 500 });
   }
-  return Response.json({ configured: isSupabaseConfigured(), profile });
-}
-
-export async function DELETE(req: Request) {
-  const sessionId = new URL(req.url).searchParams.get("sessionId");
-  if (!sessionId) {
-    return Response.json({ error: "sessionId is required." }, { status: 400 });
-  }
-  await deleteStudentSession(sessionId);
-  return Response.json({ ok: true });
+  return Response.json({
+    configured: isSupabaseConfigured(),
+    user,
+    profile,
+    sessionId: user.id,
+  });
 }
