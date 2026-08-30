@@ -28,8 +28,8 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 | Agent factory | `src/agents/index.ts` | `createAgent(id, ctx)` |
 | Shared types | `src/agents/_shared/types.ts` | Profile, routing, quiz shapes |
 | Shared syllabus search | `src/lib/syllabus.ts` | Keyword RAG over markdown |
-| Memory | `src/lib/memory.ts` | Last 10 chats per session |
-| LLM | `src/lib/llm.ts` | OpenAI via `@ai-sdk/openai` |
+| Memory | `src/lib/memory.ts` | Last 10 chats per session (Supabase when configured) |
+| LLM | `src/lib/llm.ts` | OpenAI via `@ai-sdk/openai`; Gemini via `@ai-sdk/google` on the eval Scores picker |
 | Prompt logs | `src/lib/langflow.ts` | JSONL + optional Langflow POST |
 | UI | `src/components/` | Onboarding, chat, quiz, flashcards |
 
@@ -49,11 +49,13 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 - Langflow copies: `langflow/prompts/`
 - Version strings: `MATH_PROMPT_VERSION`, etc. Bump on every prompt edit.
 - Traces: `logs/prompts.jsonl` and the right-hand Routing log in the UI
+- Eval catalog: `src/evals/catalog/` (ten items per suite, gold scaffolds). Desk UI: `/evals/datasets` (JSON editor), `/evals/evaluators` (code or LLM-as-judge), `/evals/scores` (previous runs). CLI: `npm run evals`. Optional Langfuse sync: `npm run langfuse:seed-evals`.
 
 ## What is deliberately unfinished
 
-- No Supabase. No pgvector. Syllabus search is local markdown.
+- Supabase stores student sessions, the last 10 chats, eval catalog edits, and eval runs. The Next.js API talks to it with the service role. There is still no login.
+- No pgvector yet. Syllabus search is local markdown.
 - Web search is a Wikipedia stub.
-- Auth is localStorage, not login.
+- The browser still keeps a session id in localStorage.
 
 When those land, keep the five-folder agent split. Do not collapse specialists into one file.

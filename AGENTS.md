@@ -39,7 +39,7 @@ Also read `TEAM.md` and `docs/HOW-IT-WORKS.md`.
 
 - Stay inside the folder of the agent you were asked to change.
 - Do not import Math from Physics, Testing from Chemistry, etc.
-- Do not add a database. Profiles and memory are in-memory / localStorage until the team wires Supabase.
+- Profiles, chat memory, and eval history persist in Supabase when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set. Access is server-only. Do not add a second database.
 - RAG corpus is **syllabus maps** in `data/syllabus/`, not encyclopedic subject notes.
 - When you edit a system prompt, bump `*_PROMPT_VERSION` in that agent's `prompts.ts` and copy the gist into `langflow/prompts/`.
 - Use Vercel AI SDK: `ToolLoopAgent`, `tool({ inputSchema })`, `stepCountIs`. Do not use the raw OpenAI SDK.

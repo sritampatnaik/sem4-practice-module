@@ -1,6 +1,8 @@
 "use client";
 
 import type { AgentId, FlashcardSet, McqSet, RoutingDecision } from "@/agents/_shared/types";
+import { Chip } from "@/components/ui/chip";
+import { ToolChip } from "@/components/ui/tool-chip";
 import { AGENT_COPY } from "@/lib/agent-copy";
 import type { MetsUIMessage } from "@/lib/ui-types";
 import { FlashcardWidget } from "./flashcard-widget";
@@ -33,27 +35,29 @@ export function MessageThread({
   routing?: RoutingDecision;
 }) {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {messages.map((message) => {
         const isUser = message.role === "user";
         const routingPart = message.parts.find((part) => part.type === "data-routing");
         const stamp = routingPart && "data" in routingPart ? routingPart.data.agent : routing?.agent;
 
         return (
-          <article key={message.id} className={isUser ? "pl-2" : "pl-0"}>
+          <article key={message.id} className={isUser ? "ml-auto w-full max-w-[40rem]" : "w-full"}>
             {isUser ? (
-              <p className="text-xs tracking-[0.18em] uppercase text-[var(--margin)]">
-                Student
-              </p>
+              <p className="ui-label mb-2 text-right">Student</p>
             ) : (
               <AgentStamp agent={stamp ?? "orchestration"} />
             )}
-            <div className={`mt-2 max-w-[46rem] ${isUser ? "text-[1.05rem] leading-7" : ""}`}>
+            <div
+              className={
+                isUser
+                  ? "ui-inset px-4 py-3 text-[0.98rem] leading-7"
+                  : "max-w-[46rem]"
+              }
+            >
               {message.parts.map((part, index) => {
                 if (part.type === "text" && part.text.trim()) {
-                  return isUser ? (
-                    <p key={`${message.id}-t-${index}`}>{part.text}</p>
-                  ) : (
+                  return (
                     <MarkdownBody key={`${message.id}-t-${index}`} text={part.text} />
                   );
                 }
@@ -93,23 +97,20 @@ export function MessageThread({
 
                   if (toolPart.state === "output-error") {
                     return (
-                      <p
+                      <ToolChip
                         key={`${message.id}-e-${index}`}
-                        className="mt-2 text-sm text-[var(--margin)]"
-                      >
-                        Tool {toolLabel(toolPart.type)} failed.
-                      </p>
+                        name={toolLabel(toolPart.type)}
+                        state="error"
+                      />
                     );
                   }
 
                   return (
-                    <p
+                    <ToolChip
                       key={`${message.id}-tool-${index}`}
-                      className="mt-2 text-xs tracking-[0.14em] uppercase text-[var(--ink-soft)]"
-                    >
-                      {toolPart.state === "output-available" ? "Used" : "Using"}{" "}
-                      {toolLabel(toolPart.type)}
-                    </p>
+                      name={toolLabel(toolPart.type)}
+                      state={toolPart.state === "output-available" ? "done" : "running"}
+                    />
                   );
                 }
 
@@ -126,16 +127,11 @@ export function MessageThread({
 function AgentStamp({ agent }: { agent: AgentId }) {
   const copy = AGENT_COPY[agent];
   return (
-    <div className="flex items-center gap-3">
-      <span
-        className="inline-flex h-8 min-w-8 items-center justify-center border px-2 text-[0.65rem] font-bold tracking-[0.16em] uppercase"
-        style={{ borderColor: copy.tone, color: copy.tone }}
-      >
+    <div className="mb-2 flex items-center gap-2">
+      <Chip style={{ color: copy.tone, background: copy.tint }}>
         {copy.label}
-      </span>
-      <span className="text-xs tracking-[0.16em] uppercase text-[var(--ink-soft)]">
-        {copy.subject} specialist
-      </span>
+      </Chip>
+      <span className="text-xs text-[var(--bui-ink-3)]">{copy.subject} specialist</span>
     </div>
   );
 }

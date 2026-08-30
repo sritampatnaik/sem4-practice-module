@@ -1,4 +1,5 @@
 import type { AgentRuntimeContext, GradeLevel } from "./types";
+import { schoolGradeLabel } from "./types";
 
 const GRADE_LABEL: Record<GradeLevel, string> = {
   primary: "Primary school (MOE Primary syllabus)",
@@ -22,6 +23,7 @@ export function formatStudentContext(ctx: AgentRuntimeContext): string {
 
   return [
     `Student name: ${ctx.profile.name}`,
+    `Year: ${schoolGradeLabel(ctx.profile.grade, ctx.profile.gradeLevel)}`,
     `Grade band: ${GRADE_LABEL[ctx.profile.gradeLevel]}`,
     `Diagnostic snapshot: ${diagnostic || "not yet recorded"}`,
     `Tutor notes:`,

@@ -70,7 +70,7 @@ export async function POST(req: Request) {
   const ctx = {
     sessionId,
     profile,
-    recentChats: getRecentChats(sessionId),
+    recentChats: await getRecentChats(sessionId),
   };
 
   const routedAt = Date.now();
@@ -92,11 +92,15 @@ export async function POST(req: Request) {
     at: new Date().toISOString(),
   });
 
-  rememberTurn(sessionId, {
-    role: "user",
-    text: previewText(text),
-    at: new Date().toISOString(),
-  });
+  await rememberTurn(
+    sessionId,
+    {
+      role: "user",
+      text: previewText(text),
+      at: new Date().toISOString(),
+    },
+    profile,
+  );
 
   const agent = createAgent(routing.agent, ctx);
   const started = Date.now();
@@ -124,12 +128,16 @@ export async function POST(req: Request) {
     },
     onFinish: async ({ responseMessage }) => {
       const output = assistantText(responseMessage);
-      rememberTurn(sessionId, {
-        role: "assistant",
-        text: previewText(output || `${routing.agent} response`),
-        agent: routing.agent,
-        at: new Date().toISOString(),
-      });
+      await rememberTurn(
+        sessionId,
+        {
+          role: "assistant",
+          text: previewText(output || `${routing.agent} response`),
+          agent: routing.agent,
+          at: new Date().toISOString(),
+        },
+        profile,
+      );
       await logAgentTurn({
         id: newLogId(),
         sessionId,

@@ -25,10 +25,14 @@ function lastUserText(messages: Array<{ role: string; parts?: Array<{ type: stri
     .join("\n");
 }
 
+export type RoutingTurnResult = RoutingDecision & {
+  usage?: { inputTokens?: number; outputTokens?: number };
+};
+
 export async function routeStudentTurn(options: {
   ctx: AgentRuntimeContext;
   messages: Array<{ role: string; parts?: Array<{ type: string; text?: string }> }>;
-}): Promise<RoutingDecision> {
+}): Promise<RoutingTurnResult> {
   const query = lastUserText(options.messages);
 
   try {
@@ -41,13 +45,18 @@ export async function routeStudentTurn(options: {
     });
 
     const routed = result.output;
+    const usage = {
+      inputTokens: result.usage?.inputTokens,
+      outputTokens: result.usage?.outputTokens,
+    };
     if (!routed) {
-      return heuristicRoute(query, options.ctx.profile.gradeLevel);
+      return { ...heuristicRoute(query, options.ctx.profile.gradeLevel), usage };
     }
     return {
       ...routed,
       gradeLevel: routed.gradeLevel || options.ctx.profile.gradeLevel,
       promptVersion: ROUTING_PROMPT_VERSION,
+      usage,
     };
   } catch {
     return heuristicRoute(query, options.ctx.profile.gradeLevel);

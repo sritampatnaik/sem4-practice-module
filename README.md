@@ -38,6 +38,17 @@ Each person has a dedicated instruction file. Open yours before editing, and poi
 
 Also see [TEAM.md](./TEAM.md) and [AGENTS.md](./AGENTS.md) (what Cursor/other agents read).
 
+## Evals
+
+Ten gold-scaffolded items per agent suite, scored for accuracy, latency, and estimated cost. After `npm run dev`, open [/evals/datasets](http://localhost:3000/evals/datasets) to edit JSON, [/evals/evaluators](http://localhost:3000/evals/evaluators) for code or LLM-as-judge, and [/evals/scores](http://localhost:3000/evals/scores) for previous runs. Or:
+
+```bash
+npm run evals
+npm run evals -- --suite=routing
+```
+
+Optional Langfuse sync: `npm run langfuse:seed-evals`. See [langfuse/evals/README.md](./langfuse/evals/README.md). Chat is not traced to Langfuse yet.
+
 ## Langflow
 
 Optional prompt-log console. See [langflow/README.md](./langflow/README.md).
@@ -50,6 +61,6 @@ docker compose -f langflow/docker-compose.yml up
 
 - Next.js App Router + TypeScript
 - Vercel AI SDK (`ToolLoopAgent`, `useChat`)
-- OpenAI (model configurable via `OPENAI_MODEL`, default `gpt-4o`)
+- OpenAI (tutor default via `OPENAI_MODEL`, `gpt-4o`) and Gemini (`GOOGLE_GENERATIVE_AI_API_KEY`) for the eval Scores picker
 - Local syllabus markdown as a RAG stand-in
 - Langflow for prompt traces when configured
