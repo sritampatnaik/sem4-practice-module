@@ -31,6 +31,15 @@ function usageOf(result: {
   };
 }
 
+function toolNamesFrom(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((call) => {
+    if (!call || typeof call !== "object") return [];
+    const toolName = (call as { toolName?: unknown }).toolName;
+    return typeof toolName === "string" ? [toolName] : [];
+  });
+}
+
 async function runRoutingItem(item: EvalItem): Promise<Omit<EvalItemResult, "accuracy" | "passed" | "checks">> {
   const ctx = makeCtx(item);
   const { text } = sanitizeStudentMessage(item.prompt);
@@ -74,7 +83,15 @@ async function runAgentItem(item: EvalItem): Promise<Omit<EvalItemResult, "accur
   const agent = createAgent(item.targetAgent, ctx);
   const result = await agent.generate({ prompt: text });
   const usage = usageOf(result);
-  const toolCalls = (result.toolCalls ?? []).map((call) => call.toolName);
+  // AI SDK exposes the final step's calls at result.toolCalls. ToolLoopAgent
+  // usually calls a tool in an earlier step, then emits the final prose step,
+  // so collect tool names from every step for the deterministic scaffold.
+  const toolCalls = [
+    ...new Set([
+      ...(result.steps ?? []).flatMap((step) => toolNamesFrom(step.toolCalls)),
+      ...toolNamesFrom(result.toolCalls),
+    ]),
+  ];
   return {
     itemId: item.id,
     suiteId: item.suiteId,
