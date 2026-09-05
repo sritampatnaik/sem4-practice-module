@@ -1,6 +1,6 @@
 # METS evals
 
-Source of truth is the TypeScript catalog in `src/evals/catalog/` — ten gold-scaffolded items per suite (router, concierge, Math, Physics, Chemistry, Testing). Each item has a student prompt, a sample gold reply, and checks (routing fields, required tools, must / must-not phrases).
+Source of truth is the TypeScript catalog in `src/evals/catalog/` — gold-scaffolded items per suite (router, concierge, Math, Physics, Chemistry, Testing). Each item has a student prompt, a sample gold reply, and checks (routing fields, required tools, must / must-not phrases).
 
 The live desk runs those items and scores **accuracy** against the gold scaffold, plus **latency** and **estimated USD cost** from token usage.
 
