@@ -14,6 +14,8 @@ Read this alongside the [Math working instructions](README.md), [team ownership]
 
 ## Student offering and bounded scope
 
+Math implements the shared METS tutoring experience. The proposed common contract below applies across subjects; Math supplies the methods, examples, tools, and correctness checks needed to fulfil it. Shared proposals remain subject to team agreement and should move to a centrally maintained document once agreed, with this document referencing its version.
+
 **User promise:** Help a student understand a concept, work through a problem, or find a mistake in their working, using methods appropriate to their Singapore school level.
 
 The overall role covers Primary, O-Level Mathematics and Additional Mathematics, and JC H1/H2 Mathematics. For this submission, demonstrated reliability should be limited to an agreed topic set rather than claimed across the whole curriculum.
@@ -46,7 +48,22 @@ Excluded from the initial commitment: image or handwriting input, formal proof v
 
 The chat route chooses one agent per turn. Math receives the profile and recent memory through `AgentRuntimeContext`, while the agent stream also receives UI messages. Memory previews are truncated; they must not be treated as a complete learning history.
 
-## Teaching playbook
+## Proposed shared tutoring contract and Math specialisation
+
+The common workflow is **understand the request → choose an approach → use relevant evidence and tools → explain or guide → check and adapt**. This is a decision framework, not a mandatory sequence of model calls or questions. A clear request for a worked solution should not trigger an unnecessary diagnostic question. A conceptual explanation need not call a calculation tool unless a material calculation requires verification.
+
+| Shared expectation | Math specialisation | Subject flexibility |
+| --- | --- | --- |
+| Understand intent and relevant student context | Distinguish explanations, hints, solutions, checking working, and syllabus questions | Examples and diagnostic questions differ by subject |
+| Use methods appropriate to the band | Choose suitable mathematical methods and notation | Physics and Chemistry use their own disciplinary methods and conventions |
+| Support material claims with appropriate evidence | Check supported calculations and retrieve syllabus evidence for coverage claims | Tool choice and verification technique depend on the claim |
+| Explain clearly and respond to the student | Show mathematical working and address the first identifiable error | Explanations may use units, diagrams, chemical representations, or other suitable forms |
+| Handle uncertainty and failure honestly | Distinguish unverified calculations, ambiguous problems, and missing syllabus evidence | Recovery actions differ; evidence and honesty standards remain common |
+| Preserve continuity and agent boundaries | Use relevant context without inventing mastery or claiming an unperformed handoff | Testing follows an assessment workflow within the same context and evidence conventions |
+
+Consistency means common meanings for context, uncertainty, evidence, and outcomes. It does not require identical prompts, tool counts, response templates, or teaching methods. Testing shares these conventions but has separate requirements for assessment construction and feedback. Orchestration owns agent selection and ambiguous or mixed-request routing.
+
+### Math teaching playbook
 
 | Request or condition | Expected behaviour |
 | --- | --- |
@@ -58,6 +75,7 @@ The chat route chooses one agent per turn. Math receives the profile and recent 
 | Syllabus coverage question | Retrieve relevant evidence; distinguish confirmed coverage from insufficient evidence |
 | Quiz or flashcard request | Explain that assessment generation belongs to Testing; do not claim an actual handoff occurred |
 | Tool failure or unsupported calculation | Try one meaningful correction if the error is recoverable; otherwise explain the limitation and never claim successful tool verification |
+| Conflicting evidence or a challenged answer | Recheck assumptions, calculation inputs, and relevant evidence; correct an error when found and explain unresolved disagreement rather than automatically agreeing or repeating the answer |
 
 Use Singapore English and LaTeX. Adapt methods to the student's band. Respect explicit requests for hints, brevity, or complete working within the shared academic-integrity rules. A follow-up should respond to the student's new difficulty rather than repeat the previous answer unchanged. Present equations with enough surrounding explanation that the response remains understandable without relying on colour or visual layout alone.
 
@@ -83,6 +101,8 @@ Do not add more agents or tools without identifying the failure they address and
 
 ## Engineering requirements and evidence
 
+M1–M8 are Math's evidence obligations under the proposed common contract. They should map to shared requirement IDs once those exist, rather than become a separate engineering standard. Subject correctness and tool behaviour remain locally specified; failure severity, evidence sufficiency, privacy, and reporting conventions should be agreed centrally.
+
 | ID | Requirement | Evidence to collect |
 | --- | --- | --- |
 | M1 | Mathematical conclusions and intermediate steps are correct within the agreed scope | Independently reviewed reference answers and scored outputs |
@@ -98,11 +118,15 @@ For calculation outputs, distinguish numerical approximation from exact results.
 
 For failures, distinguish invalid input, unsupported capability, missing evidence, and infrastructure failure. Proposed policy: at most one corrected retry for a recoverable expression error, then explain the limitation. This policy is not currently enforced and must be reconciled with the overall agent step budget.
 
+Agree limits for expression size and complexity, tool execution time, and total request time with the platform owner. Check cancellation and interrupted streams: stopping the UI does not by itself prove that server or tool work stops. Record incomplete turns as such, and avoid duplicate memory or log entries on retries. These are shared integration checks; Math owns its expression-validation and tool-execution contribution.
+
 Explainability means clear mathematical working for the student and inspectable execution evidence for reviewers. Do not request or store private model reasoning. Routing rationale is a model-generated explanation, not proof of correctness. Logs should record useful events and necessary context without unnecessary personal data.
 
 ## Alignment with the other agents and shared platform
 
 The following are requests for agreement, not changes imposed on other owners.
+
+Agree shared behaviour before extracting shared code. Existing context types, tutor rules, and evaluation infrastructure are the starting point; this design does not require a new base-agent class or a single universal prompt. Record any necessary subject deviation with its reason, owner, evaluation evidence, and review date. Where approved shared guidance conflicts with a local proposal, update the local proposal or explicitly agree an exception.
 
 | Topic | Math responsibility | Alignment owner / dependency |
 | --- | --- | --- |
@@ -115,6 +139,8 @@ The following are requests for agreement, not changes imposed on other owners.
 | Security | Treat student text and retrieved text as untrusted data | Platform owner to be confirmed: authentication, session isolation, request validation and guardrails |
 | Evaluation | Supply Math cases, references, and rubric | Eval maintainer to be confirmed: shared runner, scoring, storage and reporting |
 | Operations | Stay within agreed tool budget and report dependencies | Platform owner to be confirmed: timeout, retries, latency/cost budgets and deployment |
+
+For transitions such as “explain this” → “quiz me” → “explain my mistake”, agree what context is available to the next selected agent: topic, band, requested teaching mode, and any observed answer or feedback. These are candidate information needs, not new fields mandated here. Test the current transport and memory paths before proposing contract changes. Do not assume quiz selections reach the server or become reliable evidence of mastery.
 
 Do not add a second database. Shared changes require coordination under `TEAM.md`. Math prompt edits require a `MATH_PROMPT_VERSION` bump and synchronisation of `langflow/prompts/math.system.md`.
 
@@ -154,11 +180,23 @@ Start with 24 reviewed cases: six conceptual explanations, six worked solutions,
 
 The robustness cases should cover malformed expressions, missing or conflicting context, irrelevant retrieval results, and attempts to override tutor instructions through student text or retrieved content. Exercise dependency failures through controlled simulation as additional tool or integration checks. Use synthetic student profiles and synthetic private-data markers in these tests.
 
+Include disagreement between a proposed solution and a tool result, conflicting syllabus evidence, and a student incorrectly challenging a correct answer as variants or follow-ups within the planned cases. Add controlled tool/integration checks for resource limits, cancellation, and retry behaviour. Keep these checks separate from the 24 model cases rather than expanding the topic commitment.
+
 Each case should include an ID, category, profile, input/history, expected mathematical result or behaviour, acceptable methods, relevant syllabus evidence where needed, expected tool behaviour, failure severity, and reference rationale. Do not require exact wording or one specific valid solution method.
+
+### Cross-subject alignment checks
+
+Choose at least six of the proposed 24 Math cases as counterparts to team-owned Physics and Chemistry cases: concept explanation, hint-only request, checking an error, syllabus uncertainty, tool failure, and a changed request in a follow-up. Use the same behavioural criteria and evidence format, with subject-appropriate questions and reference answers. These counterparts need not have identical difficulty or tool use, and should not be used as a subject ranking.
+
+Coordinate an additional system scenario covering teaching → Testing → explanation of an observed mistake. Check routing, context continuity, assessment boundaries, and honest handling of unavailable quiz results. This integration scenario is team-owned; passing isolated Math cases does not establish that the whole sequence works.
+
+Report shared-contract compliance separately from subject correctness and subject-specific tool checks. Use common definitions for pass, partial, fail, inconclusive, and not applicable. Calibrate reviewers on a small shared sample before comparing results. Dataset sizes, topic difficulty, and applicable dimensions may differ, so pooled scores alone are not a fair comparison between agents.
 
 ### Scoring and proposed acceptance
 
 Score correctness, teaching-mode compliance, grade suitability, grounding, verification honesty, and recovery separately. For rubric dimensions use 0 = failed, 1 = partial, 2 = met, with examples to calibrate reviewers. Mark inapplicable dimensions explicitly and exclude them from the denominator. Do not allow strong style scores to hide a wrong mathematical answer.
+
+The 0–2 rubric and targets below are proposals for alignment with the common framework, not an independent Math scoring standard. Retain subject-specific reference answers while agreeing score meanings, severity, and evidence requirements with the other owners.
 
 Proposed release criteria, subject to rubric and team agreement:
 
@@ -170,6 +208,8 @@ Proposed release criteria, subject to rubric and team agreement:
 
 Human review should establish reference correctness and inspect a sample of automated grades. An LLM judge may assist with the written rubric, but record its model/version and disagreements. Response-quality evaluations do not establish improved learning outcomes; that would require a separate student study.
 
+Treat the evaluated response, retrieved passages, and tool output as untrusted evidence supplied to the judge. They must not redefine the rubric or instruct the judge to pass a case. Include a judge check with an embedded instruction to award full marks, and confirm that scoring follows the actual evidence. Review disputed reference answers before attributing a failure to the tutor.
+
 ### Run record
 
 Record Git revision and any uncommitted changes, dataset and syllabus-corpus versions, model identifier, prompt version, settings, tool configuration, date, per-case results, execution errors, usage, and limitations. Report whether integration dependencies were real or simulated. Preserve a baseline before changing behaviour, then run relevant regressions after changes. These records make runs comparable; hosted model outputs may still vary.
@@ -177,20 +217,28 @@ Record Git revision and any uncommitted changes, dataset and syllabus-corpus ver
 ## Delivery sequence and definition of done
 
 1. Map assessment rubric criteria to requirements M1–M8 and evidence. Confirm the demonstration topics and user offering.
-2. Agree shared contracts, owners, critical-failure definitions, and acceptance targets with the team. Record decisions below.
+2. Agree the common tutoring contract, owners, critical-failure definitions, and acceptance targets with the team. Map Math requirements to it and record any justified deviations.
 3. Establish a reproducible baseline and identify failures before adding features.
 4. Implement prioritised Math-owned improvements and coordinate shared fixes separately.
-5. Run acceptance and integration checks; document results, residual risks, and unsupported capabilities.
+5. Run Math acceptance, cross-subject alignment, and team integration checks; document results, residual risks, and unsupported capabilities.
 
 The submission evidence should include this agreed design, the evaluation cases and scoring rubric, a baseline and final results report, and a short record of design decisions and remaining limitations. Optional comparisons or extra features follow only after the core evidence is complete.
 
+Maintain a compact evidence register for M1–M8 with an owner, design decision, implementation reference, check/result reference, and unresolved dependency. Record **designed**, **implemented**, and **verified** separately: a prompt instruction is implementation evidence for that instruction, not proof that the behaviour is reliable. Do not mark a requirement verified without a result tied to the tested revision and configuration.
+
+Before integration, name the owner who will triage failures spanning routing, tools, and UI. Preserve a known-good revision and configuration so regressions can be reproduced and reverted through the team's normal review process. Changes to shared contracts, retrieval, prompts, models, or the evaluation runner should trigger the relevant Math regressions and cross-subject checks.
+
 Completion means the agreed offering is implemented, acceptance evidence is reproducible, shared integration expectations are checked, prompt copies are synchronised when changed, and remaining limitations have an owner or an explicitly accepted exclusion. A polished demo alone is insufficient evidence.
+
+For the early design stage, completion means the team has agreed the offering, common contract, ownership, and evaluation approach. Once these are settled, establish the baseline before expanding this plan; add requirements when the rubric, observed failures, or integration evidence justify them.
 
 ## Decisions pending
 
 | Decision | Status |
 | --- | --- |
 | Module rubric mapping | Awaiting assessment requirements |
+| Common tutoring contract and central source of truth | Proposed here for team discussion; no shared policy change made |
+| Cross-subject cases and teaching/Testing transition evidence | Awaiting agreement with subject, Testing, and Orchestration owners |
 | Topic set and supported experiences | Proposed above; awaiting agreement |
 | Evaluation targets and critical-failure definitions | Proposed above; awaiting agreement |
 | Shared platform/evaluation owners and contracts | Awaiting team alignment |
