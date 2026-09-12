@@ -4,6 +4,8 @@ Owner: Gu Haixiang
 Status: Draft for team alignment; proposed targets are not approved requirements  
 Date: 10 September 2026
 
+Last reviewed: 12 September 2026, including fetched remote branches listed below.
+
 ## Purpose
 
 This document sets out what the Math agent should offer, how it should behave, and how we will assess it. The priority is to justify design decisions and demonstrate explainability, robustness, reproducible evaluation, and integration with METS. We will confirm the scope and acceptance targets against the module assessment rubric with the team.
@@ -129,6 +131,16 @@ These are baseline observations, not fixes delivered by this design document. Au
 
 Separate Math evaluation from routing and UI integration so failures can be attributed correctly. The Testing agent assesses students; the evaluation framework assesses METS.
 
+### Existing framework and required extensions
+
+Reuse the existing Math catalog and shared evaluation runner rather than creating a competing evaluation framework. The current runner executes one prompt with empty recent-chat memory and stores tool names, not their arguments or results. The proposed conversation and verification checks therefore need either an agreed extension to the shared runner or explicitly recorded manual/harness evidence until that extension is available.
+
+The existing deterministic scaffold uses phrase matching and tool-name presence with weighted scores; its `accuracy` field is not a direct measure of mathematical correctness. Our 0–2 rubric and 90% target are separate proposed measures. Report them under distinct labels until the team agrees a mapping. Valid alternative mathematical expressions must not fail solely because they differ from a reference phrase.
+
+Before trusting tool-use scores, collect calls from every agent step. Preserve ordered calls, arguments, results, and failures when assessing verification or retries: a list of distinct tool names only establishes presence. Add a fixture where a tool runs in an early step and the final step contains only prose, plus a negative fixture with no tool call.
+
+Use an explicit **inconclusive** outcome when required evidence is missing. Keep it separate from a behavioural failure and from an inapplicable criterion. Report evidence completeness, and do not pass an acceptance gate while required checks remain inconclusive. The current shared judge schema supports boolean pass/fail checks, so this distinction needs team agreement and implementation or a separate review record.
+
 ### Layers
 
 1. **Tool checks:** evaluation, simplification, precision, invalid syntax, unsupported expressions, and structured failures. Use deterministic checks where possible.
@@ -185,3 +197,25 @@ Completion means the agreed offering is implemented, acceptance evidence is repr
 | Latency, cost and retry budgets | Measure baseline, then agree |
 
 Record future decisions with date, owner, rationale, and supporting evidence. Keep this document aligned with the implemented behaviour rather than silently converting proposals into claims.
+
+## Review of other branches — 12 September 2026
+
+This review inspected fetched remote commits without merging or executing their code. The baseline is `origin/main` at `0380092`. Local unpushed work on teammates' machines is not visible. Branch names and commit IDs below record the reviewed snapshot; future changes need another review.
+
+| Branch and reviewed tip | Relevant work | Consequence for Math |
+| --- | --- | --- |
+| `origin/johnson`, `3cc84b6` | Physics forces a first-step tool for selected keyword patterns, versions its prompt, and updates the shared runner to collect tool names across steps | Coordinate adoption of the runner correction before interpreting missing-tool scores. Evaluate a Math-specific tool policy rather than copying Physics keywords |
+| `origin/harun`, `3158446` | Expands Testing to 100 catalog cases; adds judge guidance, tool-name registrations, and Testing evaluator instructions | Reuse evidence-based judging conventions and agree shared evaluator contracts. Math's proposed 24 cases remain justified by coverage, not another agent's case count |
+| `origin/cursor/langfuse-eval-structure-c26d`, `c52f46d` | Historical evaluation foundation | Its complete file tree matches main's earlier `457fa2d` commit. Treat it as already incorporated content despite separate commit ancestry |
+| `origin/cursor/mets-evals-slide-deck-ec68`, `61d73fb` | Evaluation presentation and outline | Useful explanation of intent, but its planned/current descriptions predate the present runner. It is not an additional implementation contract |
+
+### Decisions informed by this review
+
+- **Validate measurement before changing agent behaviour.** Physics's runner change addresses a risk that earlier tool calls are omitted from evaluation evidence. Establish the corrected baseline before deciding Math needs stronger tool forcing.
+- **Tool presence is only one check.** Physics's change deduplicates tool names; it does not retain payloads, order, counts, or proof that the response used a result correctly. Math still needs the richer evidence described above.
+- **Test any deterministic tool policy for false matches.** Physics chooses a single first-step tool using keyword precedence. For Math, compare prompt-led and deterministic policies on requests that require a tool, requests that do not, and mixed requests. A forced call must not replace missing-information handling or count as successful verification by itself.
+- **Adopt judge discipline, not an incompatible schema without coordination.** Testing's judge document asks for explicit evidence and supports `inconclusive`, while the live judge accepts `accuracy`, `passed`, and boolean checks. The document also refers to a judge-prompt column absent from its current eval overview. Confirm which conventions will become the shared executable contract.
+- **Do not infer assessment quality from prose alone.** Testing's expanded judge criteria include answer-key placement, visual handling, and performance recording. Tool names and final prose alone cannot establish widget contents, event order, or logging correctness. Apply the same evidence standard to Math verification claims.
+- **Keep integration ownership explicit.** Neither active branch changes Math files, and their changes from main touch different files. There is no direct file overlap with this documentation, but shared runner/evaluator semantics still require joint validation after integration.
+
+The user offering and specialist boundaries remain unchanged. The main adjustment is to make evaluation evidence and shared-runner readiness prerequisites for claiming that the Math acceptance criteria have been met.
