@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import {
@@ -87,7 +87,7 @@ export function EvalModelPicker({
   const selected = findEvalModel(value) ?? resolveEvalModel(value);
   const groups = modelsByProvider();
 
-  const placeMenu = () => {
+  const placeMenu = useCallback(() => {
     const button = buttonRef.current;
     if (!button) return;
     const rect = button.getBoundingClientRect();
@@ -100,12 +100,12 @@ export function EvalModelPicker({
       left,
       width,
     });
-  };
+  }, [compact]);
 
   useLayoutEffect(() => {
     if (!open) return;
     placeMenu();
-  }, [open, compact]);
+  }, [open, placeMenu]);
 
   useEffect(() => {
     if (!open) return;
@@ -128,7 +128,7 @@ export function EvalModelPicker({
       window.removeEventListener("resize", onReposition);
       window.removeEventListener("scroll", onReposition, true);
     };
-  }, [open, compact]);
+  }, [open, placeMenu]);
 
   const choose = (model: EvalModelOption) => {
     onChange(model.id);

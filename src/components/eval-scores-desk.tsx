@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { EvalModelPicker } from "@/components/eval-model-picker";
 import { Button } from "@/components/ui/button";
 import { FilterChips } from "@/components/ui/filter-chips";
@@ -158,20 +158,27 @@ function mergeCombined(
 function formatWhen(iso: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString("en-SG", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Singapore",
   });
 }
 
 function When({ iso }: { iso: string }) {
-  const [label, setLabel] = useState(iso.slice(0, 16).replace("T", " "));
-  useEffect(() => {
-    setLabel(formatWhen(iso));
-  }, [iso]);
-  return <span>{label}</span>;
+  return <time dateTime={iso}>{formatWhen(iso)}</time>;
+}
+
+const subscribeToClient = () => () => {};
+
+function useClientReady() {
+  return useSyncExternalStore(
+    subscribeToClient,
+    () => true,
+    () => false,
+  );
 }
 
 function readHistory(): EvalRunRecord[] {
@@ -209,6 +216,7 @@ async function readSse(response: Response, onEvent: (event: string, data: unknow
 }
 
 export function EvalScoresDesk({ initial }: { initial?: CatalogResponse }) {
+  const clientReady = useClientReady();
   const [catalog, setCatalog] = useState<CatalogResponse | null>(initial ?? null);
   const [run, setRun] = useState<EvalRun | null>(initial?.lastRun ?? null);
   const [liveItems, setLiveItems] = useState<EvalItemResult[]>(initial?.lastRun?.items ?? []);
@@ -223,15 +231,21 @@ export function EvalScoresDesk({ initial }: { initial?: CatalogResponse }) {
   );
   const [focusSuite, setFocusSuite] = useState<EvalSuiteId | "all">("all");
   const [compareBySuite, setCompareBySuite] = useState<Partial<Record<EvalSuiteId, string>>>({});
-  const [suiteModels, setSuiteModels] = useState<SuiteModels>(() =>
-    defaultSuiteModels(initial?.model ?? DEFAULT_EVAL_MODEL_ID),
+  const persistedSuiteModels = useMemo(
+    () =>
+      clientReady
+        ? readSuiteModels(
+            readSavedModel(initial?.model ?? DEFAULT_EVAL_MODEL_ID),
+            initial?.lastRun,
+          )
+        : defaultSuiteModels(initial?.model ?? DEFAULT_EVAL_MODEL_ID),
+    [clientReady, initial?.lastRun, initial?.model],
   );
-
-  useEffect(() => {
-    setSuiteModels(
-      readSuiteModels(readSavedModel(initial?.model ?? DEFAULT_EVAL_MODEL_ID), initial?.lastRun),
-    );
-  }, [initial?.lastRun, initial?.model]);
+  const [suiteModelOverrides, setSuiteModelOverrides] = useState<Partial<SuiteModels>>({});
+  const suiteModels = useMemo(
+    () => ({ ...persistedSuiteModels, ...suiteModelOverrides }),
+    [persistedSuiteModels, suiteModelOverrides],
+  );
 
   useEffect(() => {
     void fetch("/api/evals")
@@ -289,11 +303,10 @@ export function EvalScoresDesk({ initial }: { initial?: CatalogResponse }) {
   }, [suiteResults]);
 
   const setSuiteModel = (suiteId: EvalSuiteId, model: string) => {
-    setSuiteModels((current) => {
-      const next = { ...current, [suiteId]: resolveEvalModel(model).id };
-      writeSuiteModels(next);
-      return next;
-    });
+    const selectedModel = resolveEvalModel(model).id;
+    const next = { ...suiteModels, [suiteId]: selectedModel };
+    setSuiteModelOverrides((current) => ({ ...current, [suiteId]: selectedModel }));
+    writeSuiteModels(next);
   };
 
   const jobsFor = (suiteIds: EvalSuiteId[]): EvalJob[] =>
