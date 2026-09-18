@@ -5,6 +5,7 @@ import type { StudentProfile } from "@/agents/_shared/types";
 import { AuthDesk } from "@/components/auth-desk";
 import { OnboardingDesk } from "@/components/onboarding-desk";
 import { StudioShell } from "@/components/studio-shell";
+import { LoadingState } from "@/components/ui/loading-state";
 import { clearLocalStudent, loadProfile, saveProfile } from "@/lib/profile-storage";
 
 type AuthUser = { id: string; email: string };
@@ -106,7 +107,7 @@ export default function Home() {
   if (!ready) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
-        <p className="text-sm text-[var(--bui-ink-2)]">Loading your desk…</p>
+        <LoadingState label="Loading your desk" />
       </main>
     );
   }

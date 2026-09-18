@@ -5,17 +5,17 @@ import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMemoryItem, PromptLogEntry, RoutingDecision, StudentProfile } from "@/agents/_shared/types";
 import { schoolGradeLabel } from "@/agents/_shared/types";
+import { EntityChip } from "@/components/atoms/EntityChip";
+import { ValuePill } from "@/components/atoms/ValuePill";
 import { AppFrame, NavLink } from "@/components/app-frame";
 import { ConversationRail, type ConversationItem } from "@/components/conversation-rail";
 import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
-import { FollowUps } from "@/components/ui/follow-ups";
 import { LoadingState } from "@/components/ui/loading-state";
 import { PromptBar } from "@/components/ui/prompt-bar";
-import { Thinking } from "@/components/ui/thinking";
+import ThinkingState from "@/components/primitives/ThinkingState";
+import StreamingText from "@/components/primitives/StreamingText";
 import { AGENT_COPY } from "@/lib/agent-copy";
 import type { MetsUIMessage } from "@/lib/ui-types";
-import { MarkdownBody } from "./markdown-body";
 import { MessageThread } from "./message-thread";
 
 type TracePayload = {
@@ -40,6 +40,13 @@ function toUiMessages(items: ChatMemoryItem[]): MetsUIMessage[] {
     role: item.role,
     parts: [{ type: "text" as const, text: item.text }],
   }));
+}
+
+function routingTone(agent: RoutingDecision["agent"]): "neutral" | "green" | "orange" | "accent" {
+  if (agent === "chemistry") return "green";
+  if (agent === "physics") return "accent";
+  if (agent === "math" || agent === "testing") return "orange";
+  return "neutral";
 }
 
 export function StudioShell({
@@ -142,7 +149,7 @@ export function StudioShell({
         </>
       }
       actions={
-        <Button type="button" variant="ghost" onClick={onReset}>
+        <Button type="button" variant="quiet" size="sm" onClick={onReset}>
           {signedIn ? "Sign out" : "Leave desk"}
         </Button>
       }
@@ -150,9 +157,25 @@ export function StudioShell({
         <>
           <div>
             <p className="ui-label">Student</p>
-            <h1 className="mt-2 text-xl font-semibold tracking-tight">{profile.name}</h1>
+            <div className="mt-3">
+              <EntityChip
+                name={profile.name}
+                color={signedIn ? "#2f6fec" : "#64748b"}
+                monogram={profile.name.charAt(0).toUpperCase()}
+              />
+            </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight">{profile.name}</h1>
             <p className="mt-1 text-sm text-ink-2">{gradeLabel(profile)}</p>
             {email ? <p className="mt-1 truncate text-xs text-ink-3">{email}</p> : null}
+            {signedIn ? (
+              <ValuePill className="mt-3 ml-0" tone="accent">
+                Signed in
+              </ValuePill>
+            ) : (
+              <ValuePill className="mt-3 ml-0" tone="neutral">
+                Guest desk
+              </ValuePill>
+            )}
             <dl className="mt-6 grid gap-3">
               {(["math", "physics", "chemistry"] as const).map((subject) => (
                 <div key={subject}>
@@ -192,7 +215,7 @@ export function StudioShell({
         />
       ) : (
         <div className="flex h-[calc(100vh-3.4rem)] items-center px-8">
-          <p className="text-sm text-ink-2">Loading this chat…</p>
+          <LoadingState label="Loading this chat" />
         </div>
       )}
     </AppFrame>
@@ -210,7 +233,6 @@ function ChatPane({
   initialMessages: MetsUIMessage[];
   onFirstUserMessage: (text: string) => void;
 }) {
-  const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const transport = useMemo(
@@ -246,7 +268,6 @@ function ChatPane({
     if (!trimmed || busy) return;
     if (messages.length === 0) onFirstUserMessage(trimmed);
     sendMessage({ text: trimmed });
-    setInput("");
   }
 
   return (
@@ -261,10 +282,10 @@ function ChatPane({
           </p>
         </div>
         {routing ? (
-          <Chip className="hidden sm:inline-flex">
+          <ValuePill className="hidden sm:inline-flex" tone={routingTone(routing.agent)}>
             {AGENT_COPY[routing.agent].label} · {routing.intent} ·{" "}
             {Math.round(routing.confidence * 100)}%
-          </Chip>
+          </ValuePill>
         ) : null}
       </header>
 
@@ -277,6 +298,7 @@ function ChatPane({
         {busy ? (
           <LoadingState
             className="mt-5"
+            variant={status === "streaming" ? "Dots" : "Drive"}
             label={status === "submitted" ? "Reading your question" : "Writing"}
           />
         ) : null}
@@ -292,9 +314,7 @@ function ChatPane({
       <div className="px-5 pb-5 sm:px-8">
         <PromptBar
           id="tutor-input"
-          value={input}
-          onChange={setInput}
-          onSubmit={() => send(input)}
+          onSubmit={send}
           onStop={stop}
           busy={busy}
           placeholder="Explain chemical bonding for O-Level, or give me five kinematics MCQs."
@@ -330,19 +350,33 @@ function RoutingRail({ sessionId }: { sessionId: string }) {
           ? routing[0].rationale
           : "After you send a question, this rail shows which specialist answered and why."}
       </p>
-      <ol className="mt-5 grid gap-3 overflow-y-auto text-sm">
-        {routing.map((item, index) => (
-          <li key={`${item.agent}-${item.rationale}-${index}`}>
-            <Thinking
-              defaultOpen={index === 0}
-              summary={`${item.intent} → ${item.agent} · ${Math.round(item.confidence * 100)}%`}
-            >
-              <p className="leading-5 text-ink">{item.rationale}</p>
-              <p className="mt-1 text-xs text-ink-3">v{item.promptVersion}</p>
-            </Thinking>
-          </li>
-        ))}
-      </ol>
+      <div className="mt-5 grid gap-4 overflow-y-auto">
+        {routing.length === 0 ? (
+          <ThinkingState
+            variant="Steps"
+            active="Waiting for a question"
+            done="No turns yet"
+            rows={[
+              { primary: "Ask from the desk" },
+              { primary: "Orchestration picks a specialist" },
+              { primary: "This rail shows why" },
+            ]}
+          />
+        ) : (
+          routing.map((item, index) => (
+            <ThinkingState
+              key={`${item.agent}-${item.rationale}-${index}`}
+              variant="Reasoning"
+              active={`${item.intent} → ${item.agent}`}
+              done={`${item.intent} → ${item.agent} · ${Math.round(item.confidence * 100)}%`}
+              rows={[
+                { primary: item.rationale },
+                { primary: `Prompt v${item.promptVersion}`, mono: true },
+              ]}
+            />
+          ))
+        )}
+      </div>
     </>
   );
 }
@@ -357,13 +391,14 @@ function EmptyDesk({
   return (
     <div className="max-w-lg pt-6">
       <p className="text-3xl font-semibold tracking-tight">Hello, {name}.</p>
-      <div className="mt-3 text-ink-2">
-        <MarkdownBody
-          text={String.raw`Ask for a worked example, a syllabus check, or a short quiz. METS routes you to Math, Physics, Chemistry, or Testing. Equations typeset as maths, for example $F = ma$ or $$x = \dfrac{-b \pm \sqrt{b^{2}-4ac}}{2a}.$$`}
+      <div className="mt-4">
+        <StreamingText
+          fill
+          loop={false}
+          followUps={STARTERS}
+          labels={{ sources: "Syllabus maps", followUps: "Try" }}
+          onFollowUp={(text) => onPick(text)}
         />
-      </div>
-      <div className="mt-5">
-        <FollowUps items={STARTERS} onPick={onPick} />
       </div>
     </div>
   );

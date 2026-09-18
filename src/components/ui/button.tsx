@@ -1,17 +1,20 @@
-import type { ButtonHTMLAttributes } from "react";
-import { cn } from "@/lib/cn";
+"use client";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+import type { ButtonHTMLAttributes } from "react";
+import type { VariantProps } from "class-variance-authority";
+import {
+  Button as BeautifulButton,
+  buttonVariants,
+  type ButtonVariant,
+} from "@/components/atoms/Button";
+
+export { buttonVariants };
+export type { ButtonVariant };
 
 export function Button({
   variant = "primary",
-  className,
+  size = "md",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
-  return (
-    <button
-      className={cn("ui-btn", `ui-btn-${variant}`, className)}
-      {...props}
-    />
-  );
+}: ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>) {
+  return <BeautifulButton variant={variant} size={size} {...props} />;
 }
