@@ -142,7 +142,7 @@ export function MessageThread({
             <div className="mb-2">
               <EntityChip name={copy.label} color={copy.swatch} monogram={copy.label.charAt(0)} />
             </div>
-            <ChatSection label={copy.label} sub={`${copy.subject} specialist`} resolving={false}>
+            <ChatSection label={copy.label} sub="specialist" resolving={false}>
               {uniqueSteps.length > 0 ? (
                 <ToolChips
                   steps={uniqueSteps}
