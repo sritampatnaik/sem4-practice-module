@@ -6,12 +6,14 @@ Multi-Agent Educational & Testing System for the NUS-ISS Practice Module (Team 5
 
 ```bash
 cp .env.example .env.local
-# paste OPENAI_API_KEY into .env.local
+# paste OPENAI_API_KEY and SUPABASE_SERVICE_ROLE_KEY into .env.local
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. You can skip onboarding, or fill name, grade band, and three diagnostics, then ask to learn or to be tested.
+Open http://localhost:3000. Sign in (or create an account), then you can skip onboarding, or fill name, grade band, and three diagnostics, then ask to learn or to be tested.
+
+Login, student profiles, the last ten chats, and eval history use the **Sem 4 Practice Module** Supabase project. Copy the service role (or secret) key from the Dashboard into `SUPABASE_SERVICE_ROLE_KEY`. Never commit that key. Syllabus RAG is keyword search over `data/syllabus/*.md`.
 
 ## How the desk works
 
@@ -22,7 +24,7 @@ See [docs/HOW-IT-WORKS.md](./docs/HOW-IT-WORKS.md) for the full walkthrough. Sho
 3. The matching specialist streams a reply, using its own tools.
 4. Routing and prompts are logged to `logs/prompts.jsonl`, the UI audit rail, and optionally Langflow.
 
-Database and pgvector are intentionally not wired yet. Syllabus RAG is keyword search over `data/syllabus/*.md`.
+Profiles, chat memory, and eval history persist in Supabase when the server env vars are set. pgvector is still later; syllabus search stays local markdown.
 
 ## Team folders
 
@@ -62,5 +64,6 @@ docker compose -f langflow/docker-compose.yml up
 - Next.js App Router + TypeScript
 - Vercel AI SDK (`ToolLoopAgent`, `useChat`)
 - OpenAI (tutor default via `OPENAI_MODEL`, `gpt-4o`) and Gemini (`GOOGLE_GENERATIVE_AI_API_KEY`) for the eval Scores picker
+- Supabase Auth + Postgres (server-only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`)
 - Local syllabus markdown as a RAG stand-in
 - Langflow for prompt traces when configured

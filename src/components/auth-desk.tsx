@@ -11,8 +11,10 @@ export type AuthPayload = {
 
 export function AuthDesk({
   onSignedIn,
+  configured = true,
 }: {
   onSignedIn: (payload: AuthPayload) => void;
+  configured?: boolean;
 }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -23,6 +25,7 @@ export function AuthDesk({
   const signup = mode === "signup";
 
   async function submit() {
+    if (!configured) return;
     setBusy(true);
     setError(null);
     try {
@@ -64,6 +67,13 @@ export function AuthDesk({
             ? "Create an account so we can keep your name, grade band, and chat memory."
             : "Sign in to pick up your student profile and the last ten chats."}
         </p>
+        {configured ? null : (
+          <p className="mt-4 text-sm leading-6 text-[var(--bui-red)]" role="status">
+            This desk is not connected to Supabase yet. Set{" "}
+            <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> on
+            the server, then reload.
+          </p>
+        )}
 
         <form
           className="mt-8 grid gap-5"
@@ -82,6 +92,7 @@ export function AuthDesk({
               className="ui-field text-base"
               placeholder="you@school.edu.sg"
               required
+              disabled={!configured}
             />
           </label>
           <label className="grid gap-2">
@@ -95,17 +106,18 @@ export function AuthDesk({
               placeholder="At least 6 characters"
               minLength={6}
               required
+              disabled={!configured}
             />
           </label>
           {error ? <p className="text-sm text-[var(--bui-red)]">{error}</p> : null}
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || !configured}>
               {busy ? "Please wait…" : signup ? "Create account" : "Sign in"}
             </Button>
             <Button
               type="button"
               variant="ghost"
-              disabled={busy}
+              disabled={busy || !configured}
               onClick={() => {
                 setMode(signup ? "login" : "signup");
                 setError(null);

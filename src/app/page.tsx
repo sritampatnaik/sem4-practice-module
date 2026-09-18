@@ -11,6 +11,7 @@ type AuthUser = { id: string; email: string };
 
 type Snapshot = {
   ready: boolean;
+  configured: boolean;
   user: AuthUser | null;
   profile: StudentProfile | null;
   sessionId: string | null;
@@ -18,6 +19,7 @@ type Snapshot = {
 
 let snapshot: Snapshot = {
   ready: false,
+  configured: false,
   user: null,
   profile: null,
   sessionId: null,
@@ -39,6 +41,7 @@ function getSnapshot() {
 
 const SERVER_SNAPSHOT: Snapshot = {
   ready: false,
+  configured: false,
   user: null,
   profile: null,
   sessionId: null,
@@ -51,6 +54,7 @@ function getServerSnapshot() {
 function hydrateFromAuth() {
   snapshot = {
     ready: false,
+    configured: false,
     user: null,
     profile: loadProfile(),
     sessionId: null,
@@ -60,6 +64,7 @@ function hydrateFromAuth() {
     .then((response) => response.json())
     .then(
       (payload: {
+        configured?: boolean;
         user?: AuthUser | null;
         profile?: StudentProfile | null;
         sessionId?: string | null;
@@ -67,6 +72,7 @@ function hydrateFromAuth() {
         if (payload.profile) saveProfile(payload.profile);
         snapshot = {
           ready: true,
+          configured: Boolean(payload.configured),
           user: payload.user ?? null,
           profile: payload.profile ?? null,
           sessionId: payload.sessionId ?? null,
@@ -75,7 +81,13 @@ function hydrateFromAuth() {
       },
     )
     .catch(() => {
-      snapshot = { ready: true, user: null, profile: null, sessionId: null };
+      snapshot = {
+        ready: true,
+        configured: false,
+        user: null,
+        profile: null,
+        sessionId: null,
+      };
       emit();
     });
 }
@@ -85,7 +97,7 @@ if (typeof window !== "undefined") {
 }
 
 export default function Home() {
-  const { ready, user, profile, sessionId } = useSyncExternalStore(
+  const { ready, configured, user, profile, sessionId } = useSyncExternalStore(
     subscribe,
     getSnapshot,
     getServerSnapshot,
@@ -102,11 +114,13 @@ export default function Home() {
   if (!user) {
     return (
       <AuthDesk
+        configured={configured}
         onSignedIn={(payload) => {
           if (payload.profile) saveProfile(payload.profile);
           else clearLocalStudent();
           snapshot = {
             ready: true,
+            configured: true,
             user: payload.user,
             profile: payload.profile,
             sessionId: payload.sessionId,
@@ -122,7 +136,13 @@ export default function Home() {
       <OnboardingDesk
         onComplete={(next) => {
           saveProfile(next);
-          snapshot = { ready: true, user, profile: next, sessionId: user.id };
+          snapshot = {
+            ready: true,
+            configured: true,
+            user,
+            profile: next,
+            sessionId: user.id,
+          };
           emit();
           void fetch("/api/student", {
             method: "PUT",
@@ -142,7 +162,13 @@ export default function Home() {
       email={user.email}
       onReset={() => {
         clearLocalStudent();
-        snapshot = { ready: true, user: null, profile: null, sessionId: null };
+        snapshot = {
+          ready: true,
+          configured,
+          user: null,
+          profile: null,
+          sessionId: null,
+        };
         emit();
         void fetch("/api/auth", { method: "DELETE" });
       }}

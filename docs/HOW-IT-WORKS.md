@@ -4,7 +4,7 @@ Use this file when a teammate or another coding agent asks what the system is do
 
 ## Product
 
-METS (Multi-Agent Educational & Testing System) is Team 5's NUS-ISS Practice Module project. A student opens a foolscap-style desk, optionally fills name / grade / diagnostics (all skippable), then chats. The desk is a **tutor**, not a search engine: it should teach or test inside the Singapore MOE bands (Primary, Secondary O-Level, JC A-Level).
+METS (Multi-Agent Educational & Testing System) is Team 5's NUS-ISS Practice Module project. A student signs in, optionally fills name / grade / diagnostics (all skippable), then chats. The desk is a **tutor**, not a search engine: it should teach or test inside the Singapore MOE bands (Primary, Secondary O-Level, JC A-Level).
 
 ## Hierarchy
 
@@ -24,6 +24,8 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 | Piece | Path | Role |
 | --- | --- | --- |
 | Chat API | `src/app/api/chat/route.ts` | Glue: sanitize, route, stream, log |
+| Auth API | `src/app/api/auth/route.ts` | Supabase email login, httpOnly session cookie |
+| Student API | `src/app/api/student/route.ts` | Persist profile to `student_sessions` |
 | Trace API | `src/app/api/traces/route.ts` | Audit rail payload |
 | Agent factory | `src/agents/index.ts` | `createAgent(id, ctx)` |
 | Shared types | `src/agents/_shared/types.ts` | Profile, routing, quiz shapes |
@@ -51,11 +53,14 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 - Traces: `logs/prompts.jsonl` and the right-hand Routing log in the UI
 - Eval catalog: `src/evals/catalog/` (ten items per suite, gold scaffolds). Desk UI: `/evals/datasets` (JSON editor), `/evals/evaluators` (code or LLM-as-judge), `/evals/scores` (previous runs). CLI: `npm run evals`. Optional Langfuse sync: `npm run langfuse:seed-evals`.
 
-## What is deliberately unfinished
+## Persistence
 
-- Supabase stores student sessions, the last 10 chats, eval catalog edits, and eval runs. The Next.js API talks to it with the service role. There is still no login.
+Login is Supabase Auth (email and password). Profiles (`student_sessions`), the last 10 chats (`chat_memory`), and eval history persist when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set. Access is server-only via the service role (or Dashboard secret key).
+
+## What is still later
+
 - No pgvector yet. Syllabus search is local markdown.
 - Web search is a Wikipedia stub.
-- The browser still keeps a session id in localStorage.
+- The browser still caches the student profile in localStorage.
 
 When those land, keep the five-folder agent split. Do not collapse specialists into one file.
