@@ -120,7 +120,7 @@ export default function Home() {
           else clearLocalStudent();
           snapshot = {
             ready: true,
-            configured: true,
+            configured: configured || Boolean(payload.user.email),
             user: payload.user,
             profile: payload.profile,
             sessionId: payload.sessionId,
@@ -136,19 +136,22 @@ export default function Home() {
       <OnboardingDesk
         onComplete={(next) => {
           saveProfile(next);
+          const nextSessionId = sessionId ?? crypto.randomUUID();
           snapshot = {
             ready: true,
-            configured: true,
+            configured,
             user,
             profile: next,
-            sessionId: user.id,
+            sessionId: nextSessionId,
           };
           emit();
-          void fetch("/api/student", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ profile: next }),
-          });
+          if (user.email) {
+            void fetch("/api/student", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ profile: next }),
+            });
+          }
         }}
       />
     );
@@ -160,6 +163,7 @@ export default function Home() {
       profile={profile}
       sessionId={sessionId}
       email={user.email}
+      signedIn={Boolean(user.email)}
       onReset={() => {
         clearLocalStudent();
         snapshot = {

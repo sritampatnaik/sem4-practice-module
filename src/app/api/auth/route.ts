@@ -1,6 +1,30 @@
-import { clearAuthCookie, getAuthUser, parseEmailPassword, signInStudent, signUpStudent } from "@/lib/auth";
+import {
+  clearAuthCookie,
+  getAccessToken,
+  getAuthUser,
+  parseEmailPassword,
+  signInStudent,
+  signUpStudent,
+} from "@/lib/auth";
+import { createConversation, listConversations } from "@/lib/conversations";
 import { getStudentByUserId } from "@/lib/students";
 import { isSupabaseConfigured } from "@/lib/supabase";
+
+async function payloadForUser(user: { id: string; email: string }) {
+  const accessToken = await getAccessToken();
+  const profile = await getStudentByUserId(user.id, accessToken);
+  let conversations = await listConversations(user.id, accessToken);
+  if (!conversations.length) {
+    conversations = [await createConversation(user.id, { accessToken })];
+  }
+  return {
+    configured: isSupabaseConfigured(),
+    user,
+    profile,
+    sessionId: conversations[0]?.id ?? null,
+    conversations,
+  };
+}
 
 export async function GET() {
   const user = await getAuthUser();
@@ -10,15 +34,10 @@ export async function GET() {
       user: null,
       profile: null,
       sessionId: null,
+      conversations: [],
     });
   }
-  const profile = await getStudentByUserId(user.id);
-  return Response.json({
-    configured: isSupabaseConfigured(),
-    user,
-    profile,
-    sessionId: user.id,
-  });
+  return Response.json(await payloadForUser(user));
 }
 
 export async function POST(req: Request) {
@@ -35,14 +54,7 @@ export async function POST(req: Request) {
   if ("error" in result) {
     return Response.json({ error: result.error }, { status: 400 });
   }
-  const user = result.user;
-  const profile = await getStudentByUserId(user.id);
-  return Response.json({
-    configured: isSupabaseConfigured(),
-    user,
-    profile,
-    sessionId: user.id,
-  });
+  return Response.json(await payloadForUser(result.user));
 }
 
 export async function DELETE() {

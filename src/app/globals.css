@@ -35,10 +35,23 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
   --color-canvas: var(--bui-canvas);
+  --color-surface: var(--bui-surface);
   --color-ink: var(--bui-ink);
+  --color-ink-2: var(--bui-ink-2);
+  --color-ink-3: var(--bui-ink-3);
+  --color-hover: var(--bui-hover);
+  --color-hover-2: var(--bui-hover-2);
+  --color-field: var(--bui-field);
+  --color-line: var(--bui-line);
+  --color-line-strong: var(--bui-line-strong);
+  --color-accent: var(--bui-accent);
+  --color-accent-ink: var(--bui-accent-ink);
+  --color-red: var(--bui-red);
+  --radius-control: 8px;
+  --radius-card: 10px;
 }
 
 * {
@@ -52,10 +65,19 @@ body {
 
 body {
   margin: 0;
-  background: var(--bui-canvas);
+  background-color: var(--bui-canvas);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 7px,
+    color-mix(in srgb, var(--bui-ink) 6%, transparent) 7px,
+    color-mix(in srgb, var(--bui-ink) 6%, transparent) 8px
+  );
+  background-attachment: fixed;
   color: var(--bui-ink);
   font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.9375rem;
+  letter-spacing: -0.01em;
   line-height: 1.55;
 }
 

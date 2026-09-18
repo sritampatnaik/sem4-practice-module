@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getSupabaseAdmin } from "./supabase";
+import { getSupabaseAdmin, getSupabaseAuth } from "./supabase";
 
 const COOKIE = "mets-auth";
 
@@ -91,8 +91,13 @@ function asUser(id: string, email: string | undefined): AuthUser | null {
   return { id, email };
 }
 
+export async function getAccessToken() {
+  const stored = await readSession();
+  return stored?.access_token;
+}
+
 export async function getAuthUser(): Promise<AuthUser | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseAuth();
   const stored = await readSession();
   if (!supabase || !stored) return null;
 
@@ -120,16 +125,31 @@ export async function signUpStudent(
   email: string,
   password: string,
 ): Promise<{ user: AuthUser } | { error: string }> {
-  const supabase = getSupabaseAdmin();
+  const admin = getSupabaseAdmin();
+  if (admin) {
+    const created = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (created.error) return { error: friendlyAuthError(created.error.message) };
+    return signInStudent(email, password);
+  }
+
+  const supabase = getSupabaseAuth();
   if (!supabase) return { error: "Supabase is not configured." };
-
-  const created = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
+  const created = await supabase.auth.signUp({ email, password });
   if (created.error) return { error: friendlyAuthError(created.error.message) };
-
+  if (created.data.session && created.data.user?.email) {
+    await writeSession({
+      access_token: created.data.session.access_token,
+      refresh_token: created.data.session.refresh_token,
+      expires_at: created.data.session.expires_at,
+    });
+    return {
+      user: { id: created.data.user.id, email: created.data.user.email },
+    };
+  }
   return signInStudent(email, password);
 }
 
@@ -137,7 +157,7 @@ export async function signInStudent(
   email: string,
   password: string,
 ): Promise<{ user: AuthUser } | { error: string }> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseAuth();
   if (!supabase) return { error: "Supabase is not configured." };
 
   const signed = await supabase.auth.signInWithPassword({ email, password });

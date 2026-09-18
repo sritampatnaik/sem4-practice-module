@@ -4,7 +4,7 @@ Use this file when a teammate or another coding agent asks what the system is do
 
 ## Product
 
-METS (Multi-Agent Educational & Testing System) is Team 5's NUS-ISS Practice Module project. A student signs in, optionally fills name / grade / diagnostics (all skippable), then chats. The desk is a **tutor**, not a search engine: it should teach or test inside the Singapore MOE bands (Primary, Secondary O-Level, JC A-Level).
+METS (Multi-Agent Educational & Testing System) is Team 5's NUS-ISS Practice Module project. A student signs in, creates an account, or continues as a guest, optionally fills name / year / diagnostics (all skippable), then chats. The desk is a **tutor**, not a search engine: it should teach or test inside the Singapore MOE bands (Primary, Secondary O-Level, JC A-Level).
 
 ## Hierarchy
 
@@ -25,6 +25,7 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 | --- | --- | --- |
 | Chat API | `src/app/api/chat/route.ts` | Glue: sanitize, route, stream, log |
 | Auth API | `src/app/api/auth/route.ts` | Supabase email login, httpOnly session cookie |
+| Conversations API | `src/app/api/conversations/route.ts` | List / create threads; messages under `[id]` |
 | Student API | `src/app/api/student/route.ts` | Persist profile to `student_sessions` |
 | Trace API | `src/app/api/traces/route.ts` | Audit rail payload |
 | Agent factory | `src/agents/index.ts` | `createAgent(id, ctx)` |
@@ -39,9 +40,10 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 
 `AgentRuntimeContext` always includes:
 
-- `sessionId`
+- `sessionId` (the conversation id, not the Auth user id)
 - `profile` (name, `gradeLevel`, optional diagnostic mastery, notes)
-- `recentChats` (up to 10)
+- `recentChats` (up to 10 from this conversation)
+- `retrievedContext` (optional pgvector hits from the student's earlier chats)
 
 `src/agents/_shared/context.ts` turns that into a prompt block so specialists can personalise without seeing other agents' code.
 
@@ -55,11 +57,12 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 
 ## Persistence
 
-Login is Supabase Auth (email and password). Profiles (`student_sessions`), the last 10 chats (`chat_memory`), and eval history persist when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set. Access is server-only via the service role (or Dashboard secret key).
+Login is Supabase Auth (email and password). There is also a guest path that does not persist. Profiles (`student_sessions`), conversations, full chat history (`chat_memory`), same-project pgvector chunks (`chat_chunks`), and eval history persist when `SUPABASE_URL` is set with a service role / secret key, or with the publishable/anon key plus the signed-in user's JWT. Access stays server-only. Never prefix secrets with `NEXT_PUBLIC_`.
+
+Syllabus search is still local markdown. Chat retrieval is separate: chunk + `text-embedding-3-small` into `chat_chunks`, then `match_chat_chunks`.
 
 ## What is still later
 
-- No pgvector yet. Syllabus search is local markdown.
 - Web search is a Wikipedia stub.
 - The browser still caches the student profile in localStorage.
 

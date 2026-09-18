@@ -26,4 +26,4 @@ Each agent exports `*_PROMPT_VERSION`. Bump it when you edit `prompts.ts` so Lan
 
 ## Persistence
 
-Student profiles, chat memory, and evals persist in Supabase when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set. pgvector for syllabus embeddings is still later. RAG currently reads markdown in `data/syllabus/`.
+Student profiles, conversations, chat memory, chat-chunk pgvector, and evals persist in the same Supabase project when `SUPABASE_URL` is set with a service role / secret key, or with the anon/publishable key plus the user's JWT. Syllabus RAG still reads markdown in `data/syllabus/`.

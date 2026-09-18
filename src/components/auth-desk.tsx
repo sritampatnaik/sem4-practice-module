@@ -64,14 +64,13 @@ export function AuthDesk({
         </h1>
         <p className="mt-3 max-w-md text-[0.95rem] leading-6 text-[var(--bui-ink-2)]">
           {signup
-            ? "Create an account so we can keep your name, grade band, and chat memory."
-            : "Sign in to pick up your student profile and the last ten chats."}
+            ? "Create an account so we can keep your name, year, and previous chats."
+            : "Sign in to pick up your student profile and previous chats, or continue as a guest."}
         </p>
         {configured ? null : (
-          <p className="mt-4 text-sm leading-6 text-[var(--bui-red)]" role="status">
-            This desk is not connected to Supabase yet. Set{" "}
-            <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> on
-            the server, then reload.
+          <p className="mt-4 text-sm leading-6 text-ink-2" role="status">
+            Cloud login needs <code>SUPABASE_URL</code> and a service role or
+            publishable key on the server. You can still open the desk as a guest.
           </p>
         )}
 
@@ -117,13 +116,27 @@ export function AuthDesk({
             <Button
               type="button"
               variant="ghost"
-              disabled={busy || !configured}
+              disabled={busy}
               onClick={() => {
                 setMode(signup ? "login" : "signup");
                 setError(null);
               }}
             >
               {signup ? "I already have an account" : "Create an account"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={() =>
+                onSignedIn({
+                  user: { id: "guest", email: "" },
+                  profile: null,
+                  sessionId: crypto.randomUUID(),
+                })
+              }
+            >
+              Continue as guest
             </Button>
           </div>
         </form>
