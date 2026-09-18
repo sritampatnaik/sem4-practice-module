@@ -419,13 +419,6 @@ a:focus-visible .animated-underline::after {
   will-change: opacity, transform, filter;
 }
 
-/* The sidebar is one persistent 224px tree clipped by a 52px shell.
- * Every rail glyph remains centered at x=26 in both states. */
-  .records-footer-hint {
-    display: none;
-  }
-}
-
 /* ── filter table electric status colors ─────────────────── */
 
 /* ══════════════════════════════════════════════════════════
