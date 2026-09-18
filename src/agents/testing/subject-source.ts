@@ -114,6 +114,15 @@ function extractFormulaHints(chunks: SourceChunk[]) {
   );
 }
 
+function preferredChunks(chunks: SourceChunk[], gradeLevel: GradeLevel) {
+  const exactGrade = chunks.filter(
+    (chunk) => chunk.gradeLevel === gradeLevel && chunk.score > 0,
+  );
+  if (exactGrade.length) return exactGrade;
+
+  return chunks.filter((chunk) => chunk.score > 0).slice(0, 2);
+}
+
 function inferMisconceptionSeeds(query: string, concepts: string[]) {
   const haystack = `${query} ${concepts.join(" ")}`.toLowerCase();
   const seeds = [
@@ -164,16 +173,19 @@ function inferQuestionAngles(query: string, concepts: string[]) {
 function inferSuggestedVisual(query: string, concepts: string[]) {
   const haystack = `${query} ${concepts.join(" ")}`.toLowerCase();
 
-  if (/\bvelocity-time\b|\bdistance-time\b|\bgraph\b/.test(haystack)) {
+  if (/\bwaves?\b|\bwavelength\b|\bfrequency\b|\bamplitude\b/.test(haystack)) {
+    return "A simple labelled wave diagram showing amplitude, wavelength, or direction of oscillation may help.";
+  }
+  if (/\bvelocity-time\b|\bdistance-time\b|\bgraph\b|\bkinematics\b|\bacceleration\b|\bmotion\b/.test(haystack)) {
     return "A simple labelled motion graph highlighting gradient or area may help.";
   }
-  if (/\bcircuit\b|\bcurrent\b|\bvoltage\b|\bresistance\b/.test(haystack)) {
+  if (/\bcircuits?\b|\bcurrent\b|\bvoltage\b|\bresistance\b/.test(haystack)) {
     return "A simple labelled circuit sketch may help.";
   }
-  if (/\blens\b|\breflection\b|\brefraction\b|\blight\b/.test(haystack)) {
+  if (/\blenses?\b|\breflection\b|\brefraction\b|\blight\b/.test(haystack)) {
     return "A simple labelled ray diagram may help.";
   }
-  if (/\bforce\b|\bmoment\b|\bpressure\b/.test(haystack)) {
+  if (/\bforces?\b|\bmoments?\b|\bpressure\b/.test(haystack)) {
     return "A simple labelled force diagram may help.";
   }
 
@@ -190,10 +202,11 @@ export async function buildPhysicsAssessmentSource(
     query: sourceQuery,
     gradeLevel: input.gradeLevel,
   });
+  const focusedChunks = preferredChunks(sourceChunks, input.gradeLevel);
 
   const supported = sourceChunks.some((chunk) => chunk.score > 0);
-  const keyConcepts = extractKeyConcepts(sourceChunks);
-  const formulaHints = extractFormulaHints(sourceChunks);
+  const keyConcepts = extractKeyConcepts(focusedChunks);
+  const formulaHints = extractFormulaHints(focusedChunks);
   const misconceptionSeeds = inferMisconceptionSeeds(sourceQuery, keyConcepts);
   const questionAngles = inferQuestionAngles(sourceQuery, keyConcepts);
   const suggestedVisual = inferSuggestedVisual(sourceQuery, keyConcepts);
@@ -209,7 +222,7 @@ export async function buildPhysicsAssessmentSource(
     supportReason: supported
       ? "Physics syllabus matches were found for this request."
       : "No strong Physics syllabus match was found. Narrow the topic or ask the student to clarify before inventing content.",
-    sourceChunks,
+    sourceChunks: focusedChunks,
     keyConcepts,
     formulaHints,
     misconceptionSeeds,

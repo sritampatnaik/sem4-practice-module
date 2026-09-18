@@ -173,21 +173,28 @@ Related support work for reporting:
   - `src/agents/testing/prompts.ts`
   - `src/agents/testing/tools.ts`
   - `src/agents/testing/subject-source.ts`
+  - `src/agents/testing/harness.ts`
+  - `src/agents/testing/CLAUDE.md`
   - `src/agents/testing/README.md`
   - `src/agents/testing/fixtures/scenarios.ts`
   - `langflow/prompts/testing.system.md`
 - **Validated:**
   - targeted lint for the edited Testing files
   - direct TypeScript load check for the new Physics source tool path
+  - live harness requests on `http://localhost:3000/api/testing-harness`
 - **Findings:**
   - the previous Testing flow still relied too much on the model's implicit Physics knowledge
   - a Testing-owned source pack is a cleaner compromise than specialist-to-specialist communication
   - Physics is a safe first slice because its prompts and harness scenarios are already well represented
+  - the harness originally under-reported tool activity because top-level `toolCalls` / `toolResults` were empty even when `steps` showed tool execution
+  - the harness should derive debug payloads from `result.steps` so Testing tool inputs and outputs are inspectable
+  - Physics MCQ generation can still produce correctness mistakes unless the marked answer is checked against the explanation
+  - `recordPerformance` should stay note-only so the agent cannot invent an outcome field during assessment generation
 - **Blockers:**
   - live model validation still depends on `OPENAI_API_KEY`
   - Maths and Chemistry still need equivalent Testing-owned source tools if the architecture is extended consistently
 - **Next:**
-  - run the Physics harness scenarios and inspect source-pack usage
+  - rerun the Physics harness scenarios and confirm top-level tool payloads now match step activity
   - decide whether to add Maths or Chemistry next
   - add eval coverage for source-tool ordering and unsupported-topic failures
 

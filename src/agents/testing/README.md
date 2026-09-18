@@ -41,7 +41,7 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - `planAssessment` — internal planning aid for MCQ vs flashcard, topic extraction, and whether a Mermaid diagram may help
 - `getRecentPerformance` — reads the latest Testing notes for the current session from `logs/testing-performance/`
 - `createMermaidDiagram` — builds Mermaid text for simple labelled visuals; the current UI does **not** render Mermaid yet
-- `recordPerformance` — stores a compact Testing note for later follow-up; do not invent outcomes or scores
+- `recordPerformance` — stores a compact Testing note for later follow-up; this tool is for notes only, so do not include outcome or score fields
 
 ## Current subject-sourcing direction
 
@@ -67,6 +67,7 @@ The `execute` functions currently echo the structured input. That is enough for 
 - If the subject is ambiguous, pick one and say so, or ask one clarifying question.
 - Treat Math / Physics / Chemistry as black-box specialists. Testing should use its own tools and shared syllabus search rather than calling subject agents.
 - For Physics in the current rollout, Testing should ground the assessment through `getPhysicsAssessmentSource` instead of relying on unstated subject knowledge alone.
+- For Physics calculation MCQs, the final numeric answer in the explanation must agree with the marked correct option.
 - Keep one public Testing agent. If you need more modularity, add helper modules/tools inside `src/agents/testing/` rather than adding new top-level routed agents.
 - If a Physics topic is not strongly supported by the source tool, fail explicitly and ask for a narrower topic instead of making content up.
 
