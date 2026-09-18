@@ -65,7 +65,7 @@ const topicStopwords = new Set([
 ]);
 
 function cleanTopic(value: string) {
-  return value.replace(/\s+/g, " ").replace(/^[,;:\- ]+|[,;:\- ]+$/g, "").trim();
+  return value.replace(/\s+/g, " ").replace(/^[,;:.\- ]+|[,;:.\- ]+$/g, "").trim();
 }
 
 function uniqueTopics(topics: string[]) {
@@ -82,7 +82,7 @@ function uniqueTopics(topics: string[]) {
   return results;
 }
 
-function extractTopics(request: string) {
+export function extractAssessmentTopics(request: string) {
   const lower = request.toLowerCase();
   const byLeadIn = lower.match(/\b(?:on|about|for|covering)\b(.+)$/i);
   const source =
@@ -123,7 +123,7 @@ function inferVisualFormat(request: string): VisualFormat {
 export function buildAssessmentPlan(input: AssessmentPlanInput): AssessmentPlan {
   const mode = inferMode(input.request);
   const visualFormat = inferVisualFormat(input.request);
-  const topics = extractTopics(input.request);
+  const topics = extractAssessmentTopics(input.request);
 
   const rationaleParts = [
     mode === "flashcards"

@@ -11,6 +11,7 @@ import {
   appendAssessmentPerformanceEntry,
   readRecentAssessmentPerformance,
 } from "./performance-log";
+import { buildPhysicsAssessmentSource } from "./subject-source";
 
 const subjectSchema = z.enum(["math", "physics", "chemistry"]);
 const gradeLevelSchema = z.enum(["primary", "secondary", "jc"]);
@@ -100,6 +101,18 @@ export const planAssessmentTool = tool({
   execute: async (input) => buildAssessmentPlan(input),
 });
 
+export const getPhysicsAssessmentSourceTool = tool({
+  description:
+    "Build structured Physics source material for the Testing agent before creating Physics MCQs or flashcards. Use this before generating a Physics widget.",
+  inputSchema: z.object({
+    request: nonEmptyText,
+    gradeLevel: gradeLevelSchema,
+    topics: z.array(nonEmptyText).min(1).max(4).optional(),
+    requestedCount: z.number().int().min(1).max(8).optional(),
+  }),
+  execute: async (input) => buildPhysicsAssessmentSource(input),
+});
+
 export const createMermaidDiagramTool = tool({
   description:
     "Build a simple Mermaid diagram spec for a Testing response when a labelled visual helps.",
@@ -181,46 +194,46 @@ export const createFlashcardsTool = tool({
 });
 
 export function getRecentPerformanceTool(ctx: AgentRuntimeContext) {
-    return tool({
-      description:
-        "Read the most recent Testing-performance notes for this session so follow-up quizzes can adapt.",
-      inputSchema: z.object({
-        limit: z.number().int().min(1).max(10).default(5),
-      }),
-      execute: async ({ limit }) => readRecentAssessmentPerformance(ctx.sessionId, limit),
-    });
+  return tool({
+    description:
+      "Read the most recent Testing-performance notes for this session so follow-up quizzes can adapt.",
+    inputSchema: z.object({
+      limit: z.number().int().min(1).max(10).default(5),
+    }),
+    execute: async ({ limit }) => readRecentAssessmentPerformance(ctx.sessionId, limit),
+  });
 }
 
 export function recordPerformanceTool(ctx: AgentRuntimeContext) {
-    return tool({
-      description:
-        "Persist a compact Testing note for this session. Log real student outcomes only when they are explicitly known.",
-      inputSchema: z.object({
-        subject: subjectSchema,
-        mode: testingModeSchema,
-        title: nonEmptyText,
-        topics: z.array(nonEmptyText).min(1).max(8),
-        visualFormat: visualFormatSchema.default("none"),
-        note: nonEmptyText,
-        outcome: nonEmptyText.optional(),
-      }),
-      execute: async (input) => {
-        const savedPaths = await appendAssessmentPerformanceEntry({
-          sessionId: ctx.sessionId,
-          studentName: ctx.profile.name,
-          gradeLevel: ctx.profile.gradeLevel,
-          ...input,
-          at: new Date().toISOString(),
-        });
+  return tool({
+    description:
+      "Persist a compact Testing note for this session. Log real student outcomes only when they are explicitly known.",
+    inputSchema: z.object({
+      subject: subjectSchema,
+      mode: testingModeSchema,
+      title: nonEmptyText,
+      topics: z.array(nonEmptyText).min(1).max(8),
+      visualFormat: visualFormatSchema.default("none"),
+      note: nonEmptyText,
+      outcome: nonEmptyText.optional(),
+    }),
+    execute: async (input) => {
+      const savedPaths = await appendAssessmentPerformanceEntry({
+        sessionId: ctx.sessionId,
+        studentName: ctx.profile.name,
+        gradeLevel: ctx.profile.gradeLevel,
+        ...input,
+        at: new Date().toISOString(),
+      });
 
-        return {
-          saved: true,
-          sessionId: ctx.sessionId,
-          studentName: ctx.profile.name,
-          gradeLevel: ctx.profile.gradeLevel,
-          ...input,
-          ...savedPaths,
-        };
-      },
-    });
+      return {
+        saved: true,
+        sessionId: ctx.sessionId,
+        studentName: ctx.profile.name,
+        gradeLevel: ctx.profile.gradeLevel,
+        ...input,
+        ...savedPaths,
+      };
+    },
+  });
 }
