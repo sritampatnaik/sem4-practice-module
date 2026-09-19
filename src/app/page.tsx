@@ -5,7 +5,7 @@ import type { StudentProfile } from "@/agents/_shared/types";
 import { AuthDesk } from "@/components/auth-desk";
 import { OnboardingDesk } from "@/components/onboarding-desk";
 import { StudioShell } from "@/components/studio-shell";
-import { LoadingState } from "@/components/ui/loading-state";
+import { Spinner } from "@/components/ui/spinner";
 import { clearLocalStudent, loadProfile, saveProfile } from "@/lib/profile-storage";
 
 type AuthUser = { id: string; email: string };
@@ -106,8 +106,12 @@ export default function Home() {
 
   if (!ready) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <LoadingState label="Loading your desk" />
+      <main
+        className="flex min-h-screen items-center justify-center px-4"
+        aria-busy="true"
+        aria-label="Loading"
+      >
+        <Spinner className="size-5 text-ink-2" />
       </main>
     );
   }
