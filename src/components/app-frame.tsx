@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Monogram } from "@/components/atoms/EntityChip";
 import { cn } from "@/lib/cn";
 
 export function BrandMark() {
   return (
     <Link href="/" className="flex items-center gap-2.5 no-underline">
-      <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink text-[0.65rem] font-semibold tracking-wide text-surface">
+      <Monogram color="#111827" className="size-7 text-[0.65rem]">
         M
-      </span>
+      </Monogram>
       <span className="text-[0.95rem] font-semibold tracking-tight text-ink">
         METS
       </span>
