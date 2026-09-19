@@ -165,7 +165,11 @@ export async function signUpStudent(
       expires_at: created.data.session.expires_at,
     });
     return {
-      user: { id: created.data.user.id, email: created.data.user.email },
+      user: asUser(
+        created.data.user.id,
+        created.data.user.email,
+        created.data.user.app_metadata,
+      )!,
     };
   }
   return signInStudent(email, password);
@@ -189,6 +193,10 @@ export async function signInStudent(
     expires_at: signed.data.session.expires_at,
   });
   return {
-    user: { id: signed.data.user.id, email: signed.data.user.email },
+    user: asUser(
+      signed.data.user.id,
+      signed.data.user.email,
+      signed.data.user.app_metadata,
+    )!,
   };
 }

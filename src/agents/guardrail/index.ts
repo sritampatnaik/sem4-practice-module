@@ -16,7 +16,7 @@ export {
   storeGuardrailAlert,
   resetGuardrailMemoryForTests,
 } from "./store";
-export { getAdminAccess, isAdminUser, adminDevBypassEnabled } from "./access";
+export { getAdminAccess, isAdminUser } from "./access";
 export type { GuardrailAlert, GuardrailCategory, GuardrailClassification } from "./types";
 
 export const guardrailMeta = {

@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <AppFrame
       actions={
         <p className="text-xs text-ink-3">
-          {access.user?.email || (access.bypass ? "Local staff bypass" : "Staff")}
+          {access.user.email}
         </p>
       }
     >
