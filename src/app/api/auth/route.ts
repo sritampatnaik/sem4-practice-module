@@ -8,7 +8,7 @@ import {
 } from "@/lib/auth";
 import { createConversation, listConversations } from "@/lib/conversations";
 import { getStudentByUserId } from "@/lib/students";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseAuthConfigured } from "@/lib/supabase";
 
 async function payloadForUser(user: { id: string; email: string }) {
   const accessToken = await getAccessToken();
@@ -18,7 +18,7 @@ async function payloadForUser(user: { id: string; email: string }) {
     conversations = [await createConversation(user.id, { accessToken })];
   }
   return {
-    configured: isSupabaseConfigured(),
+    configured: isSupabaseAuthConfigured(),
     user,
     profile,
     sessionId: conversations[0]?.id ?? null,
@@ -30,7 +30,7 @@ export async function GET() {
   const user = await getAuthUser();
   if (!user) {
     return Response.json({
-      configured: isSupabaseConfigured(),
+      configured: isSupabaseAuthConfigured(),
       user: null,
       profile: null,
       sessionId: null,

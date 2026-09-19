@@ -72,8 +72,8 @@ export function AuthDesk({
         </p>
         {configured ? null : (
           <p className="mt-4 text-sm leading-6 text-ink-2" role="status">
-            Cloud login needs <code>SUPABASE_URL</code> and a service role or
-            publishable key on the server. You can still open the desk as a guest.
+            Cloud login needs <code>SUPABASE_URL</code> and a publishable or
+            anon key on the server. You can still open the desk as a guest.
           </p>
         )}
 
