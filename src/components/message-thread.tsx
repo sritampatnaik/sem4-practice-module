@@ -31,7 +31,8 @@ function toolLabel(type: string) {
 
 function toolIcon(type: string, state?: string) {
   if (state === "output-error") return "think";
-  if (type === "tool-createMcqSet" || type === "tool-createFlashcards") return "write";
+  if (type === "tool-createMcqSet") return "quiz";
+  if (type === "tool-createFlashcards") return "flashcards";
   if (type.toLowerCase().includes("syllabus") || type.toLowerCase().includes("search")) {
     return "read";
   }

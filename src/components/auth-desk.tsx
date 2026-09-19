@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { EntityChip } from "@/components/atoms/EntityChip";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -61,7 +62,10 @@ export function AuthDesk({
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="ui-card w-full max-w-xl px-7 py-8 sm:px-9 sm:py-10">
         <EntityChip name="METS" color="#111827" monogram="M" className="ml-0" />
-        <p className="ui-label mt-4">NUS-ISS Practice Module · Team 5</p>
+        <p className="ui-label mt-4 inline-flex items-center gap-1.5">
+          <Icon icon="school" size={13} />
+          NUS-ISS Practice Module · Team 5
+        </p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
           METS
         </h1>
@@ -85,7 +89,10 @@ export function AuthDesk({
           }}
         >
           <label className="grid gap-2">
-            <span className="ui-label">Email</span>
+            <span className="ui-label inline-flex items-center gap-1.5">
+              <Icon icon="mail" size={12} />
+              Email
+            </span>
             <input
               type="email"
               autoComplete="email"
@@ -98,7 +105,10 @@ export function AuthDesk({
             />
           </label>
           <label className="grid gap-2">
-            <span className="ui-label">Password</span>
+            <span className="ui-label inline-flex items-center gap-1.5">
+              <Icon icon="password" size={12} />
+              Password
+            </span>
             <input
               type="password"
               autoComplete={signup ? "new-password" : "current-password"}
@@ -114,7 +124,8 @@ export function AuthDesk({
           {error ? <p className="text-sm text-red">{error}</p> : null}
           {busy ? <LoadingState label={signup ? "Creating your desk" : "Signing in"} /> : null}
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" variant="primary" disabled={busy || !configured}>
+            <Button type="submit" variant="primary" disabled={busy || !configured} className="gap-1.5">
+              <Icon icon={signup ? "createAccount" : "signIn"} size={14} />
               {signup ? "Create account" : "Sign in"}
             </Button>
             <Button
@@ -134,6 +145,7 @@ export function AuthDesk({
               variant="secondary"
               size="sm"
               disabled={busy}
+              className="gap-1.5"
               onClick={() =>
                 onSignedIn({
                   user: { id: "guest", email: "" },
@@ -142,6 +154,7 @@ export function AuthDesk({
                 })
               }
             >
+              <Icon icon="guest" size={14} />
               Continue as guest
             </Button>
           </div>
