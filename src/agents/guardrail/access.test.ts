@@ -1,52 +1,43 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { adminDevBypassEnabled, isAdminUser, parseEmailList, parseRoleList } from "./access";
+import { isAdminUser, parseEmailList } from "./access";
 import { notifyRecipients } from "./notify";
 import { resetGuardrailMemoryForTests, storeGuardrailAlert } from "./store";
 
-test("admin email and role gates", () => {
+test("admin role gate", () => {
   assert.deepEqual(parseEmailList("Parent@School.edu.sg, tutor@moe.edu.sg"), [
     "parent@school.edu.sg",
     "tutor@moe.edu.sg",
   ]);
   assert.deepEqual(parseEmailList("not-an-email"), []);
-  assert.deepEqual(parseRoleList(undefined), ["admin", "tutor", "parent"]);
+
+  assert.equal(isAdminUser({ email: "admin@school.edu.sg", role: "admin" }), true);
+  assert.equal(isAdminUser({ email: "staff@school.edu.sg" }), false);
+  assert.equal(isAdminUser({ email: "tutor@school.edu.sg", role: "tutor" }), false);
+  assert.equal(isAdminUser({ email: "parent@home.sg", role: "parent" }), false);
+  assert.equal(isAdminUser({ email: "student@school.edu.sg", role: "student" }), false);
+  assert.equal(isAdminUser(null), false);
 
   const previous = {
     emails: process.env.METS_ADMIN_EMAILS,
-    roles: process.env.METS_ADMIN_ROLES,
     parent: process.env.METS_PARENT_NOTIFY_EMAIL,
-    dev: process.env.METS_ADMIN_DEV,
-    node: process.env.NODE_ENV,
   };
-
   try {
     process.env.METS_ADMIN_EMAILS = "staff@school.edu.sg";
-    process.env.METS_ADMIN_ROLES = "admin";
     process.env.METS_PARENT_NOTIFY_EMAIL = "parent@home.sg";
-    process.env.METS_ADMIN_DEV = "1";
-    setEnv("NODE_ENV", "development");
-
-    assert.equal(isAdminUser({ email: "staff@school.edu.sg" }), true);
-    assert.equal(isAdminUser({ email: "student@school.edu.sg" }), false);
-    assert.equal(isAdminUser({ email: "student@school.edu.sg", role: "admin" }), true);
-    assert.equal(isAdminUser({ email: "student@school.edu.sg", role: "student" }), false);
-    assert.equal(adminDevBypassEnabled(), true);
-
-    setEnv("NODE_ENV", "production");
-    assert.equal(adminDevBypassEnabled(), false);
-
     assert.deepEqual(notifyRecipients("carer@family.sg").sort(), [
       "carer@family.sg",
       "parent@home.sg",
       "staff@school.edu.sg",
     ]);
+    assert.equal(
+      isAdminUser({ email: "staff@school.edu.sg" }),
+      false,
+      "notify emails must not open /admin",
+    );
   } finally {
     setEnv("METS_ADMIN_EMAILS", previous.emails);
-    setEnv("METS_ADMIN_ROLES", previous.roles);
     setEnv("METS_PARENT_NOTIFY_EMAIL", previous.parent);
-    setEnv("METS_ADMIN_DEV", previous.dev);
-    setEnv("NODE_ENV", previous.node);
   }
 });
 

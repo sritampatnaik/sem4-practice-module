@@ -22,10 +22,8 @@ function formatWhen(value: string) {
 
 export function AdminAlertsDesk({
   initialAlerts,
-  developmentBypass = false,
 }: {
   initialAlerts: GuardrailAlert[];
-  developmentBypass?: boolean;
 }) {
   const [alerts, setAlerts] = useState(initialAlerts);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -83,9 +81,6 @@ export function AdminAlertsDesk({
         <ValuePill tone={openCount ? "red" : "green"}>
           {openCount} open · {alerts.length} total
         </ValuePill>
-        {developmentBypass ? (
-          <ValuePill tone="orange">Local staff bypass</ValuePill>
-        ) : null}
       </div>
       {error ? <p className="mt-4 text-sm text-red">{error}</p> : null}
 

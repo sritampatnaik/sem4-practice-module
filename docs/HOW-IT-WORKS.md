@@ -62,7 +62,7 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 
 Login is Supabase Auth (email and password). Create-account uses public `signUp` (publishable or anon key) plus an auto-confirm trigger — not Auth Admin. There is also a guest path that does not persist. Profiles (`student_sessions`), conversations, full chat history (`chat_memory`), same-project pgvector chunks (`chat_chunks`), eval history, and Guardrail alerts (`guardrail_alerts`) persist when `SUPABASE_URL` is set with a service role / secret key, or with the publishable/anon key plus the signed-in user's JWT. Guardrail rows are service-role only so students cannot read them. Access stays server-only. Never prefix secrets with `NEXT_PUBLIC_`.
 
-Staff open `/admin` (not linked from the student desk) with `METS_ADMIN_EMAILS` or Auth `app_metadata.role`. Email uses `METS_PARENT_NOTIFY_EMAIL`, optional `student_sessions.parent_email`, and Resend when configured.
+Staff open `/admin` (not linked from the student desk) only when Auth `app_metadata.role` is `admin`. Anyone else gets a 404. Email uses `METS_PARENT_NOTIFY_EMAIL`, optional `student_sessions.parent_email`, and Resend when configured.
 
 Syllabus search is still local markdown. Chat retrieval is separate: chunk + `text-embedding-3-small` into `chat_chunks`, then `match_chat_chunks`.
 

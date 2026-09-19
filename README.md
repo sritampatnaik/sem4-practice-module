@@ -22,7 +22,7 @@ See [docs/HOW-IT-WORKS.md](./docs/HOW-IT-WORKS.md) for the full walkthrough. Sho
 1. Student message lands on `/api/chat`.
 2. Orchestration classifies intent, subject, and grade band.
 3. The matching specialist streams a reply, using its own tools.
-4. Guardrail classifies the turn in the background. Hits land on `/admin` for parents and tutors (never on the student desk).
+4. Guardrail classifies the turn in the background. Hits land on `/admin` for admins (never on the student desk).
 5. Routing and prompts are logged to `logs/prompts.jsonl`, the UI audit rail, and optionally Langflow.
 
 Signed-in profiles, conversations, chat memory, pgvector chat chunks, and eval history persist in that same Supabase project. Syllabus search stays local markdown. The tutor chrome uses Beautiful UI tokens (`src/app/globals.css`).
