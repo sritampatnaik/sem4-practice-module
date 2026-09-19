@@ -1,19 +1,18 @@
 "use client";
 
+import { DiagnosticsDesk } from "@/components/diagnostics-desk";
 import { StudentGate } from "@/components/student-gate";
-import { StudioShell } from "@/components/studio-shell";
 
-export default function Home() {
+export default function DiagnosticsPage() {
   return (
     <StudentGate>
       {(session) => (
-        <StudioShell
-          key={session.sessionId}
+        <DiagnosticsDesk
           profile={session.profile}
-          sessionId={session.sessionId}
           email={session.email}
           signedIn={session.signedIn}
           onReset={session.onReset}
+          onSaved={session.persistProfile}
         />
       )}
     </StudentGate>

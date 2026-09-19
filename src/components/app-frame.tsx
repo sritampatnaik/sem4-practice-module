@@ -20,6 +20,22 @@ export function BrandMark() {
   );
 }
 
+export function DeskNav() {
+  return (
+    <>
+      <NavLink href="/" icon="tutor">
+        Tutor
+      </NavLink>
+      <NavLink href="/diagnostics" icon="question">
+        Diagnostics
+      </NavLink>
+      <NavLink href="/evals" icon="evals">
+        Evals
+      </NavLink>
+    </>
+  );
+}
+
 export function NavLink({
   href,
   active,

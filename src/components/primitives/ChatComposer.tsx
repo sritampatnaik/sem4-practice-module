@@ -50,19 +50,25 @@ const DEFAULT_LABELS: ChatComposerLabels = {
 export function ChatUserBubble({
   children,
   visible = true,
+  size = "compact",
 }: {
   children: ReactNode;
   visible?: boolean;
+  size?: "compact" | "message";
 }) {
+  const message = size === "message";
   return (
-    <div className="flex justify-end pl-14">
+    <div className={message ? "flex w-full justify-end" : "flex justify-end pl-14"}>
       <div
-        className="rounded-xl bg-field px-3 py-1.5 text-[13px] leading-[1.4] text-ink
-          transition-[opacity,transform] duration-300"
+        className={
+          message
+            ? "max-w-[min(36rem,85%)] rounded-2xl bg-field px-4 py-2.5 text-[0.9375rem] leading-6 text-ink shadow-[var(--bui-shadow-hairline)]"
+            : "rounded-xl bg-field px-3 py-1.5 text-[13px] leading-[1.4] text-ink"
+        }
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? "translateY(0)" : "translateY(10px)",
-          transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)",
+          transition: "opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), transform 300ms cubic-bezier(0.23, 1, 0.32, 1)",
         }}
       >
         {children}
