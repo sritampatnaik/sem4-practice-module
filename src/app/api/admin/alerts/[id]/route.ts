@@ -14,7 +14,7 @@ export async function PATCH(
   if (!id) {
     return Response.json({ error: "Alert id is required." }, { status: 400 });
   }
-  const by = access.user?.email || (access.bypass ? "dev-bypass" : "staff");
+  const by = access.user.email;
   const alert = await acknowledgeGuardrailAlert(id, by);
   if (!alert) {
     return Response.json({ error: "Alert not found." }, { status: 404 });

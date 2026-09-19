@@ -26,7 +26,7 @@ Escalate. Do not give harmful instructions, methods, or a student-facing reply.
 | `index.ts` | `monitorStudentTurn` — the only entry the chat route should call. |
 | `store.ts` | `guardrail_alerts` in Supabase (service role). In-memory fallback if the secret key is unset. |
 | `notify.ts` | Optional Resend email. |
-| `access.ts` | `/admin` gate (`METS_ADMIN_EMAILS` / `app_metadata.role`). |
+| `access.ts` | `/admin` gate (`app_metadata.role === "admin"` only). |
 | `langflow/prompts/guardrail.system.md` | Keep in sync after prompt edits. |
 
 You may also hook `src/app/api/chat/route.ts` (after the specialist reply) and the staff page under `src/app/admin/`. Do not add Guardrail to `createAgent` or `AGENT_IDS`.
@@ -43,11 +43,11 @@ Orchestration must never choose `guardrail`. Students stay on Math, Physics, Che
 
 ## Admin page
 
-`/admin` is staff-only. It is not linked from the student desk. Gate with `METS_ADMIN_EMAILS` (comma-separated) and/or Supabase `app_metadata.role` in `admin`, `tutor`, `parent` (override with `METS_ADMIN_ROLES`). Local bypass: `METS_ADMIN_DEV=1` when `NODE_ENV` is not production.
+`/admin` is admin-only. It is not linked from the student desk. Gate on Supabase Auth `app_metadata.role === "admin"` (never `user_metadata`). Anyone else, including signed-in students, gets a 404. `METS_ADMIN_EMAILS` is only for optional alert email, not access.
 
 ## How to test
 
 1. Keyword tests: `npx tsx --test src/agents/guardrail/*.test.ts`
 2. Open `/` as a guest. Confirm there is no Admin nav.
-3. Open `/admin` without staff credentials. You should get a 404.
-4. With `METS_ADMIN_DEV=1 npm run dev`, open `/admin` and confirm alerts render after a flagged chat turn.
+3. Open `/admin` as a guest or a student. You should get a 404.
+4. Sign in as the admin Auth user (`app_metadata.role = admin`) and open `/admin`. Alerts should render after a flagged chat turn.
