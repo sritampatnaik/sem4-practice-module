@@ -7,8 +7,8 @@ export default function EvalsLayout({ children }: { children: ReactNode }) {
     <AppFrame
       nav={
         <>
-          <NavLink href="/">Tutor</NavLink>
-          <NavLink href="/evals">Evals</NavLink>
+          <NavLink href="/" icon="tutor">Tutor</NavLink>
+          <NavLink href="/evals" icon="evals">Evals</NavLink>
         </>
       }
     >

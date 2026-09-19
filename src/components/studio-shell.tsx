@@ -9,6 +9,7 @@ import { EntityChip } from "@/components/atoms/EntityChip";
 import { ValuePill } from "@/components/atoms/ValuePill";
 import { AppFrame, NavLink } from "@/components/app-frame";
 import { ConversationRail, type ConversationItem } from "@/components/conversation-rail";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import { PromptBar } from "@/components/ui/prompt-bar";
@@ -144,12 +145,13 @@ export function StudioShell({
     <AppFrame
       nav={
         <>
-          <NavLink href="/">Tutor</NavLink>
-          <NavLink href="/evals">Evals</NavLink>
+          <NavLink href="/" icon="tutor">Tutor</NavLink>
+          <NavLink href="/evals" icon="evals">Evals</NavLink>
         </>
       }
       actions={
-        <Button type="button" variant="quiet" size="sm" onClick={onReset}>
+        <Button type="button" variant="quiet" size="sm" className="gap-1.5" onClick={onReset}>
+          <Icon icon={signedIn ? "signOut" : "guest"} size={14} />
           {signedIn ? "Sign out" : "Leave desk"}
         </Button>
       }
@@ -168,18 +170,23 @@ export function StudioShell({
             <p className="mt-1 text-sm text-ink-2">{gradeLabel(profile)}</p>
             {email ? <p className="mt-1 truncate text-xs text-ink-3">{email}</p> : null}
             {signedIn ? (
-              <ValuePill className="mt-3 ml-0" tone="accent">
+              <ValuePill className="mt-3 ml-0 gap-1" tone="accent">
+                <Icon icon="signedIn" size={12} />
                 Signed in
               </ValuePill>
             ) : (
-              <ValuePill className="mt-3 ml-0" tone="neutral">
+              <ValuePill className="mt-3 ml-0 gap-1" tone="neutral">
+                <Icon icon="guest" size={12} />
                 Guest desk
               </ValuePill>
             )}
             <dl className="mt-6 grid gap-3">
               {(["math", "physics", "chemistry"] as const).map((subject) => (
                 <div key={subject}>
-                  <dt className="ui-label">{subject}</dt>
+                  <dt className="ui-label inline-flex items-center gap-1">
+                    <Icon icon={subject} size={12} />
+                    {subject}
+                  </dt>
                   <dd className="mt-1 text-sm capitalize">
                     {profile.diagnostic[subject] ?? "unseen"}
                   </dd>
@@ -282,7 +289,8 @@ function ChatPane({
           </p>
         </div>
         {routing ? (
-          <ValuePill className="hidden sm:inline-flex" tone={routingTone(routing.agent)}>
+          <ValuePill className="hidden gap-1 sm:inline-flex" tone={routingTone(routing.agent)}>
+            <Icon icon={routing.agent} size={12} />
             {AGENT_COPY[routing.agent].label} · {routing.intent} ·{" "}
             {Math.round(routing.confidence * 100)}%
           </ValuePill>
