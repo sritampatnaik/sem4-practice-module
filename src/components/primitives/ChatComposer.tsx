@@ -62,7 +62,7 @@ export function ChatUserBubble({
       <div
         className={
           message
-            ? "max-w-[min(36rem,85%)] rounded-2xl bg-field px-4 py-2.5 text-[0.9375rem] leading-6 text-ink shadow-[var(--bui-shadow-hairline)]"
+            ? "max-w-[min(36rem,85%)] rounded-2xl bg-hover-2 px-4 py-2.5 text-[0.9375rem] leading-6 text-ink"
             : "rounded-xl bg-field px-3 py-1.5 text-[13px] leading-[1.4] text-ink"
         }
         style={{
