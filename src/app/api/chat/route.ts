@@ -11,7 +11,9 @@ import {
   type AgentId,
   type StudentProfile,
 } from "@/agents/_shared/types";
+import { getAccessToken, getAuthUser } from "@/lib/auth";
 import { sanitizeStudentMessage } from "@/lib/guardrails";
+import { retrieveChatContext } from "@/lib/embeddings";
 import { logAgentTurn } from "@/lib/langflow";
 import { getModelId } from "@/lib/llm";
 import { getRecentChats, previewText, rememberTurn } from "@/lib/memory";
@@ -63,14 +65,24 @@ export async function POST(req: Request) {
 
   const messages = body.messages ?? [];
   const profile = body.profile ?? DEFAULT_PROFILE;
-  const sessionId = body.sessionId ?? "anon";
+  const user = await getAuthUser();
+  const accessToken = await getAccessToken();
+  const sessionId = body.sessionId ?? user?.id ?? "anon";
   const query = lastUserText(messages);
   const { text, flagged } = sanitizeStudentMessage(query);
+  const retrievedContext = user
+    ? await retrieveChatContext({
+        userId: user.id,
+        query: text,
+        accessToken,
+      })
+    : [];
 
   const ctx = {
     sessionId,
     profile,
-    recentChats: await getRecentChats(sessionId),
+    recentChats: await getRecentChats(sessionId, accessToken),
+    retrievedContext,
   };
 
   const routedAt = Date.now();
@@ -96,10 +108,12 @@ export async function POST(req: Request) {
     sessionId,
     {
       role: "user",
-      text: previewText(text),
+      text: previewText(text, 8000),
       at: new Date().toISOString(),
     },
     profile,
+    user?.id,
+    accessToken,
   );
 
   const agent = createAgent(routing.agent, ctx);
@@ -132,11 +146,13 @@ export async function POST(req: Request) {
         sessionId,
         {
           role: "assistant",
-          text: previewText(output || `${routing.agent} response`),
+          text: previewText(output || `${routing.agent} response`, 8000),
           agent: routing.agent,
           at: new Date().toISOString(),
         },
         profile,
+        user?.id,
+        accessToken,
       );
       await logAgentTurn({
         id: newLogId(),
