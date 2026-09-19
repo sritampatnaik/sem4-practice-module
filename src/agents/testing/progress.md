@@ -2,7 +2,7 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Folder:** `src/agents/testing/`  
-**Last updated:** 2026-08-20
+**Last updated:** 2026-09-18
 
 ## Purpose
 
@@ -39,6 +39,7 @@ Future chat sessions can read this file first to resume work quickly.
   - `createFlashcards` tool for interactive flashcard widgets
   - subject-specific document search tools for Math, Physics, and Chemistry
   - prompt guidance to generate original, syllabus-aligned assessments
+  - a Physics-first Testing-owned source-tool path for grounding Physics assessments before widget generation
 
 ## What is already implemented for Testing
 
@@ -53,7 +54,11 @@ Future chat sessions can read this file first to resume work quickly.
 - `index.ts`
   - wires the Testing Agent with both widget tools
   - includes syllabus search tools for all three subjects
-  - uses `ToolLoopAgent` and `stepCountIs(8)`
+  - now forces a Physics-first sourcing step for obvious Physics requests
+  - uses `ToolLoopAgent` and `stepCountIs(10)`
+- `subject-source.ts`
+  - builds a structured Physics source pack from the syllabus search layer
+  - returns support status, source excerpts, key concepts, formula hints, misconception seeds, question angles, and optional visual cues
 
 ## Proposal mapping
 
@@ -135,12 +140,56 @@ Related support work for reporting:
 
 ## Likely gaps to investigate next
 
-1. Run the three representative Testing scenarios once an `OPENAI_API_KEY` is available.
-2. Confirm the live model consistently chooses MCQs vs flashcards correctly from user intent.
-3. Confirm whether `recordPerformance` produces useful notes without adding too much tool chatter.
-4. Decide whether the next architecture slice should add a combined verifier / marker module.
-5. Add direct tool-contract checks around the new harness and performance-log flow.
+1. Run Physics harness scenarios once an `OPENAI_API_KEY` is available and confirm `getPhysicsAssessmentSource` is called before the Physics widget tool.
+2. Confirm the model actually uses the Physics source pack rather than falling back to vague generic content.
+3. Decide how quickly Maths and Chemistry should get equivalent Testing-owned source tools.
+4. Confirm whether `recordPerformance` still produces useful notes without too much tool chatter after the extra sourcing step.
+5. Add direct tool-contract checks around the source-pack shape and the harness output order.
 6. If any widget-rendering issue appears during live checks, coordinate with Sritam before touching shared UI files.
+
+## 2026-09-18 architecture update
+
+- **Decision:** keep Testing fully self-contained and do not let it communicate with the Math / Physics / Chemistry agents.
+- **Physics-first implementation added:**
+  - `src/agents/testing/subject-source.ts`
+  - `getPhysicsAssessmentSource` tool in `src/agents/testing/tools.ts`
+  - Testing prompt guidance that Physics requests must source content first
+  - a first-step tool choice in `src/agents/testing/index.ts` for obvious Physics requests
+- **Engineering rationale:**
+  - preserves the one-agent routing model
+  - keeps subject sourcing, assessment planning, widget generation, and logging separated
+  - makes Physics support explicit and testable rather than implicit model knowledge
+
+### Why this matters
+
+- This keeps the Testing subsystem aligned with the repository rule that specialists do not talk to each other.
+- It gives Harun a cleaner software-engineering story for the professors: explicit contracts, explicit failures, and narrower responsibilities.
+- It creates a reusable pattern for future Maths and Chemistry source tools without changing teammate-owned agent code.
+
+## 2026-09-18 session update
+
+- **Changed:**
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/subject-source.ts`
+  - `src/agents/testing/README.md`
+  - `src/agents/testing/fixtures/scenarios.ts`
+  - `langflow/prompts/testing.system.md`
+- **Validated:**
+  - targeted lint for the edited Testing files
+  - direct TypeScript load check for the new Physics source tool path
+- **Findings:**
+  - the previous Testing flow still relied too much on the model's implicit Physics knowledge
+  - a Testing-owned source pack is a cleaner compromise than specialist-to-specialist communication
+  - Physics is a safe first slice because its prompts and harness scenarios are already well represented
+- **Blockers:**
+  - live model validation still depends on `OPENAI_API_KEY`
+  - Maths and Chemistry still need equivalent Testing-owned source tools if the architecture is extended consistently
+- **Next:**
+  - run the Physics harness scenarios and inspect source-pack usage
+  - decide whether to add Maths or Chemistry next
+  - add eval coverage for source-tool ordering and unsupported-topic failures
 
 ## Suggested next-session start
 

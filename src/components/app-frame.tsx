@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Monogram } from "@/components/atoms/EntityChip";
 import { cn } from "@/lib/cn";
 
 export function BrandMark() {
   return (
     <Link href="/" className="flex items-center gap-2.5 no-underline">
-      <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--bui-ink)] text-[0.65rem] font-semibold tracking-wide text-white">
+      <Monogram color="#111827" className="size-7 text-[0.65rem]">
         M
-      </span>
-      <span className="text-[0.95rem] font-semibold tracking-tight text-[var(--bui-ink)]">
+      </Monogram>
+      <span className="text-[0.95rem] font-semibold tracking-tight text-ink">
         METS
       </span>
     </Link>
@@ -39,8 +40,8 @@ export function NavLink({
       className={cn(
         "rounded-lg px-2.5 py-1.5 text-sm no-underline transition-colors",
         isActive
-          ? "bg-[var(--bui-field)] font-medium text-[var(--bui-ink)] shadow-[var(--bui-shadow-hairline)]"
-          : "text-[var(--bui-ink-2)] hover:bg-[var(--bui-hover)] hover:text-[var(--bui-ink)]",
+          ? "bg-field font-medium text-ink shadow-[var(--bui-shadow-hairline)]"
+          : "text-ink-2 hover:bg-hover hover:text-ink",
       )}
     >
       {children}
@@ -62,14 +63,14 @@ export function AppFrame({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-[var(--bui-canvas)] text-[var(--bui-ink)]">
+    <div className="flex min-h-screen bg-canvas text-ink">
       {sidebar ? (
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--bui-line)] bg-[var(--bui-surface)] px-5 py-5 lg:flex">
+        <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col overflow-hidden border-r border-line bg-surface px-4 py-5 lg:flex">
           {sidebar}
         </aside>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-[var(--bui-line)] bg-[var(--bui-surface)] px-5 py-3 sm:px-6">
+        <header className="flex items-center justify-between gap-4 border-b border-line bg-surface px-5 py-3 sm:px-6">
           <div className="flex items-center gap-5">
             <BrandMark />
             <nav className="flex items-center gap-1">{nav}</nav>
@@ -79,7 +80,7 @@ export function AppFrame({
         <div className="flex min-h-0 min-w-0 flex-1">
           <main className="min-w-0 flex-1">{children}</main>
           {rail ? (
-            <aside className="hidden w-80 shrink-0 flex-col border-l border-[var(--bui-line)] bg-[var(--bui-surface)] px-5 py-5 xl:flex">
+            <aside className="sticky top-0 hidden h-[calc(100vh-3.4rem)] w-80 shrink-0 flex-col overflow-y-auto border-l border-line bg-surface px-5 py-5 xl:flex">
               {rail}
             </aside>
           ) : null}

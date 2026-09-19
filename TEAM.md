@@ -24,6 +24,6 @@ A specialist agent must not import another specialist. Only orchestration / the 
 
 Each agent exports `*_PROMPT_VERSION`. Bump it when you edit `prompts.ts` so Langflow logs stay comparable. Copy the gist into `langflow/prompts/`.
 
-## Later (not in this slice)
+## Persistence
 
-Student profiles, chat memory, and evals persist in Supabase. pgvector for syllabus embeddings is still later. RAG currently reads markdown in `data/syllabus/`.
+Student profiles, conversations, chat memory, chat-chunk pgvector, and evals persist in the same Supabase project when `SUPABASE_URL` is set with a service role / secret key, or with the anon/publishable key plus the user's JWT. Syllabus RAG still reads markdown in `data/syllabus/`.

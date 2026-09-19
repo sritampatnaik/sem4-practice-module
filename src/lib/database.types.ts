@@ -9,6 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_chunks: {
+        Row: {
+          chunk_index: number;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          embedding: string | number[] | null;
+          id: number;
+          user_id: string;
+        };
+        Insert: {
+          chunk_index?: number;
+          content: string;
+          conversation_id: string;
+          created_at?: string;
+          embedding?: string | number[] | null;
+          id?: never;
+          user_id: string;
+        };
+        Update: {
+          chunk_index?: number;
+          content?: string;
+          conversation_id?: string;
+          created_at?: string;
+          embedding?: string | number[] | null;
+          id?: never;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      conversations: {
+        Row: {
+          created_at: string;
+          id: string;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id: string;
+          title?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          title?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       chat_memory: {
         Row: {
           agent: string | null;
@@ -140,7 +194,19 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      match_chat_chunks: {
+        Args: {
+          filter_user_id: string;
+          match_count: number;
+          query_embedding: string | number[];
+        };
+        Returns: {
+          content: string;
+          conversation_id: string;
+          id: number;
+          similarity: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

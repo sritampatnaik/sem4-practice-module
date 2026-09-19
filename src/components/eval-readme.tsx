@@ -58,7 +58,7 @@ const STEPS = [
     title: "Edit only your gold items",
     href: "/evals/datasets",
     tab: "Datasets",
-    body: "Filter to your agent. Open an item, edit the JSON, save. Add a new item if you need a case the current ten miss. Do not rewrite another person's suite.",
+    body: "Filter to your agent. Open an item, edit the JSON, save. Add a new item if you need a case the current catalog misses. Do not rewrite another person's suite.",
   },
   {
     n: "2",

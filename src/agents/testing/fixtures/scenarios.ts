@@ -54,6 +54,12 @@ export const TESTING_FIXTURE_SCENARIOS: TestingFixtureScenario[] = [
       },
     ],
   },
+  {
+    id: "secondary-physics-waves-flashcards",
+    profileId: "secondaryOLevel",
+    prompt: "Make flashcards on waves for O-Level Physics.",
+    subject: "physics",
+  },
 ];
 
 export function findTestingFixtureScenario(id: string) {

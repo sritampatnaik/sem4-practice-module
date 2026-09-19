@@ -31,6 +31,8 @@ export const EVAL_TOOL_NAMES = [
   "reactionBalancer",
   "createMcqSet",
   "createFlashcards",
+  "recordPerformance",
+  "createMermaidDiagram",
   "webSearch",
 ] as const;
 

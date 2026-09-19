@@ -30,6 +30,10 @@ export function formatStudentContext(ctx: AgentRuntimeContext): string {
     notes,
     `Short-term memory (last ${Math.min(ctx.recentChats.length, 10)} chats):`,
     memory || "- none yet",
+    `Retrieved chat context:`,
+    ctx.retrievedContext?.length
+      ? ctx.retrievedContext.map((item) => `- ${item}`).join("\n")
+      : "- none yet",
   ].join("\n");
 }
 

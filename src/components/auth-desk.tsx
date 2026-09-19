@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { EntityChip } from "@/components/atoms/EntityChip";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export type AuthPayload = {
   user: { id: string; email: string };
@@ -11,8 +13,10 @@ export type AuthPayload = {
 
 export function AuthDesk({
   onSignedIn,
+  configured = true,
 }: {
   onSignedIn: (payload: AuthPayload) => void;
+  configured?: boolean;
 }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -23,6 +27,7 @@ export function AuthDesk({
   const signup = mode === "signup";
 
   async function submit() {
+    if (!configured) return;
     setBusy(true);
     setError(null);
     try {
@@ -55,15 +60,22 @@ export function AuthDesk({
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="ui-card w-full max-w-xl px-7 py-8 sm:px-9 sm:py-10">
-        <p className="ui-label">NUS-ISS Practice Module · Team 5</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--bui-ink)] sm:text-5xl">
+        <EntityChip name="METS" color="#111827" monogram="M" className="ml-0" />
+        <p className="ui-label mt-4">NUS-ISS Practice Module · Team 5</p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
           METS
         </h1>
-        <p className="mt-3 max-w-md text-[0.95rem] leading-6 text-[var(--bui-ink-2)]">
+        <p className="mt-3 max-w-md text-[0.95rem] leading-6 text-ink-2">
           {signup
-            ? "Create an account so we can keep your name, grade band, and chat memory."
-            : "Sign in to pick up your student profile and the last ten chats."}
+            ? "Create an account so we can keep your name, year, and previous chats."
+            : "Sign in to pick up your student profile and previous chats, or continue as a guest."}
         </p>
+        {configured ? null : (
+          <p className="mt-4 text-sm leading-6 text-ink-2" role="status">
+            Cloud login needs <code>SUPABASE_URL</code> and a publishable or
+            anon key on the server. You can still open the desk as a guest.
+          </p>
+        )}
 
         <form
           className="mt-8 grid gap-5"
@@ -82,6 +94,7 @@ export function AuthDesk({
               className="ui-field text-base"
               placeholder="you@school.edu.sg"
               required
+              disabled={!configured}
             />
           </label>
           <label className="grid gap-2">
@@ -95,16 +108,19 @@ export function AuthDesk({
               placeholder="At least 6 characters"
               minLength={6}
               required
+              disabled={!configured}
             />
           </label>
-          {error ? <p className="text-sm text-[var(--bui-red)]">{error}</p> : null}
+          {error ? <p className="text-sm text-red">{error}</p> : null}
+          {busy ? <LoadingState label={signup ? "Creating your desk" : "Signing in"} /> : null}
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" disabled={busy}>
-              {busy ? "Please wait…" : signup ? "Create account" : "Sign in"}
+            <Button type="submit" variant="primary" disabled={busy || !configured}>
+              {signup ? "Create account" : "Sign in"}
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="quiet"
+              size="sm"
               disabled={busy}
               onClick={() => {
                 setMode(signup ? "login" : "signup");
@@ -112,6 +128,21 @@ export function AuthDesk({
               }}
             >
               {signup ? "I already have an account" : "Create an account"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                onSignedIn({
+                  user: { id: "guest", email: "" },
+                  profile: null,
+                  sessionId: crypto.randomUUID(),
+                })
+              }
+            >
+              Continue as guest
             </Button>
           </div>
         </form>
