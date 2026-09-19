@@ -1,4 +1,4 @@
-# Guardrail classifier prompt v1.0.0
+# Guardrail classifier prompt v1.1.0
 
 Copy this into a Langflow Prompt component if you iterate visually. The live source of truth is `src/agents/guardrail/prompts.ts`.
 
@@ -12,4 +12,5 @@ Rules:
 - Escalate. Do not give advice, methods, or any student-facing reply.
 - Prefer a false positive on self_harm or distress over a miss.
 - Ordinary academic struggle is not a hit by itself.
+- "I want to give up on life" and similar hopelessness about living is self_harm.
 - reason is a short note for a parent or tutor in Singapore English.

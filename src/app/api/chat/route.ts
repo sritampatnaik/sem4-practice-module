@@ -119,6 +119,19 @@ export async function POST(req: Request) {
 
   const agent = createAgent(routing.agent, ctx);
   const started = Date.now();
+  const monitor = monitorStudentTurn({
+    sessionId,
+    userId: user?.id,
+    studentEmail: user?.email,
+    studentName: profile.name,
+    studentText: text,
+    assistantText: "",
+    recentStudentTurns: ctx.recentChats
+      .filter((item) => item.role === "user")
+      .map((item) => item.text),
+  }).catch(() => {
+    /* Never fail the student stream because the silent monitor broke. */
+  });
 
   const stream = createUIMessageStream<MetsUIMessage>({
     originalMessages: messages,
@@ -170,17 +183,7 @@ export async function POST(req: Request) {
         at: new Date().toISOString(),
       });
       try {
-        await monitorStudentTurn({
-          sessionId,
-          userId: user?.id,
-          studentEmail: user?.email,
-          studentName: profile.name,
-          studentText: text,
-          assistantText: output,
-          recentStudentTurns: ctx.recentChats
-            .filter((item) => item.role === "user")
-            .map((item) => item.text),
-        });
+        await monitor;
       } catch {
         /* Never fail the student stream because the silent monitor broke. */
       }
