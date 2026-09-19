@@ -23,6 +23,7 @@ Then add a short study note in prose. Do not dump the full answer key in the fir
 | `prompts.ts` | System prompt. Bump `TESTING_PROMPT_VERSION` on every edit. |
 | `tools.ts` | Zod schemas for MCQ and flashcard payloads. |
 | `index.ts` | `createTestingAgent` wiring. |
+| `subject-source.ts` | Testing-owned Maths / Physics / Chemistry source packs. |
 | `assessment-planner.ts` | Internal planning helpers for mode / topic / visual decisions. |
 | `performance-log.ts` | Server-side Testing-performance log helpers under `logs/`. |
 | `langflow/prompts/testing.system.md` | Keep in sync with `prompts.ts`. |
@@ -35,6 +36,8 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - `createFlashcards` — 3–8 cards with `front`, `back`, `topic`
 - `documentSearchMath` / `documentSearchPhysics` / `documentSearchChemistry` — stay in-syllabus
 - `getPhysicsAssessmentSource` — Testing-owned Physics source pack for syllabus-grounded concepts, formula hints, distractor seeds, and question angles before building a Physics widget
+- `getMathAssessmentSource` — Testing-owned Maths source pack for learning outcomes, key concepts, method/formula hints, distractor seeds, and question angles before building a Maths widget
+- `getChemistryAssessmentSource` — Testing-owned Chemistry source pack for learning outcomes, key concepts, equation/formula hints, distractor seeds, and question angles before building a Chemistry widget
 
 ## Internal helper tools now available
 
@@ -48,8 +51,8 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - Testing still stays as **one public routed agent**.
 - Testing must **not** communicate with Math / Physics / Chemistry agents directly.
 - Instead, Testing should own its own subject-source tools inside `src/agents/testing/`.
-- **Current rollout status:** Physics-first. Physics requests should use `getPhysicsAssessmentSource` before `createMcqSet` or `createFlashcards`.
-- Maths and Chemistry can still use the shared syllabus-search path for now until equivalent Testing-owned source tools are added.
+- **Current rollout status:** Maths, Physics, and Chemistry each have a Testing-owned source tool. Call the matching source tool before `createMcqSet` or `createFlashcards`.
+- Do not treat raw `documentSearchMath` / `documentSearchChemistry` as the grounding step for quiz generation.
 
 The `execute` functions currently echo the structured input. That is enough for the UI. Do not return a different shape without updating `McqSet` / `FlashcardSet` in `src/agents/_shared/types.ts` **and** the widgets.
 
@@ -66,9 +69,9 @@ The `execute` functions currently echo the structured input. That is enough for 
 - Match Primary vs O-Level vs A-Level from the profile.
 - If the subject is ambiguous, pick one and say so, or ask one clarifying question.
 - Treat Math / Physics / Chemistry as black-box specialists. Testing should use its own tools and shared syllabus search rather than calling subject agents.
-- For Physics in the current rollout, Testing should ground the assessment through `getPhysicsAssessmentSource` instead of relying on unstated subject knowledge alone.
+- Ground Maths, Physics, and Chemistry assessments through `getMathAssessmentSource`, `getPhysicsAssessmentSource`, and `getChemistryAssessmentSource` instead of relying on unstated subject knowledge alone.
 - Keep one public Testing agent. If you need more modularity, add helper modules/tools inside `src/agents/testing/` rather than adding new top-level routed agents.
-- If a Physics topic is not strongly supported by the source tool, fail explicitly and ask for a narrower topic instead of making content up.
+- If a topic is not strongly supported by the matching source tool, fail explicitly and ask for a narrower topic instead of making content up.
 
 ## How to test
 
@@ -100,7 +103,7 @@ Suggested workflow:
    - `{"scenarioId":"secondary-kinematics-mcq"}`
    - or a custom `prompt`, `profile`, and optional `recentChats`
 4. inspect:
-   - Physics source-tool usage before widget generation
+   - Maths / Physics / Chemistry source-tool usage before widget generation
    - widget tool choice
    - prompt quality
    - Mermaid planning behaviour
