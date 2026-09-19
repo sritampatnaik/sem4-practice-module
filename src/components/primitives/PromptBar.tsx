@@ -5,6 +5,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createShader, playSweep, accentChain, ACCENTS } from "glimm";
+import { Icon, type MetsIconName } from "@/components/icons";
 
 /* The built-in "prism" palette is only cyan→indigo→magenta, so a sweep
  * reads as blue/purple. Build a true full-spectrum rainbow instead. */
@@ -26,20 +27,9 @@ const RAINBOW = accentChain([
  * Variants: Rounded (card radius) · Pill (full radius).
  * ───────────────────────────────────────────────────────── */
 
-function Icon({ children, size = 15, strokeWidth = 1.8 }: { children: React.ReactNode; size?: number; strokeWidth?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {children}
-    </svg>
-  );
+function IconMark({ name, size = 15, strokeWidth = 1.8 }: { name: MetsIconName; size?: number; strokeWidth?: number }) {
+  return <Icon icon={name} size={size} strokeWidth={strokeWidth} />;
 }
-
-const GLYPHS: Record<string, React.ReactNode> = {
-  clip: <path d="m21.4 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />,
-  chart: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
-  layers: <g><path d="M12 2 2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" /></g>,
-  globe: <g><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></g>,
-};
 
 /* real product marks, inline so the file stays self-contained */
 const BRANDS: Record<string, React.ReactNode> = {
@@ -75,19 +65,19 @@ type Source = {
   key: string;
   name: string;
   desc: string;
-  glyph?: string;
+  icon?: MetsIconName;
   brand?: string;
   attach?: boolean;
   connect?: boolean;
 };
 
 const SOURCES: Source[] = [
-  { key: "attach", name: "Add photos & files", desc: "Upload from your computer", glyph: "clip", attach: true },
-  { key: "syllabus", name: "Syllabus maps", desc: "SEAB topics for this year", glyph: "layers" },
-  { key: "math", name: "Mathematics", desc: "Worked examples and methods", glyph: "chart" },
-  { key: "physics", name: "Physics", desc: "Definitions, units, practicals", glyph: "globe" },
-  { key: "chemistry", name: "Chemistry", desc: "Equations, bonding, redox", glyph: "layers" },
-  { key: "testing", name: "Testing", desc: "Quizzes and flashcards", glyph: "chart" },
+  { key: "attach", name: "Add photos & files", desc: "Upload from your computer", icon: "attach", attach: true },
+  { key: "syllabus", name: "Syllabus maps", desc: "SEAB topics for this year", icon: "syllabus" },
+  { key: "math", name: "Mathematics", desc: "Worked examples and methods", icon: "math" },
+  { key: "physics", name: "Physics", desc: "Definitions, units, practicals", icon: "physics" },
+  { key: "chemistry", name: "Chemistry", desc: "Equations, bonding, redox", icon: "chemistry" },
+  { key: "testing", name: "Testing", desc: "Quizzes and flashcards", icon: "quiz" },
 ];
 
 const COMMANDS = [
@@ -458,7 +448,7 @@ export default function PromptBar({
               >
                 {source && (
                   <span className="flex size-5.5 shrink-0 items-center justify-center text-ink-2">
-                    {source.brand ? BRANDS[source.brand] : <Icon size={15}>{GLYPHS[source.glyph ?? "clip"]}</Icon>}
+                    {source.brand ? BRANDS[source.brand] : <IconMark name={source.icon ?? "attach"} />}
                   </span>
                 )}
                 <span className="shrink-0 text-[12.5px] font-medium text-ink">
@@ -531,7 +521,7 @@ export default function PromptBar({
               <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">{m.name}</span>
               <span className="shrink-0 text-[11px] text-ink-3">{m.tag}</span>
               <span className={`shrink-0 text-ink ${m.key === model.key ? "" : "invisible"}`}>
-                <Icon size={13} strokeWidth={2.5}><path d="M20 6L9 17l-5-5" /></Icon>
+                <Icon icon="tick" size={13} strokeWidth={2.5} />
               </span>
             </button>
           ))}
@@ -573,7 +563,7 @@ export default function PromptBar({
                 }`}
                 style={{ animation: "pop-in 200ms cubic-bezier(0.23,1,0.32,1) both" }}
               >
-                <Icon size={12}><g><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></g></Icon>
+                <Icon icon="read" size={12} />
                 <span className="max-w-36 truncate">{file}</span>
                 <button
                   type="button"
@@ -583,7 +573,7 @@ export default function PromptBar({
                     pill ? "rounded-full" : "rounded-[5px]"
                   }`}
                 >
-                  <Icon size={10} strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12" /></Icon>
+                  <Icon icon="cancel" size={10} strokeWidth={2.5} />
                 </button>
               </span>
             ))}
@@ -611,7 +601,7 @@ export default function PromptBar({
               pill ? "rounded-full" : "rounded-[8px]"
             } ${plusOpen ? "bg-hover text-ink" : ""} ${wide ? "col-start-1 row-start-2" : "col-start-1 row-start-1"}`}
           >
-            <Icon size={16} strokeWidth={2}><path d="M12 5v14M5 12h14" /></Icon>
+            <Icon icon="plus" size={16} strokeWidth={2} />
           </button>
 
           <textarea
@@ -671,7 +661,7 @@ export default function PromptBar({
           >
             {model.name}
             <span className="text-ink-3">
-              <Icon size={11} strokeWidth={2.4}><path d="M6 9l6 6 6-6" /></Icon>
+              <Icon icon="arrowDown" size={11} strokeWidth={2.4} />
             </span>
           </button>
 
@@ -696,7 +686,7 @@ export default function PromptBar({
                 ))}
               </span>
             ) : (
-              <Icon size={15} strokeWidth={2}><g><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3" /></g></Icon>
+              <Icon icon="mic" size={15} strokeWidth={2} />
             )}
           </button>
 
@@ -714,9 +704,7 @@ export default function PromptBar({
               color: busy || canSend ? "var(--surface)" : "var(--ink-2)",
             }}
           >
-            <Icon size={16} strokeWidth={2.4}>
-              {busy ? <g><rect x="7" y="7" width="10" height="10" rx="1.5" /></g> : <path d="M12 19V5M5 12l7-7 7 7" />}
-            </Icon>
+            <Icon icon={busy ? "stop" : "send"} size={16} strokeWidth={2.2} />
           </button>
         </div>
       </div>
