@@ -5,7 +5,7 @@ Owned with Orchestration / platform (Sritam). Specialists should not edit these 
 | File | Purpose |
 | --- | --- |
 | `types.ts` | `StudentProfile`, `RoutingDecision`, `McqSet`, `FlashcardSet`, `AgentRuntimeContext` |
-| `context.ts` | Prompt block: grade band, diagnostics, last 10 chats |
+| `context.ts` | Prompt block: grade band, diagnostics, last 10 chats, retrieved chat chunks |
 | `tools.ts` | Shared `documentSearch` and `webSearch` factories |
 
 If you change a type, you will likely also need UI updates in `src/components/` and the chat route.

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getSupabaseAdmin } from "./supabase";
+import { getSupabaseAuth } from "./supabase";
 
 const COOKIE = "mets-auth";
 
@@ -62,6 +62,9 @@ function friendlyAuthError(message: string) {
   if (lower.includes("email not confirmed")) {
     return "This account is not ready yet. Try signing up again.";
   }
+  if (lower.includes("bearer token") || lower.includes("invalid jwt")) {
+    return "Could not create the account. The server needs a publishable or anon key for signup.";
+  }
   return message;
 }
 
@@ -91,8 +94,13 @@ function asUser(id: string, email: string | undefined): AuthUser | null {
   return { id, email };
 }
 
+export async function getAccessToken() {
+  const stored = await readSession();
+  return stored?.access_token;
+}
+
 export async function getAuthUser(): Promise<AuthUser | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseAuth();
   const stored = await readSession();
   if (!supabase || !stored) return null;
 
@@ -120,16 +128,25 @@ export async function signUpStudent(
   email: string,
   password: string,
 ): Promise<{ user: AuthUser } | { error: string }> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { error: "Supabase is not configured." };
-
-  const created = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
+  const supabase = getSupabaseAuth();
+  if (!supabase) {
+    return {
+      error:
+        "Supabase Auth is not configured. Set SUPABASE_PUBLISHABLE_KEY or SUPABASE_ANON_KEY.",
+    };
+  }
+  const created = await supabase.auth.signUp({ email, password });
   if (created.error) return { error: friendlyAuthError(created.error.message) };
-
+  if (created.data.session && created.data.user?.email) {
+    await writeSession({
+      access_token: created.data.session.access_token,
+      refresh_token: created.data.session.refresh_token,
+      expires_at: created.data.session.expires_at,
+    });
+    return {
+      user: { id: created.data.user.id, email: created.data.user.email },
+    };
+  }
   return signInStudent(email, password);
 }
 
@@ -137,7 +154,7 @@ export async function signInStudent(
   email: string,
   password: string,
 ): Promise<{ user: AuthUser } | { error: string }> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseAuth();
   if (!supabase) return { error: "Supabase is not configured." };
 
   const signed = await supabase.auth.signInWithPassword({ email, password });

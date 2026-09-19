@@ -1,6 +1,6 @@
 import type { GradeLevel, StudentProfile } from "@/agents/_shared/types";
 import { GRADE_LEVELS, bandForGrade, isSchoolGrade } from "@/agents/_shared/types";
-import { getSupabaseAdmin } from "./supabase";
+import { getSupabaseAdmin, getSupabaseData } from "./supabase";
 import type { Json } from "./database.types";
 
 function asProfile(row: {
@@ -33,12 +33,14 @@ export async function upsertStudentSession(
   sessionId: string,
   profile: StudentProfile,
   userId?: string,
+  accessToken?: string,
 ) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseData(accessToken) ?? getSupabaseAdmin();
   if (!supabase) return { ok: false as const, reason: "unconfigured" };
+  const id = userId ?? sessionId;
   const { error } = await supabase.from("student_sessions").upsert(
     {
-      id: sessionId,
+      id,
       user_id: userId ?? null,
       name: profile.name,
       grade_level: profile.gradeLevel,
@@ -65,8 +67,8 @@ export async function getStudentSession(sessionId: string) {
   return asProfile(data);
 }
 
-export async function getStudentByUserId(userId: string) {
-  const supabase = getSupabaseAdmin();
+export async function getStudentByUserId(userId: string, accessToken?: string) {
+  const supabase = getSupabaseData(accessToken) ?? getSupabaseAdmin();
   if (!supabase) return null;
   const byUser = await supabase
     .from("student_sessions")

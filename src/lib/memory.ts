@@ -1,5 +1,7 @@
 import type { ChatMemoryItem, StudentProfile } from "@/agents/_shared/types";
-import { getSupabaseAdmin } from "./supabase";
+import { ensureConversation, nextTitle, touchConversation } from "./conversations";
+import { storeChatEmbedding } from "./embeddings";
+import { getSupabaseData } from "./supabase";
 import { upsertStudentSession } from "./students";
 
 const MEMORY_LIMIT = 10;
@@ -9,8 +11,11 @@ function fallback(sessionId: string) {
   return sessions.get(sessionId)?.slice(-MEMORY_LIMIT) ?? [];
 }
 
-export async function getRecentChats(sessionId: string): Promise<ChatMemoryItem[]> {
-  const supabase = getSupabaseAdmin();
+export async function getRecentChats(
+  sessionId: string,
+  accessToken?: string,
+): Promise<ChatMemoryItem[]> {
+  const supabase = getSupabaseData(accessToken);
   if (supabase) {
     const { data, error } = await supabase
       .from("chat_memory")
@@ -37,35 +42,46 @@ export async function rememberTurn(
   sessionId: string,
   item: ChatMemoryItem,
   profile?: StudentProfile,
+  userId?: string,
+  accessToken?: string,
 ) {
   const current = fallback(sessionId);
   current.push(item);
   sessions.set(sessionId, current.slice(-MEMORY_LIMIT));
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return;
-  const userId = /^[0-9a-f-]{36}$/i.test(sessionId) ? sessionId : undefined;
+  const supabase = getSupabaseData(accessToken);
+  if (!supabase || !userId) return;
+
+  await ensureConversation(sessionId, userId, accessToken);
   if (profile) {
-    await upsertStudentSession(sessionId, profile, userId);
-  } else {
-    await upsertStudentSession(
-      sessionId,
-      {
-        name: "Student",
-        gradeLevel: "secondary",
-        grade: "sec3",
-        diagnostic: {},
-        notes: [],
-      },
-      userId,
-    );
+    await upsertStudentSession(userId, profile, userId, accessToken);
   }
+  if (item.role === "user") {
+    const owned = await supabase
+      .from("conversations")
+      .select("title")
+      .eq("id", sessionId)
+      .maybeSingle();
+    await touchConversation(sessionId, {
+      title: nextTitle(owned.data?.title ?? "New chat", item.text),
+      accessToken,
+    });
+  } else {
+    await touchConversation(sessionId, { accessToken });
+  }
+
   await supabase.from("chat_memory").insert({
     session_id: sessionId,
     role: item.role,
     text: item.text,
     agent: item.agent ?? null,
     at: item.at,
+  });
+  await storeChatEmbedding({
+    conversationId: sessionId,
+    userId,
+    text: item.text,
+    accessToken,
   });
 }
 

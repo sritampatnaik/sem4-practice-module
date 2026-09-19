@@ -4,7 +4,8 @@ import { runEvalSuites } from "@/evals/runner";
 import { saveEvalRun } from "@/evals/store";
 import { requireProviderKey } from "@/lib/llm";
 
-export const maxDuration = 600;
+// Hobby plan caps serverless maxDuration at 300s.
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {

@@ -6,12 +6,14 @@ Multi-Agent Educational & Testing System for the NUS-ISS Practice Module (Team 5
 
 ```bash
 cp .env.example .env.local
-# paste OPENAI_API_KEY into .env.local
+# paste OPENAI_API_KEY and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY)
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. You can skip onboarding, or fill name, grade band, and three diagnostics, then ask to learn or to be tested.
+Open http://localhost:3000. Sign in, create an account, or continue as a guest. Then skip onboarding or fill name, year, and three diagnostics, and ask to learn or to be tested.
+
+Login, student profiles, conversation history, chat embeddings, and eval history use the **Sem 4 Practice Module** Supabase project. Create-account and sign-in need `SUPABASE_PUBLISHABLE_KEY` or `SUPABASE_ANON_KEY`. Evals can use `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`). Never paste a publishable key into the service-role slot. Never commit those keys. Syllabus RAG is keyword search over `data/syllabus/*.md`. Guest turns stay in the browser until you sign in.
 
 ## How the desk works
 
@@ -22,7 +24,7 @@ See [docs/HOW-IT-WORKS.md](./docs/HOW-IT-WORKS.md) for the full walkthrough. Sho
 3. The matching specialist streams a reply, using its own tools.
 4. Routing and prompts are logged to `logs/prompts.jsonl`, the UI audit rail, and optionally Langflow.
 
-Database and pgvector are intentionally not wired yet. Syllabus RAG is keyword search over `data/syllabus/*.md`.
+Signed-in profiles, conversations, chat memory, pgvector chat chunks, and eval history persist in that same Supabase project. Syllabus search stays local markdown. The tutor chrome uses Beautiful UI tokens (`src/app/globals.css`).
 
 ## Team folders
 
@@ -62,5 +64,6 @@ docker compose -f langflow/docker-compose.yml up
 - Next.js App Router + TypeScript
 - Vercel AI SDK (`ToolLoopAgent`, `useChat`)
 - OpenAI (tutor default via `OPENAI_MODEL`, `gpt-4o`) and Gemini (`GOOGLE_GENERATIVE_AI_API_KEY`) for the eval Scores picker
-- Local syllabus markdown as a RAG stand-in
+- Supabase Auth + Postgres (server-only `SUPABASE_URL` with a service role, secret, or anon/publishable key)
+- Same-project pgvector for the student's own chat chunks; syllabus RAG stays local markdown
 - Langflow for prompt traces when configured

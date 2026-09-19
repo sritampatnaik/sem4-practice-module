@@ -5,12 +5,14 @@ import type { StudentProfile } from "@/agents/_shared/types";
 import { AuthDesk } from "@/components/auth-desk";
 import { OnboardingDesk } from "@/components/onboarding-desk";
 import { StudioShell } from "@/components/studio-shell";
+import { LoadingState } from "@/components/ui/loading-state";
 import { clearLocalStudent, loadProfile, saveProfile } from "@/lib/profile-storage";
 
 type AuthUser = { id: string; email: string };
 
 type Snapshot = {
   ready: boolean;
+  configured: boolean;
   user: AuthUser | null;
   profile: StudentProfile | null;
   sessionId: string | null;
@@ -18,6 +20,7 @@ type Snapshot = {
 
 let snapshot: Snapshot = {
   ready: false,
+  configured: false,
   user: null,
   profile: null,
   sessionId: null,
@@ -39,6 +42,7 @@ function getSnapshot() {
 
 const SERVER_SNAPSHOT: Snapshot = {
   ready: false,
+  configured: false,
   user: null,
   profile: null,
   sessionId: null,
@@ -51,6 +55,7 @@ function getServerSnapshot() {
 function hydrateFromAuth() {
   snapshot = {
     ready: false,
+    configured: false,
     user: null,
     profile: loadProfile(),
     sessionId: null,
@@ -60,6 +65,7 @@ function hydrateFromAuth() {
     .then((response) => response.json())
     .then(
       (payload: {
+        configured?: boolean;
         user?: AuthUser | null;
         profile?: StudentProfile | null;
         sessionId?: string | null;
@@ -67,6 +73,7 @@ function hydrateFromAuth() {
         if (payload.profile) saveProfile(payload.profile);
         snapshot = {
           ready: true,
+          configured: Boolean(payload.configured),
           user: payload.user ?? null,
           profile: payload.profile ?? null,
           sessionId: payload.sessionId ?? null,
@@ -75,7 +82,13 @@ function hydrateFromAuth() {
       },
     )
     .catch(() => {
-      snapshot = { ready: true, user: null, profile: null, sessionId: null };
+      snapshot = {
+        ready: true,
+        configured: false,
+        user: null,
+        profile: null,
+        sessionId: null,
+      };
       emit();
     });
 }
@@ -85,7 +98,7 @@ if (typeof window !== "undefined") {
 }
 
 export default function Home() {
-  const { ready, user, profile, sessionId } = useSyncExternalStore(
+  const { ready, configured, user, profile, sessionId } = useSyncExternalStore(
     subscribe,
     getSnapshot,
     getServerSnapshot,
@@ -94,7 +107,7 @@ export default function Home() {
   if (!ready) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
-        <p className="text-sm text-[var(--bui-ink-2)]">Loading your desk…</p>
+        <LoadingState label="Loading your desk" />
       </main>
     );
   }
@@ -102,11 +115,13 @@ export default function Home() {
   if (!user) {
     return (
       <AuthDesk
+        configured={configured}
         onSignedIn={(payload) => {
           if (payload.profile) saveProfile(payload.profile);
           else clearLocalStudent();
           snapshot = {
             ready: true,
+            configured: configured || Boolean(payload.user.email),
             user: payload.user,
             profile: payload.profile,
             sessionId: payload.sessionId,
@@ -122,13 +137,22 @@ export default function Home() {
       <OnboardingDesk
         onComplete={(next) => {
           saveProfile(next);
-          snapshot = { ready: true, user, profile: next, sessionId: user.id };
+          const nextSessionId = sessionId ?? crypto.randomUUID();
+          snapshot = {
+            ready: true,
+            configured,
+            user,
+            profile: next,
+            sessionId: nextSessionId,
+          };
           emit();
-          void fetch("/api/student", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ profile: next }),
-          });
+          if (user.email) {
+            void fetch("/api/student", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ profile: next }),
+            });
+          }
         }}
       />
     );
@@ -140,9 +164,16 @@ export default function Home() {
       profile={profile}
       sessionId={sessionId}
       email={user.email}
+      signedIn={Boolean(user.email)}
       onReset={() => {
         clearLocalStudent();
-        snapshot = { ready: true, user: null, profile: null, sessionId: null };
+        snapshot = {
+          ready: true,
+          configured,
+          user: null,
+          profile: null,
+          sessionId: null,
+        };
         emit();
         void fetch("/api/auth", { method: "DELETE" });
       }}
