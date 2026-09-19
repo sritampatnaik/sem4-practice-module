@@ -73,8 +73,8 @@ export function MessageThread({
             .trim();
           if (!text) return null;
           return (
-            <ChatUserBubble key={message.id}>
-              <MarkdownBody text={text} />
+            <ChatUserBubble key={message.id} size="message">
+              <MarkdownBody text={text} className="markdown-user" />
             </ChatUserBubble>
           );
         }

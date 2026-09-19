@@ -4,11 +4,10 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMemoryItem, PromptLogEntry, RoutingDecision, StudentProfile } from "@/agents/_shared/types";
-import { schoolGradeLabel } from "@/agents/_shared/types";
-import { EntityChip } from "@/components/atoms/EntityChip";
 import { ValuePill } from "@/components/atoms/ValuePill";
-import { AppFrame, NavLink } from "@/components/app-frame";
+import { AppFrame, DeskNav } from "@/components/app-frame";
 import { ConversationRail, type ConversationItem } from "@/components/conversation-rail";
+import { StudentSidebar } from "@/components/student-sidebar";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -31,10 +30,6 @@ const STARTERS = [
   "Convert 72 km/h to m/s and show the working.",
   "Balance Fe + O₂ → Fe₂O₃, then quiz me on redox.",
 ];
-
-function gradeLabel(profile: StudentProfile) {
-  return schoolGradeLabel(profile.grade, profile.gradeLevel);
-}
 
 function toUiMessages(items: ChatMemoryItem[]): MetsUIMessage[] {
   return items.map((item, index) => ({
@@ -144,12 +139,7 @@ export function StudioShell({
 
   return (
     <AppFrame
-      nav={
-        <>
-          <NavLink href="/" icon="tutor">Tutor</NavLink>
-          <NavLink href="/evals" icon="evals">Evals</NavLink>
-        </>
-      }
+      nav={<DeskNav />}
       actions={
         <Button type="button" variant="quiet" size="sm" className="gap-1.5" onClick={onReset}>
           <Icon icon={signedIn ? "signOut" : "guest"} size={14} />
@@ -157,51 +147,14 @@ export function StudioShell({
         </Button>
       }
       sidebar={
-        <>
-          <div>
-            <p className="ui-label">Student</p>
-            <div className="mt-3">
-              <EntityChip
-                name={profile.name}
-                color={signedIn ? "#2f6fec" : "#64748b"}
-                monogram={profile.name.charAt(0).toUpperCase()}
-              />
-            </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight">{profile.name}</h1>
-            <p className="mt-1 text-sm text-ink-2">{gradeLabel(profile)}</p>
-            {email ? <p className="mt-1 truncate text-xs text-ink-3">{email}</p> : null}
-            {signedIn ? (
-              <ValuePill className="mt-3 ml-0 gap-1" tone="accent">
-                <Icon icon="signedIn" size={12} />
-                Signed in
-              </ValuePill>
-            ) : (
-              <ValuePill className="mt-3 ml-0 gap-1" tone="neutral">
-                <Icon icon="guest" size={12} />
-                Guest desk
-              </ValuePill>
-            )}
-            <dl className="mt-6 grid gap-3">
-              {(["math", "physics", "chemistry"] as const).map((subject) => (
-                <div key={subject}>
-                  <dt className="ui-label inline-flex items-center gap-1">
-                    <Icon icon={subject} size={12} />
-                    {subject}
-                  </dt>
-                  <dd className="mt-1 text-sm capitalize">
-                    {profile.diagnostic[subject] ?? "unseen"}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+        <StudentSidebar profile={profile} email={email} signedIn={signedIn}>
           <ConversationRail
             items={conversations}
             activeId={activeId}
             onNew={() => void startNewChat()}
             onPick={(id) => setActiveId(id)}
           />
-        </>
+        </StudentSidebar>
       }
       rail={<RoutingRail sessionId={activeId} />}
     >

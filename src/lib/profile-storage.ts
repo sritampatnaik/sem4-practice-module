@@ -1,5 +1,7 @@
 import {
   DEFAULT_PROFILE,
+  SCHOOL_GRADE_META,
+  schoolGradeLabel,
   type GradeLevel,
   type MasteryLevel,
   type StudentProfile,
@@ -103,4 +105,31 @@ export function masteryFromCorrect(correct: boolean, answer: string): MasteryLev
   if (correct) return "secure";
   if (answer.trim()) return "developing";
   return "emerging";
+}
+
+const STALE_NOTE =
+  /^(Year:|.*\bdiagnostic:|.*Diagnostics skipped|.*Diagnostics not taken|.*Onboarding skipped)/i;
+
+export function applyDiagnosticAnswers(
+  profile: StudentProfile,
+  answers: Record<string, string>,
+): StudentProfile {
+  const questions = DIAGNOSTICS[profile.gradeLevel];
+  const diagnostic: StudentProfile["diagnostic"] = { ...profile.diagnostic };
+  const year = profile.grade
+    ? SCHOOL_GRADE_META[profile.grade].label
+    : schoolGradeLabel(undefined, profile.gradeLevel);
+  const notes = [
+    `Year: ${year}.`,
+    ...profile.notes.filter((note) => !STALE_NOTE.test(note)),
+  ];
+  for (const question of questions) {
+    const answer = answers[question.id] ?? "";
+    const correct = scoreAnswer(answer, question.acceptable);
+    diagnostic[question.id] = masteryFromCorrect(correct, answer);
+    notes.push(
+      `${question.id} diagnostic: ${correct ? "secure" : "needs teaching"} (${answer || "blank"})`,
+    );
+  }
+  return { ...profile, diagnostic, notes };
 }
