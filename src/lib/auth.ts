@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getSupabaseAdmin, getSupabaseAuth } from "./supabase";
+import { getSupabaseAuth } from "./supabase";
 
 const COOKIE = "mets-auth";
 
@@ -61,6 +61,9 @@ function friendlyAuthError(message: string) {
   }
   if (lower.includes("email not confirmed")) {
     return "This account is not ready yet. Try signing up again.";
+  }
+  if (lower.includes("bearer token") || lower.includes("invalid jwt")) {
+    return "Could not create the account. The server needs a publishable or anon key for signup.";
   }
   return message;
 }
@@ -125,19 +128,13 @@ export async function signUpStudent(
   email: string,
   password: string,
 ): Promise<{ user: AuthUser } | { error: string }> {
-  const admin = getSupabaseAdmin();
-  if (admin) {
-    const created = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-    if (created.error) return { error: friendlyAuthError(created.error.message) };
-    return signInStudent(email, password);
-  }
-
   const supabase = getSupabaseAuth();
-  if (!supabase) return { error: "Supabase is not configured." };
+  if (!supabase) {
+    return {
+      error:
+        "Supabase Auth is not configured. Set SUPABASE_PUBLISHABLE_KEY or SUPABASE_ANON_KEY.",
+    };
+  }
   const created = await supabase.auth.signUp({ email, password });
   if (created.error) return { error: friendlyAuthError(created.error.message) };
   if (created.data.session && created.data.user?.email) {

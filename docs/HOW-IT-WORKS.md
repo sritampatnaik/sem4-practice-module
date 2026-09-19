@@ -57,7 +57,7 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 
 ## Persistence
 
-Login is Supabase Auth (email and password). There is also a guest path that does not persist. Profiles (`student_sessions`), conversations, full chat history (`chat_memory`), same-project pgvector chunks (`chat_chunks`), and eval history persist when `SUPABASE_URL` is set with a service role / secret key, or with the publishable/anon key plus the signed-in user's JWT. Access stays server-only. Never prefix secrets with `NEXT_PUBLIC_`.
+Login is Supabase Auth (email and password). Create-account uses public `signUp` (publishable or anon key) plus an auto-confirm trigger — not Auth Admin. There is also a guest path that does not persist. Profiles (`student_sessions`), conversations, full chat history (`chat_memory`), same-project pgvector chunks (`chat_chunks`), and eval history persist when `SUPABASE_URL` is set with a service role / secret key, or with the publishable/anon key plus the signed-in user's JWT. Access stays server-only. Never prefix secrets with `NEXT_PUBLIC_`.
 
 Syllabus search is still local markdown. Chat retrieval is separate: chunk + `text-embedding-3-small` into `chat_chunks`, then `match_chat_chunks`.
 

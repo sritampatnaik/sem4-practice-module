@@ -6,14 +6,14 @@ Multi-Agent Educational & Testing System for the NUS-ISS Practice Module (Team 5
 
 ```bash
 cp .env.example .env.local
-# paste OPENAI_API_KEY and a Supabase key (service role, secret, or anon)
+# paste OPENAI_API_KEY and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY)
 npm install
 npm run dev
 ```
 
 Open http://localhost:3000. Sign in, create an account, or continue as a guest. Then skip onboarding or fill name, year, and three diagnostics, and ask to learn or to be tested.
 
-Login, student profiles, conversation history, chat embeddings, and eval history use the **Sem 4 Practice Module** Supabase project. Prefer `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`). Auth still works with `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY` plus RLS. Never commit those keys. Syllabus RAG is keyword search over `data/syllabus/*.md`. Guest turns stay in the browser until you sign in.
+Login, student profiles, conversation history, chat embeddings, and eval history use the **Sem 4 Practice Module** Supabase project. Create-account and sign-in need `SUPABASE_PUBLISHABLE_KEY` or `SUPABASE_ANON_KEY`. Evals can use `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`). Never paste a publishable key into the service-role slot. Never commit those keys. Syllabus RAG is keyword search over `data/syllabus/*.md`. Guest turns stay in the browser until you sign in.
 
 ## How the desk works
 
