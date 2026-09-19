@@ -31,7 +31,7 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
 
   if (done) {
     return (
-      <div className="mt-4 flex flex-wrap items-center gap-3" style={{ animation: "pop-in 260ms cubic-bezier(0.23,1,0.32,1) both" }}>
+      <div className="flex flex-wrap items-center gap-3" style={{ animation: "pop-in 260ms cubic-bezier(0.23,1,0.32,1) both" }}>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-green-tint py-1 pr-2.5 pl-1 text-[12.5px] font-medium text-green">
           <span className="flex size-4.5 items-center justify-center rounded-full bg-green text-white">
             <Icon icon="flashcards" size={12} strokeWidth={2} />
@@ -47,7 +47,7 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
   }
 
   return (
-    <div className="mt-4">
+    <div>
       <p className="ui-label mb-2 inline-flex items-center gap-1">
         <Icon icon="flashcards" size={12} />
         Flashcards

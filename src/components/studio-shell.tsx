@@ -16,6 +16,7 @@ import { PromptBar } from "@/components/ui/prompt-bar";
 import ThinkingState from "@/components/primitives/ThinkingState";
 import StreamingText from "@/components/primitives/StreamingText";
 import { AGENT_COPY } from "@/lib/agent-copy";
+import { isTestingWidgetToolType, shouldSuppressTestingBusyIndicator } from "@/lib/testing-turn";
 import type { MetsUIMessage } from "@/lib/ui-types";
 import { MessageThread } from "./message-thread";
 
@@ -269,6 +270,14 @@ function ChatPane({
   }, [messages, status]);
 
   const busy = status === "submitted" || status === "streaming";
+  const lastAssistant = [...messages].reverse().find((message) => message.role === "assistant");
+  const hideTestingBusy = shouldSuppressTestingBusyIndicator({
+    agent: routing?.agent,
+    status,
+    hasWidgetTool: Boolean(
+      lastAssistant?.parts.some((part) => isTestingWidgetToolType(part.type)),
+    ),
+  });
 
   function send(text: string) {
     const trimmed = text.trim();
@@ -301,9 +310,13 @@ function ChatPane({
         {messages.length === 0 ? (
           <EmptyDesk name={profile.name} onPick={send} />
         ) : (
-          <MessageThread messages={messages} routing={routing} />
+          <MessageThread
+            messages={messages}
+            routing={routing}
+            streaming={status === "streaming"}
+          />
         )}
-        {busy ? (
+        {busy && !hideTestingBusy ? (
           <LoadingState
             className="mt-5"
             variant={status === "streaming" ? "Dots" : "Drive"}
