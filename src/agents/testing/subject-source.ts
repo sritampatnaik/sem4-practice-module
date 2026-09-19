@@ -34,7 +34,7 @@ type AssessmentSourceBase = {
   suggestedVisual?: string;
 };
 
-export type PhysicsAssessmentSource = Omit<AssessmentSourceBase, "learningOutcomes"> & {
+export type PhysicsAssessmentSource = AssessmentSourceBase & {
   subject: "physics";
 };
 
@@ -549,7 +549,31 @@ export async function buildPhysicsAssessmentSource(
   input: SubjectSourceInput,
 ): Promise<PhysicsAssessmentSource> {
   const loaded = await loadSubjectSource("physics", input);
+
+  if (!loaded.supported) {
+    return {
+      subject: "physics",
+      gradeLevel: input.gradeLevel,
+      request: input.request,
+      sourceQuery: loaded.sourceQuery,
+      topics: loaded.topics,
+      requestedCount: input.requestedCount,
+      supported: false,
+      ...unsupportedPack({
+        subjectLabel: "Physics",
+        sourceChunks: loaded.sourceChunks,
+      }),
+    };
+  }
+
   const keyConcepts = extractKeyConcepts(loaded.sourceChunks);
+  const learningOutcomes = extractLearningOutcomes(
+    loaded.sourceChunks,
+    loaded.sourceQuery,
+    loaded.topics,
+    true,
+    input.gradeLevel,
+  );
   const formulaHints = extractPhysicsFormulaHints(loaded.sourceChunks);
   const misconceptionSeeds = inferPhysicsMisconceptionSeeds(loaded.sourceQuery, keyConcepts);
   const questionAngles = inferPhysicsQuestionAngles(loaded.sourceQuery, keyConcepts);
@@ -562,11 +586,10 @@ export async function buildPhysicsAssessmentSource(
     sourceQuery: loaded.sourceQuery,
     topics: loaded.topics,
     requestedCount: input.requestedCount,
-    supported: loaded.supported,
-    supportReason: loaded.supported
-      ? "Physics syllabus matches were found for this request."
-      : "No strong Physics syllabus match was found. Narrow the topic or ask the student to clarify before inventing content.",
+    supported: true,
+    supportReason: "Physics syllabus matches were found for this request.",
     sourceChunks: loaded.sourceChunks,
+    learningOutcomes,
     keyConcepts,
     formulaHints,
     misconceptionSeeds,

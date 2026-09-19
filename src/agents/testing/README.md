@@ -35,7 +35,7 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - `createMcqSet` — 2–6 items, 3–5 options, `correctOptionId` must match an option `id`
 - `createFlashcards` — 3–8 cards with `front`, `back`, `topic`
 - `documentSearchMath` / `documentSearchPhysics` / `documentSearchChemistry` — stay in-syllabus
-- `getPhysicsAssessmentSource` — Testing-owned Physics source pack for syllabus-grounded concepts, formula hints, distractor seeds, and question angles before building a Physics widget
+- `getPhysicsAssessmentSource` — Testing-owned Physics source pack for syllabus-grounded learning outcomes, concepts, formula hints, distractor seeds, and question angles before building a Physics widget
 - `getMathAssessmentSource` — Testing-owned Maths source pack for learning outcomes, key concepts, method/formula hints, distractor seeds, and question angles before building a Maths widget
 - `getChemistryAssessmentSource` — Testing-owned Chemistry source pack for learning outcomes, key concepts, equation/formula hints, distractor seeds, and question angles before building a Chemistry widget
 

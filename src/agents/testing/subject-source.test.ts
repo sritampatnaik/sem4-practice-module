@@ -21,7 +21,7 @@ const ctx: AgentRuntimeContext = {
 };
 
 test("prompt version and source-tool grounding", () => {
-  assert.equal(TESTING_PROMPT_VERSION, "1.5.0");
+  assert.equal(TESTING_PROMPT_VERSION, "1.6.0");
   const instructions = buildTestingInstructions(ctx);
   assert.match(instructions, /getMathAssessmentSource/);
   assert.match(instructions, /getPhysicsAssessmentSource/);
@@ -93,7 +93,7 @@ test("chemistry source pack returns outcomes for supported bonding", async () =>
   assert.ok(pack.questionAngles.length > 0);
 });
 
-test("physics source pack still supports kinematics", async () => {
+test("physics source pack returns outcomes for supported kinematics", async () => {
   const pack = await buildPhysicsAssessmentSource({
     request: "Give me five O-Level kinematics MCQs.",
     gradeLevel: "secondary",
@@ -101,8 +101,12 @@ test("physics source pack still supports kinematics", async () => {
   });
 
   assert.equal(pack.subject, "physics");
+  assert.equal(pack.gradeLevel, "secondary");
   assert.equal(pack.supported, true);
-  assert.equal("learningOutcomes" in pack, false);
+  assert.ok(pack.learningOutcomes.length > 0);
+  assert.ok(
+    pack.learningOutcomes.some((outcome) => /kinematic|velocity|acceleration|speed/i.test(outcome)),
+  );
   assert.ok(pack.sourceChunks.some((chunk) => chunk.score > 0));
   assert.ok(pack.keyConcepts.length > 0);
   assert.ok(pack.formulaHints.length > 0);
@@ -119,6 +123,10 @@ test("weak syllabus matches fail closed instead of inventing outcomes", async ()
     request: "Flashcards on quantum gastronomy xyzzyplugh.",
     gradeLevel: "secondary",
   });
+  const physicsPack = await buildPhysicsAssessmentSource({
+    request: "Quiz me on quantum gastronomy xyzzyplugh.",
+    gradeLevel: "secondary",
+  });
 
   assert.equal(mathPack.supported, false);
   assert.deepEqual(mathPack.learningOutcomes, []);
@@ -133,6 +141,12 @@ test("weak syllabus matches fail closed instead of inventing outcomes", async ()
   assert.deepEqual(chemPack.keyConcepts, []);
   assert.deepEqual(chemPack.formulaHints, []);
   assert.match(chemPack.supportReason, /No strong Chemistry syllabus match/i);
+
+  assert.equal(physicsPack.supported, false);
+  assert.deepEqual(physicsPack.learningOutcomes, []);
+  assert.deepEqual(physicsPack.keyConcepts, []);
+  assert.deepEqual(physicsPack.formulaHints, []);
+  assert.match(physicsPack.supportReason, /No strong Physics syllabus match/i);
 });
 
 test("source tools expose execute functions", () => {
