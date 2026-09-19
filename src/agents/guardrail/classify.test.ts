@@ -27,6 +27,20 @@ const ordinary = heuristicClassify("I don't get this kinematics question. Can yo
 assert.equal(ordinary.hit, false);
 assert.deepEqual(ordinary.categories, []);
 
+const giveUpOnLife = heuristicClassify("I want to give up on life");
+assert.equal(giveUpOnLife.hit, true);
+assert.ok(giveUpOnLife.categories.includes("self_harm"));
+assert.equal(giveUpOnLife.severity, "critical");
+assert.equal(giveUpOnLife.escalate, true);
+
+const giveUpLiving = heuristicClassify("I just want to give up on living.");
+assert.equal(giveUpLiving.hit, true);
+assert.ok(giveUpLiving.categories.includes("self_harm"));
+
+const giveUpMyLife = heuristicClassify("I want to give up on my life.");
+assert.equal(giveUpMyLife.hit, true);
+assert.ok(giveUpMyLife.categories.includes("self_harm"));
+
 const giveUpQuestion = heuristicClassify("I give up on this question. What is the next step?");
 assert.equal(giveUpQuestion.hit, false);
 

@@ -33,6 +33,15 @@ const SELF_HARM_PATTERNS = [
   /\bno reason to live\b/i,
   /\bi can'?t go on\b/i,
   /\bbetter off dead\b/i,
+  /\bgive up on (my )?(life|living|myself)\b/i,
+  /\bwant to give up on (my )?(life|living)\b/i,
+  /\bno point (in )?(living|going on)\b/i,
+  /\bnothing to live for\b/i,
+  /\bend it all\b/i,
+  /\bnot worth living\b/i,
+  /\bwish i (was|were) dead\b/i,
+  /\btired of living\b/i,
+  /\bdon'?t see (the )?point (in|of) living\b/i,
 ];
 
 const DISTRESS_PATTERNS = [

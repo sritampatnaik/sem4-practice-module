@@ -7,10 +7,12 @@ Tell a coding agent: *You are working on the METS Guardrail Agent. It is a silen
 
 ## Job
 
-After a specialist answers, the chat route calls `monitorStudentTurn`. This agent classifies the student turn for:
+The chat route starts `monitorStudentTurn` as soon as the student message is stored, then awaits it after the specialist reply. Keyword hits persist immediately so a staff alert exists even if the LLM classifier is slow or misses.
+
+This agent classifies the student turn for:
 
 - **disappointment** (failure talk, giving up on everything — not ordinary "this sum is hard")
-- **self-harm**
+- **self-harm** (including "I want to give up on life" and similar hopelessness about living)
 - **distress** (panic, breakdown, acute crisis)
 
 On a hit it stores an alert (student, snippet, reason, time) in the existing Supabase project and notifies a parent or tutor: in-app on `/admin`, and email when `parent_email`, `METS_PARENT_NOTIFY_EMAIL`, or `METS_ADMIN_EMAILS` is set and Resend is configured.
@@ -39,7 +41,7 @@ You may also hook `src/app/api/chat/route.ts` (after the specialist reply) and t
 
 ## Routing contract
 
-Orchestration must never choose `guardrail`. Students stay on Math, Physics, Chemistry, Testing, or the concierge. The chat route runs this monitor in `onFinish` and swallows errors so the student stream cannot fail because of it.
+Orchestration must never choose `guardrail`. Students stay on Math, Physics, Chemistry, Testing, or the concierge. The chat route starts the monitor after the student turn is stored, awaits it in `onFinish`, and swallows errors so the student stream cannot fail because of it. Escalate only — never methods or a student-facing safety reply.
 
 ## Admin page
 
