@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Monogram } from "@/components/atoms/EntityChip";
+import { Icon, type MetsIconName } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 export function BrandMark() {
@@ -23,10 +24,12 @@ export function NavLink({
   href,
   active,
   children,
+  icon,
 }: {
   href: string;
   active?: boolean;
   children: ReactNode;
+  icon?: MetsIconName;
 }) {
   const pathname = usePathname();
   const matched =
@@ -38,12 +41,13 @@ export function NavLink({
     <Link
       href={href}
       className={cn(
-        "rounded-lg px-2.5 py-1.5 text-sm no-underline transition-colors",
+        "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm no-underline transition-colors",
         isActive
           ? "bg-field font-medium text-ink shadow-[var(--bui-shadow-hairline)]"
           : "text-ink-2 hover:bg-hover hover:text-ink",
       )}
     >
+      {icon ? <Icon icon={icon} size={14} /> : null}
       {children}
     </Link>
   );

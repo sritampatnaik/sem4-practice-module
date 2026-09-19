@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { Icon, type MetsIconName } from "@/components/icons";
 
 /* ─────────────────────────────────────────────────────────
  * TOOL CHIPS
@@ -13,11 +14,13 @@ import { createPortal } from "react-dom";
 
 const STEP_MS = 700;
 
-const Icons: Record<string, React.ReactNode> = {
-  think: <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />,
-  write: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></g>,
-  run: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 17l6-5-6-5M12 19h8" /></g>,
-  read: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></g>,
+const STEP_ICONS: Record<string, MetsIconName> = {
+  think: "think",
+  write: "write",
+  run: "run",
+  read: "read",
+  quiz: "quiz",
+  flashcards: "flashcards",
 };
 
 export type ToolDetailLine = { text: string; tone?: "add" };
@@ -169,9 +172,12 @@ export default function ToolChips({
         }
         className="-mx-1.5 flex w-fit items-center gap-1.5 rounded-control px-1.5 py-1 text-[12.5px] text-ink-2 transition-colors duration-100 hover:bg-hover-2"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200" style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <span
+          className="inline-flex transition-transform duration-200"
+          style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}
+        >
+          <Icon icon="arrowDown" size={12} strokeWidth={2.2} />
+        </span>
         <span className="tabular-nums">{copy.header}</span>
       </button>
 
@@ -192,19 +198,15 @@ export default function ToolChips({
                 className="group/row -mx-[3px] flex h-7 w-[calc(100%+6px)] min-w-0 items-center gap-2 rounded-control px-[3px] text-left transition-colors duration-100 hover:bg-hover-2"
               >
                 <span className="relative flex size-4 shrink-0 items-center justify-center text-ink-3">
-                  <svg
-                    width="13" height="13" viewBox="0 0 24 24" fill={row.icon === "think" ? "currentColor" : "none"} stroke="currentColor"
-                    className={`transition-opacity duration-100 group-hover/row:opacity-0 ${rowOpen ? "opacity-0" : ""}`}
-                  >
-                    {Icons[row.icon]}
-                  </svg>
-                  <svg
-                    width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                  <span className={`transition-opacity duration-100 group-hover/row:opacity-0 ${rowOpen ? "opacity-0" : ""}`}>
+                    <Icon icon={STEP_ICONS[row.icon] ?? "think"} size={13} />
+                  </span>
+                  <span
                     className={`absolute transition-[opacity,transform] duration-150 group-hover/row:opacity-100 ${rowOpen ? "opacity-100" : "opacity-0"}`}
                     style={{ transform: rowOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
                   >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                    <Icon icon="arrowDown" size={12} strokeWidth={2.2} />
+                  </span>
                 </span>
                 <span className="shrink-0 text-[12.5px] font-medium text-ink">{row.label}</span>
                 <span
