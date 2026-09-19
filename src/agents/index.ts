@@ -6,6 +6,7 @@ import { createPhysicsAgent } from "./physics";
 import { createTestingAgent } from "./testing";
 
 export function createAgent(agentId: AgentId, ctx: AgentRuntimeContext) {
+  // Guardrail is not student-facing. Chat route calls monitorStudentTurn separately.
   switch (agentId) {
     case "math":
       return createMathAgent(ctx);

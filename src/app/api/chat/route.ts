@@ -4,6 +4,7 @@ import {
   createUIMessageStreamResponse,
 } from "ai";
 import { createAgent } from "@/agents";
+import { monitorStudentTurn } from "@/agents/guardrail";
 import { routeStudentTurn } from "@/agents/orchestration/router";
 import { ROUTING_PROMPT_ID } from "@/agents/orchestration/prompts";
 import {
@@ -168,6 +169,21 @@ export async function POST(req: Request) {
         routing,
         at: new Date().toISOString(),
       });
+      try {
+        await monitorStudentTurn({
+          sessionId,
+          userId: user?.id,
+          studentEmail: user?.email,
+          studentName: profile.name,
+          studentText: text,
+          assistantText: output,
+          recentStudentTurns: ctx.recentChats
+            .filter((item) => item.role === "user")
+            .map((item) => item.text),
+        });
+      } catch {
+        /* Never fail the student stream because the silent monitor broke. */
+      }
     },
   });
 

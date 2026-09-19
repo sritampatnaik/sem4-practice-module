@@ -26,7 +26,7 @@ If the student is only greeting, asking what METS is, or the subject is unclear,
 | `index.ts` | Concierge `ToolLoopAgent` (no specialist tools). |
 | `langflow/prompts/orchestration.routing.md` | Keep in sync after prompt edits. |
 
-You may also change `src/app/api/chat/route.ts` because that is where routing is invoked. Do not move routing into Math/Physics/Chemistry/Testing.
+You may also change `src/app/api/chat/route.ts` because that is where routing is invoked. Do not move routing into Math/Physics/Chemistry/Testing. The chat route may also call Guardrail after the specialist reply; do not add Guardrail to `createAgent`.
 
 ## Files you must not change for orchestration work
 
@@ -34,6 +34,7 @@ You may also change `src/app/api/chat/route.ts` because that is where routing is
 - `src/agents/physics/**`
 - `src/agents/chemistry/**`
 - `src/agents/testing/**`
+- `src/agents/guardrail/**` (silent monitor; hook only from the chat route)
 
 ## Routing contract
 

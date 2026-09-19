@@ -15,20 +15,23 @@ Student UI
             → Math | Physics | Chemistry   if intent is teaching
             → Testing                      if intent is quiz / flashcards
             → Orchestration concierge      if greeting / unclear / meta
+        → Guardrail monitor (silent; never answers the student)
+            → parent/tutor alert on /admin (+ email if configured)
 ```
 
-This is **central routing + local specialist tools**, matching the proposal. It is not a swarm of peers debating. One agent answers each turn.
+This is **central routing + local specialist tools**, matching the proposal. It is not a swarm of peers debating. One agent answers each turn. Guardrail is not a routing target.
 
 ## Runtime pieces
 
 | Piece | Path | Role |
 | --- | --- | --- |
-| Chat API | `src/app/api/chat/route.ts` | Glue: sanitize, route, stream, log |
+| Chat API | `src/app/api/chat/route.ts` | Glue: sanitize, route, stream, log, then silent Guardrail |
 | Auth API | `src/app/api/auth/route.ts` | Supabase email login, httpOnly session cookie |
 | Conversations API | `src/app/api/conversations/route.ts` | List / create threads; messages under `[id]` |
 | Student API | `src/app/api/student/route.ts` | Persist profile to `student_sessions` |
 | Trace API | `src/app/api/traces/route.ts` | Audit rail payload |
-| Agent factory | `src/agents/index.ts` | `createAgent(id, ctx)` |
+| Agent factory | `src/agents/index.ts` | `createAgent(id, ctx)` — student-facing agents only |
+| Guardrail | `src/agents/guardrail/` | Silent harm/disappointment monitor; staff page `/admin` |
 | Shared types | `src/agents/_shared/types.ts` | Profile, routing, quiz shapes |
 | Shared syllabus search | `src/lib/syllabus.ts` | Keyword RAG over markdown |
 | Memory | `src/lib/memory.ts` | Last 10 chats per session (Supabase when configured) |
@@ -57,7 +60,9 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 
 ## Persistence
 
-Login is Supabase Auth (email and password). Create-account uses public `signUp` (publishable or anon key) plus an auto-confirm trigger — not Auth Admin. There is also a guest path that does not persist. Profiles (`student_sessions`), conversations, full chat history (`chat_memory`), same-project pgvector chunks (`chat_chunks`), and eval history persist when `SUPABASE_URL` is set with a service role / secret key, or with the publishable/anon key plus the signed-in user's JWT. Access stays server-only. Never prefix secrets with `NEXT_PUBLIC_`.
+Login is Supabase Auth (email and password). Create-account uses public `signUp` (publishable or anon key) plus an auto-confirm trigger — not Auth Admin. There is also a guest path that does not persist. Profiles (`student_sessions`), conversations, full chat history (`chat_memory`), same-project pgvector chunks (`chat_chunks`), eval history, and Guardrail alerts (`guardrail_alerts`) persist when `SUPABASE_URL` is set with a service role / secret key, or with the publishable/anon key plus the signed-in user's JWT. Guardrail rows are service-role only so students cannot read them. Access stays server-only. Never prefix secrets with `NEXT_PUBLIC_`.
+
+Staff open `/admin` (not linked from the student desk) with `METS_ADMIN_EMAILS` or Auth `app_metadata.role`. Email uses `METS_PARENT_NOTIFY_EMAIL`, optional `student_sessions.parent_email`, and Resend when configured.
 
 Syllabus search is still local markdown. Chat retrieval is separate: chunk + `text-embedding-3-small` into `chat_chunks`, then `match_chat_chunks`.
 

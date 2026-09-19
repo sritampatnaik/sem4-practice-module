@@ -162,6 +162,7 @@ export type Database = {
           id: string;
           name: string;
           notes: Json;
+          parent_email: string | null;
           updated_at: string;
           user_id: string | null;
         };
@@ -173,6 +174,7 @@ export type Database = {
           id: string;
           name?: string;
           notes?: Json;
+          parent_email?: string | null;
           updated_at?: string;
           user_id?: string | null;
         };
@@ -184,7 +186,62 @@ export type Database = {
           id?: string;
           name?: string;
           notes?: Json;
+          parent_email?: string | null;
           updated_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      guardrail_alerts: {
+        Row: {
+          acknowledged_at: string | null;
+          acknowledged_by: string | null;
+          categories: string[];
+          created_at: string;
+          id: string;
+          notified_at: string | null;
+          notified_email: string | null;
+          prompt_version: string;
+          reason: string;
+          session_id: string;
+          severity: string;
+          snippet: string;
+          student_email: string | null;
+          student_name: string;
+          user_id: string | null;
+        };
+        Insert: {
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
+          categories?: string[];
+          created_at?: string;
+          id: string;
+          notified_at?: string | null;
+          notified_email?: string | null;
+          prompt_version: string;
+          reason: string;
+          session_id: string;
+          severity: string;
+          snippet: string;
+          student_email?: string | null;
+          student_name?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
+          categories?: string[];
+          created_at?: string;
+          id?: string;
+          notified_at?: string | null;
+          notified_email?: string | null;
+          prompt_version?: string;
+          reason?: string;
+          session_id?: string;
+          severity?: string;
+          snippet?: string;
+          student_email?: string | null;
+          student_name?: string;
           user_id?: string | null;
         };
         Relationships: [];

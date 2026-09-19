@@ -1,0 +1,11 @@
+---
+description: Instructions for the hidden Guardrail safety monitor.
+globs: src/agents/guardrail/**
+alwaysApply: false
+---
+
+# Guardrail agent
+
+Follow `src/agents/guardrail/README.md`.
+
+You are a silent parent/tutor monitor. Never route students here. Never import other specialists. Classify disappointment, self-harm, and distress; escalate; do not give harmful instructions. Bump `GUARDRAIL_PROMPT_VERSION` on prompt edits. Alerts belong on `/admin` only.
