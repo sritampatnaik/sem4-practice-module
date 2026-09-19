@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GuardrailAlert } from "@/agents/guardrail/types";
 import { ValuePill } from "@/components/atoms/ValuePill";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,22 @@ export function AdminAlertsDesk({
   const [alerts, setAlerts] = useState(initialAlerts);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/admin/alerts")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { alerts?: GuardrailAlert[] } | null) => {
+        if (cancelled || !payload?.alerts) return;
+        setAlerts(payload.alerts);
+      })
+      .catch(() => {
+        /* Keep the server-rendered list if refresh fails. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const openCount = useMemo(
     () => alerts.filter((alert) => !alert.acknowledgedAt).length,

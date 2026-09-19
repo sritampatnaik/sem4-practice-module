@@ -169,19 +169,21 @@ export async function POST(req: Request) {
         routing,
         at: new Date().toISOString(),
       });
-      void monitorStudentTurn({
-        sessionId,
-        userId: user?.id,
-        studentEmail: user?.email,
-        studentName: profile.name,
-        studentText: text,
-        assistantText: output,
-        recentStudentTurns: ctx.recentChats
-          .filter((item) => item.role === "user")
-          .map((item) => item.text),
-      }).catch(() => {
+      try {
+        await monitorStudentTurn({
+          sessionId,
+          userId: user?.id,
+          studentEmail: user?.email,
+          studentName: profile.name,
+          studentText: text,
+          assistantText: output,
+          recentStudentTurns: ctx.recentChats
+            .filter((item) => item.role === "user")
+            .map((item) => item.text),
+        });
+      } catch {
         /* Never fail the student stream because the silent monitor broke. */
-      });
+      }
     },
   });
 

@@ -4,7 +4,13 @@ import { GUARDRAIL_CATEGORIES, type GuardrailAlert, type GuardrailCategory } fro
 
 type AlertRow = Database["public"]["Tables"]["guardrail_alerts"]["Row"];
 
-const memory: GuardrailAlert[] = [];
+const globalAlerts = globalThis as typeof globalThis & {
+  __metsGuardrailAlerts?: GuardrailAlert[];
+};
+if (!globalAlerts.__metsGuardrailAlerts) {
+  globalAlerts.__metsGuardrailAlerts = [];
+}
+const memory = globalAlerts.__metsGuardrailAlerts;
 const DEDUPE_MS = 2 * 60 * 1000;
 
 function asUuid(value: string | null | undefined) {
