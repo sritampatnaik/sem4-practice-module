@@ -11,7 +11,11 @@ import {
   appendAssessmentPerformanceEntry,
   readRecentAssessmentPerformance,
 } from "./performance-log";
-import { buildPhysicsAssessmentSource } from "./subject-source";
+import {
+  buildChemistryAssessmentSource,
+  buildMathAssessmentSource,
+  buildPhysicsAssessmentSource,
+} from "./subject-source";
 
 const subjectSchema = z.enum(["math", "physics", "chemistry"]);
 const gradeLevelSchema = z.enum(["primary", "secondary", "jc"]);
@@ -158,16 +162,32 @@ export const planAssessmentTool = tool({
   execute: async (input) => buildAssessmentPlan(input),
 });
 
+const assessmentSourceInputSchema = z.object({
+  request: nonEmptyText,
+  gradeLevel: gradeLevelSchema,
+  topics: z.array(nonEmptyText).min(1).max(4).optional(),
+  requestedCount: z.number().int().min(1).max(8).optional(),
+});
+
 export const getPhysicsAssessmentSourceTool = tool({
   description:
     "Build structured Physics source material for the Testing agent before creating Physics MCQs or flashcards. Use this before generating a Physics widget.",
-  inputSchema: z.object({
-    request: nonEmptyText,
-    gradeLevel: gradeLevelSchema,
-    topics: z.array(nonEmptyText).min(1).max(4).optional(),
-    requestedCount: z.number().int().min(1).max(8).optional(),
-  }),
+  inputSchema: assessmentSourceInputSchema,
   execute: async (input) => buildPhysicsAssessmentSource(input),
+});
+
+export const getMathAssessmentSourceTool = tool({
+  description:
+    "Build structured Maths source material for the Testing agent before creating Maths MCQs or flashcards. Use this before generating a Maths widget.",
+  inputSchema: assessmentSourceInputSchema,
+  execute: async (input) => buildMathAssessmentSource(input),
+});
+
+export const getChemistryAssessmentSourceTool = tool({
+  description:
+    "Build structured Chemistry source material for the Testing agent before creating Chemistry MCQs or flashcards. Use this before generating a Chemistry widget.",
+  inputSchema: assessmentSourceInputSchema,
+  execute: async (input) => buildChemistryAssessmentSource(input),
 });
 
 export const createMermaidDiagramTool = tool({

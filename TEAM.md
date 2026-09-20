@@ -9,6 +9,7 @@ Five people, five agents. Give a coding agent the README in **your** folder. Sta
 | Chua Hieng Weih | Physics Agent | [src/agents/physics/README.md](./src/agents/physics/README.md) |
 | Lizabeth Annabel Tukiman | Chemistry Agent | [src/agents/chemistry/README.md](./src/agents/chemistry/README.md) |
 | Muhammad Harun Bin Abdul Rashid | Testing Agent | [src/agents/testing/README.md](./src/agents/testing/README.md) |
+| (unassigned) | Guardrail (hidden) | [src/agents/guardrail/README.md](./src/agents/guardrail/README.md) |
 
 System overview for anyone explaining the project: [docs/HOW-IT-WORKS.md](./docs/HOW-IT-WORKS.md) and [AGENTS.md](./AGENTS.md).
 
@@ -18,12 +19,12 @@ System overview for anyone explaining the project: [docs/HOW-IT-WORKS.md](./docs
 - `src/agents/index.ts`
 - `src/app/api/chat/route.ts`
 
-A specialist agent must not import another specialist. Only orchestration / the chat route may choose which agent to run.
+A specialist agent must not import another specialist. Only orchestration / the chat route may choose which student-facing agent to run. Guardrail is hooked from the chat route after the reply; it is never a routing target.
 
 ## Prompt versioning
 
 Each agent exports `*_PROMPT_VERSION`. Bump it when you edit `prompts.ts` so Langflow logs stay comparable. Copy the gist into `langflow/prompts/`.
 
-## Later (not in this slice)
+## Persistence
 
-Student profiles, chat memory, and evals persist in Supabase. pgvector for syllabus embeddings is still later. RAG currently reads markdown in `data/syllabus/`.
+Student profiles, conversations, chat memory, chat-chunk pgvector, evals, and Guardrail alerts persist in the same Supabase project when `SUPABASE_URL` is set with a service role / secret key, or with the anon/publishable key plus the user's JWT. Syllabus RAG still reads markdown in `data/syllabus/`.

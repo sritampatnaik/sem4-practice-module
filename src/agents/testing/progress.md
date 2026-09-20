@@ -198,7 +198,30 @@ Related support work for reporting:
   - decide whether to add Maths or Chemistry next
   - add eval coverage for source-tool ordering and unsupported-topic failures
 
-## Suggested next-session start
+## 2026-09-19 session update
+
+- **Changed:**
+  - `src/agents/testing/subject-source.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/README.md`
+  - `src/agents/testing/subject-source.test.ts`
+  - `langflow/prompts/testing.system.md`
+- **Validated:**
+  - `npx tsx --test src/agents/testing/subject-source.test.ts`
+  - targeted lint for the edited Testing files
+- **Findings:**
+  - Maths and Chemistry now have Testing-owned source packs parallel to Physics
+  - weak syllabus matches return `supported: false` with empty outcomes instead of inventing content
+  - the prompt now grounds quiz generation in the matching source tool, not raw `documentSearchMath` / `documentSearchChemistry`
+- **Blockers:**
+  - live model validation still depends on `OPENAI_API_KEY`
+  - richer official syllabus maps will improve learning-outcome quality later
+- **Next:**
+  - run harness scenarios once an API key is available and confirm the matching source tool is called before the widget
+
+
 
 Start with:
 

@@ -4,7 +4,7 @@ import {
   isSchoolGrade,
   type StudentProfile,
 } from "@/agents/_shared/types";
-import { getAuthUser } from "@/lib/auth";
+import { getAccessToken, getAuthUser } from "@/lib/auth";
 import { getStudentByUserId, upsertStudentSession } from "@/lib/students";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -36,7 +36,8 @@ export async function GET() {
   if (!user) {
     return Response.json({ error: "Sign in first." }, { status: 401 });
   }
-  const profile = await getStudentByUserId(user.id);
+  const accessToken = await getAccessToken();
+  const profile = await getStudentByUserId(user.id, accessToken);
   return Response.json({
     configured: isSupabaseConfigured(),
     user,
@@ -55,7 +56,8 @@ export async function PUT(req: Request) {
   if (!profile) {
     return Response.json({ error: "A valid student profile is required." }, { status: 400 });
   }
-  const result = await upsertStudentSession(user.id, profile, user.id);
+  const accessToken = await getAccessToken();
+  const result = await upsertStudentSession(user.id, profile, user.id, accessToken);
   if (!result.ok && result.reason !== "unconfigured") {
     return Response.json({ error: result.reason }, { status: 500 });
   }

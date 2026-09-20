@@ -4,6 +4,8 @@
 **Folder:** `src/agents/math/`  
 **Syllabus corpus:** `data/syllabus/math.md`
 
+**Design and assessment plan:** [DESIGN.md](./DESIGN.md) — proposed user offering, teaching playbook, engineering requirements, team alignment, and evaluation criteria.
+
 Tell a coding agent: *You are working on the METS Math Agent only. Read this file fully. Do not edit other specialist folders. Do not build quizzes here.*
 
 ## Job

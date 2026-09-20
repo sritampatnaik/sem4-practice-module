@@ -91,6 +91,7 @@ export type AgentRuntimeContext = {
   sessionId: string;
   profile: StudentProfile;
   recentChats: ChatMemoryItem[];
+  retrievedContext?: string[];
 };
 
 export type RoutingDecision = {

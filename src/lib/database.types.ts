@@ -9,6 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_chunks: {
+        Row: {
+          chunk_index: number;
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          embedding: string | number[] | null;
+          id: number;
+          user_id: string;
+        };
+        Insert: {
+          chunk_index?: number;
+          content: string;
+          conversation_id: string;
+          created_at?: string;
+          embedding?: string | number[] | null;
+          id?: never;
+          user_id: string;
+        };
+        Update: {
+          chunk_index?: number;
+          content?: string;
+          conversation_id?: string;
+          created_at?: string;
+          embedding?: string | number[] | null;
+          id?: never;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      conversations: {
+        Row: {
+          created_at: string;
+          id: string;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id: string;
+          title?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          title?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       chat_memory: {
         Row: {
           agent: string | null;
@@ -108,6 +162,7 @@ export type Database = {
           id: string;
           name: string;
           notes: Json;
+          parent_email: string | null;
           updated_at: string;
           user_id: string | null;
         };
@@ -119,6 +174,7 @@ export type Database = {
           id: string;
           name?: string;
           notes?: Json;
+          parent_email?: string | null;
           updated_at?: string;
           user_id?: string | null;
         };
@@ -130,7 +186,62 @@ export type Database = {
           id?: string;
           name?: string;
           notes?: Json;
+          parent_email?: string | null;
           updated_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      guardrail_alerts: {
+        Row: {
+          acknowledged_at: string | null;
+          acknowledged_by: string | null;
+          categories: string[];
+          created_at: string;
+          id: string;
+          notified_at: string | null;
+          notified_email: string | null;
+          prompt_version: string;
+          reason: string;
+          session_id: string;
+          severity: string;
+          snippet: string;
+          student_email: string | null;
+          student_name: string;
+          user_id: string | null;
+        };
+        Insert: {
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
+          categories?: string[];
+          created_at?: string;
+          id: string;
+          notified_at?: string | null;
+          notified_email?: string | null;
+          prompt_version: string;
+          reason: string;
+          session_id: string;
+          severity: string;
+          snippet: string;
+          student_email?: string | null;
+          student_name?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
+          categories?: string[];
+          created_at?: string;
+          id?: string;
+          notified_at?: string | null;
+          notified_email?: string | null;
+          prompt_version?: string;
+          reason?: string;
+          session_id?: string;
+          severity?: string;
+          snippet?: string;
+          student_email?: string | null;
+          student_name?: string;
           user_id?: string | null;
         };
         Relationships: [];
@@ -140,7 +251,19 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      match_chat_chunks: {
+        Args: {
+          filter_user_id: string;
+          match_count: number;
+          query_embedding: string | number[];
+        };
+        Returns: {
+          content: string;
+          conversation_id: string;
+          id: number;
+          similarity: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
