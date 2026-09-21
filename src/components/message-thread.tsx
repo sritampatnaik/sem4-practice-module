@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import type { AgentId, FlashcardSet, McqSet, RoutingDecision } from "@/agents/_shared/types";
 import { EntityChip } from "@/components/atoms/EntityChip";
@@ -16,6 +17,14 @@ import { FlashcardWidget } from "./flashcard-widget";
 import { MarkdownBody } from "./markdown-body";
 import { QuizWidget } from "./quiz-widget";
 import { LoadingState } from "./ui/loading-state";
+
+const PhysicsDiagramWidget = dynamic(
+  () => import("@/agents/physics/physics-diagram-widget").then((module) => module.PhysicsDiagramWidget),
+  {
+    ssr: false,
+    loading: () => <LoadingState variant="Dots" label="Drawing physics diagram" />,
+  },
+);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
@@ -80,6 +89,7 @@ export function MessageThread({
         }
 
         const widgets: Array<{ key: string; node: ReactNode }> = [];
+        const physicsWidgets: Array<{ key: string; node: ReactNode }> = [];
         const steps: ToolStep[] = [];
         const textParts: string[] = [];
         let hasPendingWidget = false;
@@ -100,6 +110,17 @@ export function MessageThread({
             input?: unknown;
             errorText?: string;
           };
+
+          if (
+            toolPart.type === "tool-drawPhysicsDiagram" &&
+            toolPart.state === "output-available"
+          ) {
+            physicsWidgets.push({
+              key: `${message.id}-physics-diagram-${index}`,
+              node: <PhysicsDiagramWidget output={toolPart.output} />,
+            });
+            return;
+          }
 
           if (isTestingWidgetToolType(toolPart.type)) {
             if (toolPart.state === "output-error") {
@@ -192,6 +213,9 @@ export function MessageThread({
                     }}
                   />
                 ) : null}
+                {physicsWidgets.map((widget) => (
+                  <div key={widget.key}>{widget.node}</div>
+                ))}
                 {visibleText.map((text, index) => (
                   <MarkdownBody key={`${message.id}-t-${index}`} text={text} />
                 ))}
