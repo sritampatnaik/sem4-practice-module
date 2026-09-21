@@ -11,6 +11,13 @@ Retrieval: each level-two heading is a separate chunk. Keep its body below 900 c
 - Explain with observations and familiar examples. Teach simple measurement and fair tests; do not require F = ma, vector components, Ohm's-law algebra or quantum theory.
 - Verification limit: the central MOE PDF was access-blocked on 2026-09-05. This retained Primary outline is not a fresh outcome-by-outcome audit; the 2026 school briefing below corroborates light and heat changes.
 
+## Primary - magnets, forces and simple circuits
+
+- Reference: [MOE Primary Science 2023](https://www.moe.gov.sg/-/media/files/primary/syllabus/2023-primary-science.ashx); Primary physical-science outcomes.
+- Magnets have two poles: unlike poles attract and like poles repel. Compare magnetic and non-magnetic materials and recognise common uses of magnets.
+- Describe a force as a push or pull and its effects on an object's motion or shape. Keep explanations qualitative; Newton's laws, free-body diagrams and F = ma are not Primary outcomes.
+- Recognise that a battery, wires, bulb and switch form a simple electrical system; identify closed circuits, conductors and insulators.
+
 ## Primary - light, heat and investigations
 
 - Reference: [MOE school briefing, 2026](https://www.punggolcovepri.moe.edu.sg/files/2026%20Curriculum%20Briefing/2026_P6_PSLE_Briefing_Slides.pdf).
@@ -19,10 +26,10 @@ Retrieval: each level-two heading is a separate chunk. Keep its body below 900 c
 - Compare magnetic/non-magnetic materials, attraction/repulsion and simple circuit continuity.
 - In fair tests, identify what changes, what is measured and what stays constant. Keep explanations qualitative; these are tutor-level summaries, not quoted examination outcomes.
 
-## Secondary - O-Level 6091 (2026) measurement and mechanics
+## Secondary - O-Level 6091 (2026) measurement, kinematics and mechanics
 
 - Official source: [6091, pp. 10-14](https://isomer-user-content.by.gov.sg/334/42ee79d0-bb13-43f5-94ab-629729f88aa0/6091_y26_sy.pdf).
-- Topics 1-6: select instruments; distinguish scalars/vectors; interpret motion graphs; apply resultant force, weight, moments, density, pressure, work, energy and power.
+- Topics 1-6: select instruments; distinguish scalars/vectors; apply kinematics using speed, velocity and acceleration; interpret motion graphs; apply resultant force, weight, moments, density, pressure, work, energy and power.
 - Use graph areas for displacement and gradients for velocity/acceleration.
 - Free-fall outcome 2(i) uses approximately 10 m/s². Follow a question's stated g; the agent's general 9.81 default is not an official O-Level convention.
 
