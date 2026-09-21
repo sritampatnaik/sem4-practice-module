@@ -51,20 +51,117 @@ function fromSi(value: number, siUnit: string, target: string) {
   return value / mapped.factor;
 }
 
+const diagramText = z.string().trim().min(1).max(160);
+const finiteDiagramNumber = z.number().finite().min(-1_000_000).max(1_000_000);
+
+const freeBodyDiagramSchema = z.object({
+  kind: z.literal("free-body"),
+  title: diagramText,
+  description: diagramText,
+  objectLabel: diagramText.max(40),
+  showSurface: z.boolean().default(true),
+  forces: z
+    .array(
+      z.object({
+        direction: z.enum(["up", "down", "left", "right"]),
+        label: diagramText.max(60),
+        magnitude: z.number().finite().positive().max(1_000_000).optional(),
+      }),
+    )
+    .min(1)
+    .max(4)
+    .refine(
+      (forces) => new Set(forces.map((force) => force.direction)).size === forces.length,
+      "Combine forces that act in the same direction before drawing the diagram.",
+    ),
+});
+
+const motionGraphDiagramSchema = z.object({
+  kind: z.literal("motion-graph"),
+  title: diagramText,
+  description: diagramText,
+  xLabel: diagramText.max(30),
+  yLabel: diagramText.max(30),
+  seriesLabel: diagramText.max(60).optional(),
+  points: z
+    .array(z.object({ x: finiteDiagramNumber, y: finiteDiagramNumber }))
+    .min(2)
+    .max(20),
+});
+
+const convergingLensDiagramSchema = z
+  .object({
+    kind: z.literal("converging-lens"),
+    title: diagramText,
+    description: diagramText,
+    focalLength: z.number().finite().positive().max(1_000_000),
+    objectDistance: z.number().finite().positive().max(1_000_000),
+    objectHeight: z.number().finite().positive().max(1_000_000),
+  })
+  .refine(
+    ({ focalLength, objectDistance }) => objectDistance > focalLength * 1.05,
+    {
+      message: "This first version draws real images only, so object distance must exceed focal length.",
+      path: ["objectDistance"],
+    },
+  );
+
+const physicsDiagramSchema = z.discriminatedUnion("kind", [
+  freeBodyDiagramSchema,
+  motionGraphDiagramSchema,
+  convergingLensDiagramSchema,
+]);
+
+// OpenAI function tools require a top-level JSON Schema object. A discriminated
+// union serialises as `anyOf`, so expose one object to the model and perform the
+// stricter per-kind validation again inside execute.
+const physicsDiagramInputSchema = z.object({
+  kind: z.enum(["free-body", "motion-graph", "converging-lens"]),
+  title: diagramText,
+  description: diagramText,
+  objectLabel: diagramText.max(40).optional(),
+  showSurface: z.boolean().optional(),
+  forces: z
+    .array(
+      z.object({
+        direction: z.enum(["up", "down", "left", "right"]),
+        label: diagramText.max(60),
+        magnitude: z.number().finite().positive().max(1_000_000).optional(),
+      }),
+    )
+    .min(1)
+    .max(4)
+    .optional(),
+  xLabel: diagramText.max(30).optional(),
+  yLabel: diagramText.max(30).optional(),
+  seriesLabel: diagramText.max(60).optional(),
+  points: z
+    .array(z.object({ x: finiteDiagramNumber, y: finiteDiagramNumber }))
+    .min(2)
+    .max(20)
+    .optional(),
+  focalLength: z.number().finite().positive().max(1_000_000).optional(),
+  objectDistance: z.number().finite().positive().max(1_000_000).optional(),
+  objectHeight: z.number().finite().positive().max(1_000_000).optional(),
+});
+
 export const formulaLookupTool = tool({
   description: "Look up a standard physics formula used in Singapore syllabuses.",
   inputSchema: z.object({
     topic: z.string().describe("Keyword such as 'kinetic energy' or 'ohm'"),
   }),
   execute: async ({ topic }: { topic: string }) => {
-    const needle = topic.toLowerCase();
+    const needle = topic.trim().toLowerCase();
     const hits = FORMULAS.filter(
       (row) =>
         row.id.includes(needle) ||
         row.name.toLowerCase().includes(needle) ||
         row.expression.toLowerCase().includes(needle),
     );
-    return { hits: hits.length ? hits : FORMULAS.slice(0, 4) };
+    // 3. Consistency & Reliability: an unknown topic must not return unrelated formulas.
+    return needle && hits.length
+      ? { hits }
+      : { hits: [], error: "No matching formula found. Try a specific formula name." };
   },
 });
 
@@ -89,6 +186,30 @@ export const unitConverterTool = tool({
       input: { value, from },
       si,
       output: { value: Number(converted.toPrecision(8)), to },
+    };
+  },
+});
+
+export const drawPhysicsDiagramTool = tool({
+  description:
+    "Draw a precise Physics visual when it materially helps: a free-body diagram, a piecewise-linear motion graph, or a converging-lens ray diagram for a real image. Use only values and labels supported by the question; never invent missing measurements.",
+  inputSchema: physicsDiagramInputSchema,
+  execute: async (input) => {
+    const spec = physicsDiagramSchema.parse(input);
+    if (spec.kind !== "converging-lens") {
+      return { renderer: "jsxgraph" as const, spec };
+    }
+
+    const imageDistance = 1 / (1 / spec.focalLength - 1 / spec.objectDistance);
+    const magnification = -imageDistance / spec.objectDistance;
+    return {
+      renderer: "jsxgraph" as const,
+      spec,
+      derived: {
+        imageDistance: Number(imageDistance.toPrecision(8)),
+        imageHeight: Number((magnification * spec.objectHeight).toPrecision(8)),
+        magnification: Number(magnification.toPrecision(8)),
+      },
     };
   },
 });
