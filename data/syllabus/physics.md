@@ -1,189 +1,104 @@
 # Physics syllabus map (Singapore)
 
-Official MOE/SEAB **learning-outcome maps** for RAG. Not full derivations or encyclopedic notes.
+Reviewed: 2026-09-05. Scope: 2026 O-Level 6091, H1 8867, H2 9478 and legacy H2 9749. Concise, paraphrased curriculum coverage, not textbook notes or an exhaustive replacement for official learning outcomes. Page references use the PDFs' printed page numbers. Negative coverage statements mean “not listed as a required outcome”, not “cannot appear in an unfamiliar context with supplied information”.
 
-Physics is not a separate subject until upper secondary. Primary and lower-secondary outcomes here are the physical-science topics from MOE Science syllabuses (not a fourth subject file). Biology-only topics (life cycles, plant and human systems, ecosystems) are omitted.
+Retrieval: each level-two heading is a separate chunk. Keep its body below 900 characters, repeat the course/year and put the official link in the same chunk. H1/H2 remain the shared `jc` band; use message/profile notes for course identity.
 
-Sources: MOE Primary Science Syllabus 2023; MOE 2021 G2/G3 and G1 Lower Secondary Science (updated April 2024); SEAB GCE O-Level 2026 Physics 6091 and Combined Science (Physics, Chemistry) 5086; SEAB GCE A-Level 2026 H1 Physics 8867 and H2 Physics 9478 (revised; 9749 is last examined in 2026).
+## Primary - science scope and boundaries
 
-## Primary Science — Diversity of materials (MOE Primary Science Syllabus 2023)
+- Reference: [MOE Primary Science 2023](https://www.moe.gov.sg/-/media/files/primary/syllabus/2023-primary-science.ashx); physics strands only, not a standalone Primary Physics examination.
+- Retained scope: materials, states of matter, magnets, forces, light, heat, simple electrical systems, energy and fair investigations.
+- Explain with observations and familiar examples. Teach simple measurement and fair tests; do not require F = ma, vector components, Ohm's-law algebra or quantum theory.
+- Verification limit: the central MOE PDF was access-blocked on 2026-09-05. This retained Primary outline is not a fresh outcome-by-outcome audit; the 2026 school briefing below corroborates light and heat changes.
 
-Physical-science topic at P3 (also used in chemistry maps). Learning outcomes:
+## Primary - light, heat and investigations
 
-- Relate the use of wood, metal, ceramic, rubber, glass, plastic and fabric to their physical properties.
-- Compare strength, flexibility, ability to float or sink in water, waterproof, and transparency.
-- Strength is the ability to take loads without breaking. Flexibility is the ability to bend without breaking. Density is not required. Terms transparent/translucent/opaque are not required.
+- Reference: [MOE school briefing, 2026](https://www.punggolcovepri.moe.edu.sg/files/2026%20Curriculum%20Briefing/2026_P6_PSLE_Briefing_Slides.pdf).
+- Explain seeing by light reaching the eyes, straight-line light and shadows; distinguish light sources from reflectors.
+- Compare hot/cold objects, heat transfer, conductors and insulators; identify thermal expansion.
+- Compare magnetic/non-magnetic materials, attraction/repulsion and simple circuit continuity.
+- In fair tests, identify what changes, what is measured and what stays constant. Keep explanations qualitative; these are tutor-level summaries, not quoted examination outcomes.
 
-## Primary Science — Magnets (MOE Primary Science Syllabus 2023)
+## Secondary - O-Level 6091 (2026) measurement and mechanics
 
-Interaction of forces — Magnets (P3):
+- Official source: [6091, pp. 10-14](https://isomer-user-content.by.gov.sg/334/42ee79d0-bb13-43f5-94ab-629729f88aa0/6091_y26_sy.pdf).
+- Topics 1-6: select instruments; distinguish scalars/vectors; interpret motion graphs; apply resultant force, weight, moments, density, pressure, work, energy and power.
+- Use graph areas for displacement and gradients for velocity/acceleration.
+- Free-fall outcome 2(i) uses approximately 10 m/s². Follow a question's stated g; the agent's general 9.81 default is not an official O-Level convention.
 
-- A magnet can exert a push or a pull.
-- Magnets can be made of iron or steel; they have two poles; a freely suspended bar magnet comes to rest pointing North-South; unlike poles attract and like poles repel; magnets attract magnetic materials.
-- Nickel and cobalt, magnetic shielding and magnetic induction are not required.
-- Recognise uses of magnets; compare magnets, magnetic and non-magnetic materials; make a magnet by the stroke method and the electrical method.
+## Secondary - O-Level 6091 (2026) thermal physics, waves and light
 
-## Primary Science — Forces (MOE Primary Science Syllabus 2023)
+- Official source: [6091, pp. 15-20](https://isomer-user-content.by.gov.sg/334/42ee79d0-bb13-43f5-94ab-629729f88aa0/6091_y26_sy.pdf).
+- Topics 7-12: explain particle behaviour, conduction/convection/radiation; calculate heating/phase-change energy; interpret waves, sound and the electromagnetic spectrum; apply reflection/refraction and total internal reflection.
+- Construct converging-lens ray diagrams and describe images.
+- Topic 12 specifies ray diagrams, not a required thin-lens-equation sign convention; treat that algebra as extension.
 
-Interaction of forces — frictional force, gravitational force, elastic spring force (P6 Standard; Foundation omits elastic spring force):
+## Secondary - O-Level 6091 (2026) electricity, radioactivity and practical
 
-- Identify a force as a push or a pull.
-- Effects of a force: move a stationary object; speed up, slow down or change direction; stop a moving object; change the shape of an object.
-- Types: magnetic force, gravitational force, elastic spring force, frictional force.
-- Investigate frictional force on motion and elastic spring force (Standard).
-- Newton’s laws, free-body diagrams and F = ma are not Primary outcomes.
+- Official source: [6091, pp. 21-32](https://isomer-user-content.by.gov.sg/334/42ee79d0-bb13-43f5-94ab-629729f88aa0/6091_y26_sy.pdf).
+- Topics 13-20: explain charging; analyse current, voltage, resistance and circuits; explain electrical safety, magnets, motor effects and induction; interpret nuclear notation, radiation and half-life.
+- Practical: plan, measure, tabulate, graph, evaluate and improve experiments.
+- Boundary: photoelectric photons, SHM, RC exponentials and relativistic quantum derivations are not listed 6091 outcomes. This is pure Physics; do not substitute this map for combined Science 5086/5087.
+- Quantum/photoelectric emission is a listed H2 9478 topic, not H1 8867.
 
-## Primary Science — Light and heat (MOE Primary Science Syllabus 2023)
+## JC - course identification and 2026 transition
 
-Energy forms and uses — Light (P4):
+- Official listing: [SEAB A-Level 2026](https://www.seab.gov.sg/gce-a-level/a-level-syllabuses-examined-for-school-candidates-2026/).
+- H1 is 8867; revised H2 is 9478, first examined in 2026. Legacy H2 9749 is also listed, with 2026 its last examination year.
+- For a course-dependent answer, use the student's stated H1/H2 and syllabus code. If these are absent or conflict, ask which course/code applies; gradeLevel "jc" alone does not identify H1/H2.
+- Check the examination year rather than inferring the code solely from JC1/JC2. This map audits the 2026 documents, not future revisions.
+- Quantum physics syllabus placement depends on the course: H2 includes quantum; H1 8867 does not.
 
-- An object can be seen when it reflects light or when it is a source of light. The law of reflection is not required.
-- Light travels in straight lines; a shadow forms when light is completely or partially blocked.
-- Investigate how shape, size and position of objects, and distances light–object and object–screen, affect shadows. Terms transparent/translucent/opaque are not required.
+## JC - H1 8867 (2026) foundations and mechanics
 
-Energy forms and uses — Heat (P4):
+- Official source: [8867, pp. 10-15](https://isomer-user-content.by.gov.sg/334/5c46d2b1-04d9-4dd4-af88-9a5538140f56/8867_y26_sy.pdf).
+- Topics 1-7: handle units, uncertainties and vectors; apply Hooke's law, moments, Newton's laws, energy/fields, projectiles, impulse, collisions and circular motion.
+- Resolve motion into perpendicular components; conserve momentum in one-dimensional collisions; analyse gravitational circular orbits and geostationary satellites.
+- Circular motion and inverse-square gravitation ARE included in H1 8867.
 
-- Identify common sources of heat; temperature is degree of hotness; heat is a form of energy; differentiate heat and temperature.
-- Heat flows from a hotter to a colder object until both reach the same temperature.
-- Relate temperature change to gain or loss of heat; measure temperature with a thermometer or datalogger.
-- Effects of heat gain/loss: contraction/expansion of solid, liquid and gas; change of state.
-- Good conductors: metals. Poor conductors: wood, plastics, air, rubber.
+## JC - H1 8867 (2026) electricity and nuclear physics
 
-## Primary Science — Electrical systems and energy conversion (MOE Primary Science Syllabus 2023)
+- Official source: [8867, pp. 16-18](https://isomer-user-content.by.gov.sg/334/5c46d2b1-04d9-4dd4-af88-9a5538140f56/8867_y26_sy.pdf).
+- Topics 8-11: relate current to drift, analyse resistivity/internal resistance and potential dividers; determine forces in uniform electric/magnetic fields and velocity selection.
+- Interpret radioactive decay, half-life, nuclear reactions, mass defect and binding energy.
+- Nuclear physics is included; it does not imply inclusion of the H2 quantum/photoelectric topic.
 
-Electrical system (P5 Standard; Foundation similar but parallel bulbs not required):
+## JC - H1 8867 (2026) exclusions and assessment
 
-- An electric circuit with a battery, wires, bulb and switch forms an electrical system.
-- A closed circuit allows current to flow.
-- Identify electrical conductors and insulators.
-- Construct simple circuits from circuit diagrams.
-- Investigate current when the number of batteries in series, or bulbs in series and parallel (Standard), changes.
-- Show concern for conserving electricity and proper handling.
+- Official source: [8867, pp. 7, 10-18](https://isomer-user-content.by.gov.sg/334/5c46d2b1-04d9-4dd4-af88-9a5538140f56/8867_y26_sy.pdf).
+- No standalone H1 topics on oscillations/SHM, waves/superposition, thermal physics, capacitors/RC circuits, electromagnetic induction, AC or quantum/photoelectric physics. O-Level prerequisite knowledge can still be used.
+- Rigorous statistical uncertainty treatment, friction/viscosity coefficients and coefficient of restitution are not required.
+- Papers 1 and 2 only; no separate practical paper. Practical learning is not thereby excluded.
 
-Energy conversion (P6 Standard):
+## JC - H2 9478 (2026) foundations, mechanics and oscillations
 
-- Energy from most resources is derived in some ways from the Sun.
-- Forms of energy: kinetic, potential, light, electrical, sound, heat. Specific terms chemical/gravitational/elastic potential energy are not required.
-- Investigate energy conversion from one form to another.
+- Official source: [9478, pp. 11-18](https://isomer-user-content.by.gov.sg/334/2dc32e71-8fb4-4272-9262-f21be46fbaeb/9478_y26_sy.pdf).
+- Topics 1-9: use units/uncertainties, moments, Newtonian motion, energy/fields, projectiles, collisions and circular motion; calculate gravitational potential/escape conditions; model SHM and resonance.
+- Distinguish field strength from potential and restoring acceleration from velocity.
+- Rigorous statistics, friction/viscosity coefficients and coefficient of restitution are not required.
 
-## Secondary Lower-secondary Science — Light, forces, heat and electrical systems (MOE 2021 G2/G3 Lower Secondary Science, updated Apr 2024)
+## JC - H2 9478 (2026) waves and thermal physics
 
-Physical-science topics from the lower-secondary teaching syllabus (G1 is a reduced version of the same themes). Starred items are optional for G2.
+- Official source: [9478, pp. 19-22](https://isomer-user-content.by.gov.sg/334/2dc32e71-8fb4-4272-9262-f21be46fbaeb/9478_y26_sy.pdf).
+- Topics 10-13: interpret wave phase/polarisation, superposition, interference, diffraction and stationary waves; relate ideal-gas microscopic/macroscopic quantities; apply internal energy, the first law, heat capacity and latent heat.
 
-Ray model of light:
+## JC - H2 9478 (2026) electric fields, capacitors, RC and magnetism
 
-- The ray model represents the path taken by light.
-- Effects and uses of reflecting surfaces (plane and curved); reflection from smooth vs rough surfaces.
-- *Change in the speed of light in different media can cause refraction (calculation of angles not required); *effects of refraction; *dispersion of white light by a prism.
-- Image in a plane mirror; *angle of reflection equals angle of incidence.
-- Awareness of beneficial and harmful effects of EM radiation (infrared, ultraviolet and light). Spelling out “electromagnetic” is not required.
+- Official source: [9478, pp. 23-27](https://isomer-user-content.by.gov.sg/334/2dc32e71-8fb4-4272-9262-f21be46fbaeb/9478_y26_sy.pdf).
+- Topics 14-18: calculate electric potential and capacitor energy; analyse drift current, sinusoidal AC/r.m.s., resistive/RC circuits, magnetic forces, flux changes and transformers.
+- Capacitance, capacitor combinations and exponential charging/discharging with time constant RC are included in revised H2 9478.
 
-Application of forces and transfer of energy:
+## JC - H2 9478 (2026) quantum, nuclear and practical
 
-- Contact force (e.g. friction) vs non-contact force (e.g. magnetic force, gravitational force).
-- Interactions transfer energy and may change rest or motion, turning effects, size/shape, or pressure.
-- SI unit of *work and energy is the joule; *work is done when an object moves in the direction of a force.
-- Measure force in newtons; compare weight and mass; *pressure = force/area.
-- Energy can be converted from one form to another.
+- Official source: [9478, pp. 28-31, 36](https://isomer-user-content.by.gov.sg/334/2dc32e71-8fb4-4272-9262-f21be46fbaeb/9478_y26_sy.pdf).
+- Topics 19-20: analyse photons/photoelectric emission, matter waves, energy levels, nuclear reactions/binding energy and decay.
+- Paper 4: plan, measure, graph and evaluate; process data with spreadsheets.
+- Full Schrödinger-equation solutions are not listed outcomes.
 
-Transfer of heat energy and its effects: conduction, convection and radiation at introductory level; expansion; temperature change.
+## JC - legacy H2 9749 (2026) coverage and exclusions
 
-Electrical systems: current in series and parallel; conductors and insulators; safe use of electricity.
-
-G1 Lower Secondary Science (MOE 2021 G1, updated Apr 2024) covers the same physical-science themes at reduced depth. Upper-secondary Physics 6091 assumes this foundation. Thin converging lenses, critical angle and Faraday’s law wait for O-Level 6091.
-
-## O-Level Physics 6091 — Measurement and Newtonian mechanics (SEAB 2026)
-
-Section I Measurement — Physical quantities, units and measurement:
-
-- Physical quantities typically have magnitude and a unit.
-- Base quantities: mass (kg), length (m), time (s), current (A), temperature (K), amount of substance (mol).
-- Prefixes nano to tera; scalars and vectors; add two vectors graphically.
-
-Section II Newtonian mechanics:
-
-- Kinematics: speed and velocity; average speed = distance/time; uniform acceleration = change in velocity/time; displacement-time and velocity-time graphs; area under v–t graph; free-fall acceleration ≈ 10 m/s².
-- Dynamics: contact vs non-contact forces; mass vs weight; gravitational field strength g; weight = mass × g; Newton’s laws applied (stating the laws is not required); F = ma; inertia; friction; terminal velocity with air resistance; free-body diagrams in at most two dimensions.
-- Turning effects: moment = force × perpendicular distance; principle of moments; centre of gravity and stability.
-- Pressure: P = F/A; hydraulic press; density = m/V; liquid column pressure = hρg; manometer; atmospheric pressure from liquid-column height.
-- Energy: stores (kinetic, gravitational, chemical, elastic, nuclear, internal); transfers mechanically, electrically, by heating, by waves; Eₖ = ½mv²; Eₚ = mgh; conservation of energy; work = force × distance in the direction of the force; power = energy/time; efficiency = useful output/total input; renewable and non-renewable resources.
-
-Quantum physics is not an O-Level 6091 topic.
-
-## O-Level Physics 6091 — Thermal physics and waves (SEAB 2026)
-
-Thermal physics:
-
-- Kinetic particle model: solids, liquids, gases; arrangement, motion, forces and distances; Brownian motion; temperature and average kinetic energy; gas pressure from particle motion.
-- Thermal processes: energy transfer from higher to lower temperature until thermal equilibrium; conduction in solids (vibration and electrons); convection via density changes; radiation (no medium; affected by colour, texture, temperature, area).
-- Thermal properties: internal energy; specific heat capacity; Q = mcΔθ; melting/boiling without temperature change; boiling vs evaporation; specific latent heat; cooling curves.
-
-Waves:
-
-- Wave motion transfers energy without transferring matter; speed, frequency, wavelength, period, amplitude; v = fλ; transverse vs longitudinal; sound as a longitudinal wave needing a medium; loudness and amplitude, pitch and frequency; echo; ultrasound (sonar, medical scanning).
-- Electromagnetic spectrum: all EM waves are transverse and travel at the same speed in vacuum; radio, microwave, infrared, visible, ultraviolet, X-ray, gamma uses and hazards.
-- Light: reflection (i = r); refraction (sin i / sin r = constant); refractive index as speed in vacuum/speed in medium; critical angle and total internal reflection; optical fibres; thin converging lenses; real and virtual images.
-
-## O-Level Physics 6091 — Electricity, magnetism and radioactivity (SEAB 2026)
-
-- Static electricity: positive and negative charge (coulombs); like charges repel; electric field; charging by rubbing (electron transfer) and induction; hazards and electrostatic precipitator.
-- Current of electricity: current as rate of flow of charge; I = Q/t; conventional current vs electron flow; e.m.f. and p.d. in volts; R = V/I; resistance vs length and cross-sectional area; I–V graphs for ohmic conductor, filament lamp and diode.
-- D.C. circuits: series current the same; series p.d.s add; parallel currents add; parallel p.d. the same; resistors in series and parallel; potentiometer; NTC thermistor and LDR as input transducers.
-- Practical electricity: P = VI, E = VIt; kW h cost; hazards (damaged insulation, overheating, damp); fuses, circuit breakers, earthing, double insulation; live, neutral, earth; switches and fuses in the live wire.
-- Magnetism: properties of magnets; induced magnetism; temporary (iron) vs permanent (steel); field of a bar magnet.
-- Electromagnetism: field of a straight wire and solenoid; Fleming’s left-hand rule; d.c. motor and split-ring commutator.
-- Electromagnetic induction: Faraday; induced e.m.f. opposes the change; a.c. generator and slip rings; iron-cored transformer Vₚ/Vₛ = Nₚ/Nₛ and VₚIₚ = VₛIₛ (ideal); high-voltage transmission.
-- Radioactivity: protons, neutrons, electrons; Z, A, isotope, nuclide notation; random spontaneous decay; α, β, γ nature, ionising effect and penetrating power; background radiation; half-life. Quantum physics (photoelectric effect, de Broglie, wavefunctions) is A-Level, not O-Level.
-
-## O-Level Combined Science 5086 — Physics component (SEAB 2026)
-
-Science (Physics, Chemistry) 5086 Physics is a reduced 6091 map. Keep Combined Science 5086 with Physics where needed.
-
-Content structure: Measurement; Newtonian mechanics (kinematics; force and pressure; dynamics; turning effect of forces; energy); Thermal physics (kinetic particle model; thermal processes); Waves (general wave properties; electromagnetic spectrum; light); Electricity and magnetism (electric charges and current; D.C. circuits; practical electricity; magnetism and electromagnetism); Radioactivity.
-
-Compared with 6091, 5086 merges force with pressure, merges static electricity into electric charges and current, merges magnetism with electromagnetism, and does not list thermal properties of matter (specific heat and latent heat) or electromagnetic induction as separate topics. Use 6091 learning outcomes only where 5086 lists the matching topic. Quantum physics is not in 5086.
-
-## A-Level H1 Physics 8867 — Mechanics, currents and nuclear physics (SEAB 2026)
-
-Revised H1 Physics (2026). H1 omits Waves and Thermal Physics relative to H2. Learning-outcome families:
-
-- Foundations: quantities and measurement (SI base units, prefixes pico to tera, random vs systematic errors, uncertainties, scalars and vectors); forces and moments; motion and forces; energy and fields.
-- Mechanics: projectile motion in a uniform field (including ΔEₚ = mgΔh and terminal velocity with air resistance); collisions (impulse, conservation of momentum, elastic vs inelastic in one dimension); circular motion.
-- Electricity and magnetism: currents; circuits; electromagnetism.
-- Nuclear physics (not a full H2 quantum treatment).
-
-Photoelectric effect, de Broglie waves, superposition and ideal-gas thermodynamics sit in H2 9478, not this H1 list.
-
-## A-Level H2 Physics 9478 — Foundations and mechanics (SEAB 2026)
-
-Revised H2 (prefer 9478 over 9749). Section I Foundations:
-
-- Quantities and measurement: SI base units; prefixes pico to tera; derived units; homogeneity of equations; random and systematic errors; combining uncertainties; scalars and vectors; perpendicular components.
-- Forces and moments; translational and rotational equilibrium.
-- Motion and forces (including Newton’s laws at A-Level depth).
-- Energy and fields: gravitational, electric and elastic potential energy; power; efficiency.
-
-Section II Mechanics:
-
-- Projectile motion; collisions (impulse, conservation of momentum and energy).
-- Circular motion.
-- Gravitational fields.
-- Oscillations (simple harmonic motion, resonance, damping).
-
-## A-Level H2 Physics 9478 — Waves, thermal physics, electricity and magnetism (SEAB 2026)
-
-- Wave motion; superposition (interference, diffraction, stationary waves).
-- Temperature and ideal gases; thermodynamic systems (first law at A-Level depth). H1 omits these wave and thermal sections.
-- Electric fields; currents; circuits; electromagnetic forces; electromagnetic induction (magnetic flux, Faraday’s and Lenz’s laws, transformers).
-
-## A-Level H2 Physics 9478 — Quantum physics and nuclear physics (SEAB 2026)
-
-Quantum physics is A-Level H2, not O-Level:
-
-- Particulate nature of light: threshold frequency in the photoelectric effect; photon energy E = hf; photon momentum p = E/c = h/λ.
-- Wave nature of particles: electron diffraction; de Broglie wavelength λ = h/p; wavefunction ψ and |ψ|² as probability density; particle in a box.
-- Quantisation of energy in matter; emission and absorption line spectra; photon absorption or emission in atomic energy-level transitions.
-
-Nuclear physics:
-
-- Rutherford scattering; nucleon and proton number; isotopes; spontaneous random decay; α, β, γ; activity A = λN; exponential decay; half-life t½ = ln 2 / λ; mass defect; E = mc²; conservation of nucleon number, charge and mass-energy.
+- Official source: [9749, content pp. 10-27](https://isomer-user-content.by.gov.sg/334/ac37823b-8d1d-4090-8c63-dcab550a58b9/9749_y26_sy.pdf); final-year status is in the SEAB 2026 listing.
+- Retain mechanics, gravitation, oscillations, waves/superposition, thermal physics, electric fields/current/circuits, electromagnetism/induction, AC, quantum and nuclear physics.
+- Distinguish the older topic organisation from 9478. Capacitance and RC charging/discharging are not listed as 9749 content topics; do not transfer the revised 9478 requirement to this course.
+- Use the 9749 paper requirements for a student registered under 9749; do not assume the new 9478 spreadsheet requirement applies.
+- Neither H2 code is a university quantum-mechanics course.
