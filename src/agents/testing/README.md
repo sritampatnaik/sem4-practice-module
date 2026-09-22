@@ -26,6 +26,7 @@ Then add a short study note in prose. Do not dump the full answer key in the fir
 | `subject-source.ts` | Testing-owned Maths / Physics / Chemistry source packs. |
 | `assessment-planner.ts` | Internal planning helpers for mode / topic / visual decisions. |
 | `performance-log.ts` | Server-side Testing-performance log helpers under `logs/`. |
+| `score-history.ts` | Testing score-history grouping and trend summary helpers for repeated MCQ attempts. |
 | `langflow/prompts/testing.system.md` | Keep in sync with `prompts.ts`. |
 
 If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / `flashcard-widget.tsx` / `message-thread.tsx`. Coordinate with the orchestration / UI owner (Sritam) before editing those.
@@ -44,7 +45,19 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - `planAssessment` — internal planning aid for MCQ vs flashcard, topic extraction, and whether a Mermaid diagram may help
 - `getRecentPerformance` — reads the latest Testing notes for the current session from `logs/testing-performance/`
 - `createMermaidDiagram` — builds Mermaid text for simple labelled visuals; the current UI does **not** render Mermaid yet
-- `recordPerformance` — stores a compact Testing note for later follow-up; do not invent outcomes or scores
+- `recordPerformance` — stores a compact Testing note for later follow-up; this tool is note-only, so do not include outcome or score fields
+
+## Score tracking
+
+- Signed-in students now have persistent **MCQ attempt tracking** backed by Supabase.
+- This is separate from `recordPerformance`:
+  - `recordPerformance` remains a note-only Testing tool for agent follow-up
+  - score tracking stores completed quiz results from the UI
+- Repeated attempts are grouped by:
+  - subject
+  - topic/family key
+  - mode
+- The first UI surface is the student sidebar, which shows latest, previous, and best saved MCQ results so improvement or regression is visible over time.
 
 ## Current subject-sourcing direction
 
@@ -52,7 +65,7 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - Testing must **not** communicate with Math / Physics / Chemistry agents directly.
 - Instead, Testing should own its own subject-source tools inside `src/agents/testing/`.
 - **Current rollout status:** Maths, Physics, and Chemistry each have a Testing-owned source tool. Call the matching source tool before `createMcqSet` or `createFlashcards`.
-- Do not treat raw `documentSearchMath` / `documentSearchChemistry` as the grounding step for quiz generation.
+- Do not treat raw `documentSearchMath` / `documentSearchPhysics` / `documentSearchChemistry` as the grounding step for quiz generation.
 
 The `execute` functions currently echo the structured input. That is enough for the UI. Do not return a different shape without updating `McqSet` / `FlashcardSet` in `src/agents/_shared/types.ts` **and** the widgets.
 
@@ -70,6 +83,7 @@ The `execute` functions currently echo the structured input. That is enough for 
 - If the subject is ambiguous, pick one and say so, or ask one clarifying question.
 - Treat Math / Physics / Chemistry as black-box specialists. Testing should use its own tools and shared syllabus search rather than calling subject agents.
 - Ground Maths, Physics, and Chemistry assessments through `getMathAssessmentSource`, `getPhysicsAssessmentSource`, and `getChemistryAssessmentSource` instead of relying on unstated subject knowledge alone.
+- `recordPerformance` is for assessment notes only and should not log outcome or score fields during ordinary assessment generation.
 - Keep one public Testing agent. If you need more modularity, add helper modules/tools inside `src/agents/testing/` rather than adding new top-level routed agents.
 - If a topic is not strongly supported by the matching source tool, fail explicitly and ask for a narrower topic instead of making content up.
 
@@ -110,3 +124,13 @@ Suggested workflow:
    - performance-log writes
 
 This is the preferred local structure when teammate-owned agents or routing are incomplete.
+
+## Score-tracking checks
+
+For the new signed-in MCQ history flow, also verify:
+
+1. finish an MCQ while signed in
+2. the widget shows the score locally
+3. the save does not fail
+4. the sidebar Testing-progress panel updates with latest / previous / best
+5. repeating the same topic with a different quiz updates the same subject + topic/family + mode bucket

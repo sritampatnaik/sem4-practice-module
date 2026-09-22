@@ -2,7 +2,7 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Folder:** `src/agents/testing/`  
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-22
 
 ## Purpose
 
@@ -39,7 +39,8 @@ Future chat sessions can read this file first to resume work quickly.
   - `createFlashcards` tool for interactive flashcard widgets
   - subject-specific document search tools for Math, Physics, and Chemistry
   - prompt guidance to generate original, syllabus-aligned assessments
-  - a Physics-first Testing-owned source-tool path for grounding Physics assessments before widget generation
+  - Testing-owned Maths / Physics / Chemistry source-tool paths for grounding assessments before widget generation
+  - signed-in MCQ score tracking backed by Supabase, with sidebar history summaries in the UI
 
 ## What is already implemented for Testing
 
@@ -54,11 +55,15 @@ Future chat sessions can read this file first to resume work quickly.
 - `index.ts`
   - wires the Testing Agent with both widget tools
   - includes syllabus search tools for all three subjects
-  - now forces a Physics-first sourcing step for obvious Physics requests
+  - now forces a subject-matched sourcing step for clear Maths / Physics / Chemistry requests
   - uses `ToolLoopAgent` and `stepCountIs(10)`
 - `subject-source.ts`
-  - builds a structured Physics source pack from the syllabus search layer
-  - returns support status, source excerpts, key concepts, formula hints, misconception seeds, question angles, and optional visual cues
+  - builds structured Maths, Physics, and Chemistry source packs from the syllabus search layer
+  - returns support status, source excerpts, learning outcomes, key concepts, formula hints, misconception seeds, question angles, and optional visual cues
+- `score-history.ts` + testing-progress route/helpers
+  - normalise repeated MCQ attempts into subject + topic/family + mode history buckets
+  - summarise latest / previous / best attempts with improving / regressing / stable trend states
+  - persist signed-in MCQ attempts into Supabase and surface them in the student sidebar
 
 ## Proposal mapping
 
@@ -97,6 +102,7 @@ Related support work for reporting:
 - Whether the current Testing prompt reliably calls the correct widget tool for varied requests.
 - Whether generated MCQs and flashcards consistently match grade band and diagnostics.
 - Whether the rendered widgets behave correctly in the live app for the three planned scenarios.
+- Whether signed-in MCQ submissions persist successfully after the new Supabase migration and refresh the sidebar trend panel as intended.
 - End-to-end app checks are currently blocked because `OPENAI_API_KEY` is not configured in this environment.
 
 ## 2026-08-20 architecture update
@@ -140,10 +146,10 @@ Related support work for reporting:
 
 ## Likely gaps to investigate next
 
-1. Run Physics harness scenarios once an `OPENAI_API_KEY` is available and confirm `getPhysicsAssessmentSource` is called before the Physics widget tool.
-2. Confirm the model actually uses the Physics source pack rather than falling back to vague generic content.
-3. Decide how quickly Maths and Chemistry should get equivalent Testing-owned source tools.
-4. Confirm whether `recordPerformance` still produces useful notes without too much tool chatter after the extra sourcing step.
+1. Confirm the model consistently uses the matching subject source pack rather than falling back to vague generic content.
+2. Improve source-pack precision so learning outcomes, concepts, and hints are less broad.
+3. Add more harness scenarios for all-subject ambiguity, unsupported topics, and follow-up prompts.
+4. Confirm whether `recordPerformance` still produces useful notes without too much tool chatter after the source step.
 5. Add direct tool-contract checks around the source-pack shape and the harness output order.
 6. If any widget-rendering issue appears during live checks, coordinate with Sritam before touching shared UI files.
 
@@ -220,6 +226,60 @@ Related support work for reporting:
   - richer official syllabus maps will improve learning-outcome quality later
 - **Next:**
   - run harness scenarios once an API key is available and confirm the matching source tool is called before the widget
+
+## 2026-09-20 all-subject harness update
+
+- **Validated:**
+  - `npx tsx --test src/agents/testing/subject-source.test.ts`
+  - live harness requests on `http://localhost:3000/api/testing-harness` for:
+    - `secondary-kinematics-mcq`
+    - `secondary-kinematics-followup`
+    - `secondary-physics-waves-flashcards`
+    - `jc-differentiation-quiz`
+    - `secondary-bonding-flashcards`
+- **Findings:**
+  - clear Maths, Physics, and Chemistry prompts now call their matching source tool before widget generation
+  - `recordPerformance` stayed note-only in the successful harness runs
+  - the all-subject source-tool contract is now present in code, tests, and runtime behaviour
+  - source-pack quality is still uneven; some `learningOutcomes`, `keyConcepts`, and `formulaHints` remain broader than ideal
+  - follow-up prompts can fail closed too aggressively, which is safe but may need refinement for better user experience
+- **Blockers:**
+  - the local dev server reports an unrelated `shadow-plugin/unprefixed` module-resolution error under `src/app/beautifui`, even though the Testing harness endpoint still responds
+  - richer official syllabus maps will improve learning-outcome quality later
+- **Next:**
+  - refine all-subject source-pack quality
+  - add more harness and eval coverage for unsupported topics and follow-up prompts
+  - keep docs aligned with the all-subject source-tool architecture
+
+## 2026-09-22 score-tracking update
+
+- **Changed:**
+  - `src/agents/testing/score-history.ts`
+  - `src/agents/testing/score-history.test.ts`
+  - `src/lib/testing-progress.ts`
+  - `src/app/api/testing-progress/route.ts`
+  - `src/components/quiz-widget.tsx`
+  - `src/components/message-thread.tsx`
+  - `src/components/student-sidebar.tsx`
+  - `src/components/testing-progress-panel.tsx`
+  - `src/components/studio-shell.tsx`
+  - `src/lib/database.types.ts`
+  - `supabase/migrations/20260922145000_testing_attempts.sql`
+  - `src/agents/testing/README.md`
+- **Validated:**
+  - score-history unit tests
+  - targeted lint/type checks for the new Testing progress files
+- **Findings:**
+  - quiz scores previously existed only in `QuizWidget` client state and disappeared after the turn
+  - `recordPerformance` should stay note-only; score persistence is cleaner as a separate Supabase-backed attempt model
+  - signed-in MCQ attempts can now be grouped by subject + topic/family + mode to show latest, previous, best, and trend in the UI
+- **Blockers:**
+  - Supabase migration must be applied before live score tracking works end-to-end
+  - guest users are intentionally out of scope for persistent score history in this first slice
+- **Next:**
+  - apply the new Supabase migration
+  - run signed-in end-to-end MCQ checks and confirm the sidebar updates after submission
+  - decide whether Testing-agent follow-up tools should also consume the stored score summaries later
 
 
 

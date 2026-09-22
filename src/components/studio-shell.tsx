@@ -163,6 +163,7 @@ export function StudioShell({
           key={activeId}
           profile={profile}
           sessionId={activeId}
+          signedIn={signedIn}
           initialMessages={history}
           onFirstUserMessage={(text) => {
             setConversations((current) =>
@@ -186,11 +187,13 @@ export function StudioShell({
 function ChatPane({
   profile,
   sessionId,
+  signedIn,
   initialMessages,
   onFirstUserMessage,
 }: {
   profile: StudentProfile;
   sessionId: string;
+  signedIn?: boolean;
   initialMessages: MetsUIMessage[];
   onFirstUserMessage: (text: string) => void;
 }) {
@@ -267,6 +270,8 @@ function ChatPane({
             messages={messages}
             routing={routing}
             streaming={status === "streaming"}
+            conversationId={sessionId}
+            signedIn={signedIn}
           />
         )}
         {busy && !hideTestingBusy ? (
