@@ -5,7 +5,7 @@ export const ORCHESTRATION_PROMPT_ID = "orchestration.system";
 export const ORCHESTRATION_PROMPT_VERSION = "1.0.0";
 
 export const ROUTING_PROMPT_ID = "orchestration.routing";
-export const ROUTING_PROMPT_VERSION = "1.0.0";
+export const ROUTING_PROMPT_VERSION = "1.1.0";
 
 export function buildRoutingInstructions(ctx: AgentRuntimeContext) {
   return `You are the METS Orchestration Agent, the master controller of a Singapore multi-agent tutoring system.

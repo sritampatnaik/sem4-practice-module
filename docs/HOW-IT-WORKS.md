@@ -36,6 +36,7 @@ This is **central routing + local specialist tools**, matching the proposal. It 
 | Shared syllabus search | `src/lib/syllabus.ts` | Keyword RAG over markdown |
 | Memory | `src/lib/memory.ts` | Last 10 chats per session (Supabase when configured) |
 | LLM | `src/lib/llm.ts` | OpenAI via `@ai-sdk/openai`; Gemini via `@ai-sdk/google` on the eval Scores picker |
+| Jev | `src/lib/jev.ts` | Optional TypeSafe classifier for routing and Guardrail when `TYPESAFE_API_KEY` is set |
 | Prompt logs | `src/lib/langflow.ts` | JSONL + optional Langflow POST |
 | UI | `src/components/` | Onboarding, chat, quiz, flashcards |
 

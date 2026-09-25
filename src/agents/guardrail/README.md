@@ -7,7 +7,7 @@ Tell a coding agent: *You are working on the METS Guardrail Agent. It is a silen
 
 ## Job
 
-The chat route starts `monitorStudentTurn` as soon as the student message is stored, then awaits it after the specialist reply. Keyword hits persist immediately so a staff alert exists even if the LLM classifier is slow or misses.
+The chat route starts `monitorStudentTurn` as soon as the student message is stored, then awaits it after the specialist reply. Keyword hits persist immediately so a staff alert exists even if Jev or the LLM classifier is slow or misses.
 
 This agent classifies the student turn for:
 
@@ -24,7 +24,7 @@ Escalate. Do not give harmful instructions, methods, or a student-facing reply.
 | File | Purpose |
 | --- | --- |
 | `prompts.ts` | Classifier prompt. Bump `GUARDRAIL_PROMPT_VERSION` on every edit. |
-| `classify.ts` | Structured `generateText` + keyword fallback. |
+| `classify.ts` | Jev `noul`/`score` classification when `TYPESAFE_API_KEY` is set; otherwise structured `generateText` + keyword fallback. |
 | `index.ts` | `monitorStudentTurn` — the only entry the chat route should call. |
 | `store.ts` | `guardrail_alerts` in Supabase (service role). In-memory fallback if the secret key is unset. |
 | `notify.ts` | Optional Resend email. |

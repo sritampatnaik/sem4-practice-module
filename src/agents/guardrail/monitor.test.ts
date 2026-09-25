@@ -17,6 +17,7 @@ test("I want to give up on life stores an open staff alert", async () => {
     google: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     gemini: process.env.GEMINI_API_KEY,
     googleApi: process.env.GOOGLE_API_KEY,
+    typesafe: process.env.TYPESAFE_API_KEY,
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   };
@@ -25,6 +26,7 @@ test("I want to give up on life stores an open staff alert", async () => {
     setEnv("GOOGLE_GENERATIVE_AI_API_KEY", undefined);
     setEnv("GEMINI_API_KEY", undefined);
     setEnv("GOOGLE_API_KEY", undefined);
+    setEnv("TYPESAFE_API_KEY", undefined);
     setEnv("SUPABASE_URL", undefined);
     setEnv("SUPABASE_SERVICE_ROLE_KEY", undefined);
     resetGuardrailMemoryForTests();
@@ -51,6 +53,7 @@ test("I want to give up on life stores an open staff alert", async () => {
     setEnv("GOOGLE_GENERATIVE_AI_API_KEY", previous.google);
     setEnv("GEMINI_API_KEY", previous.gemini);
     setEnv("GOOGLE_API_KEY", previous.googleApi);
+    setEnv("TYPESAFE_API_KEY", previous.typesafe);
     setEnv("SUPABASE_URL", previous.supabaseUrl);
     setEnv("SUPABASE_SERVICE_ROLE_KEY", previous.supabaseKey);
   }

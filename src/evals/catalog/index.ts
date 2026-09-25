@@ -10,7 +10,7 @@ export const EVAL_SUITES: EvalSuite[] = [
   {
     id: "routing",
     name: "Router",
-    description: "Gold labels for routeStudentTurn. Kinematics is physics; quizzes go to Testing.",
+    description: "100 gold labels for routeStudentTurn. Kinematics is physics; quizzes go to Testing.",
     kind: "routing",
     items: routingItems,
   },

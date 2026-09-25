@@ -15,7 +15,7 @@ export type GuardrailClassification = {
   reason: string;
   snippet: string;
   escalate: boolean;
-  source: "model" | "heuristic" | "merged";
+  source: "jev" | "model" | "heuristic" | "merged";
 };
 
 export type GuardrailAlert = {

@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
-import { heuristicClassify, mergeClassifications } from "./classify";
+import {
+  classificationFromJev,
+  heuristicClassify,
+  JEV_NOUL_THRESHOLDS,
+  mergeClassifications,
+} from "./classify";
 import { AGENT_IDS } from "../_shared/types";
 
 assert.equal(
@@ -59,5 +64,37 @@ assert.deepEqual(merged.categories, ["disappointment"]);
 const forceHarm = mergeClassifications(harm, ordinary);
 assert.ok(forceHarm.categories.includes("self_harm"));
 assert.equal(forceHarm.severity, "critical");
+
+const jevHarm = classificationFromJev({
+  answers: {
+    disappointment: { type: "noul", noul: 0.1 },
+    self_harm: { type: "noul", noul: 0.92 },
+    distress: { type: "noul", noul: 0.2 },
+    escalate: { type: "noul", noul: 0.88 },
+    severity: { type: "score", score: 3, confidence: 0.9 },
+  },
+  studentText: "I want to give up on life.",
+});
+assert.equal(jevHarm.hit, true);
+assert.ok(jevHarm.categories.includes("self_harm"));
+assert.equal(jevHarm.severity, "critical");
+assert.equal(jevHarm.source, "jev");
+assert.match(jevHarm.reason, /self-harm/);
+
+const jevOrdinary = classificationFromJev({
+  answers: {
+    disappointment: { type: "noul", noul: JEV_NOUL_THRESHOLDS.disappointment - 0.1 },
+    self_harm: { type: "noul", noul: 0.05 },
+    distress: { type: "noul", noul: 0.1 },
+    escalate: { type: "noul", noul: 0.05 },
+  },
+  studentText: "This kinematics question is hard.",
+});
+assert.equal(jevOrdinary.hit, false);
+assert.deepEqual(jevOrdinary.categories, []);
+
+const mergedJev = mergeClassifications(ordinary, jevHarm);
+assert.equal(mergedJev.source, "jev");
+assert.ok(mergedJev.categories.includes("self_harm"));
 
 console.log("guardrail classify tests passed");

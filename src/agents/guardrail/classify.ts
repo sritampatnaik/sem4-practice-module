@@ -1,5 +1,6 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
+import { asNoul, asScore, decideWithJev, type JevNoulAnswer, type JevScoreAnswer } from "@/lib/jev";
 import { getModel } from "@/lib/llm";
 import { previewText } from "@/lib/memory";
 import {
@@ -130,8 +131,140 @@ export function mergeClassifications(
     reason: reason || heuristic.reason,
     snippet: previewText(model.snippet || heuristic.snippet, 280),
     escalate: hit,
-    source: heuristic.hit && model.hit ? "merged" : model.hit ? "model" : heuristic.source,
+    source: heuristic.hit && model.hit ? "merged" : model.hit ? model.source : heuristic.source,
   };
+}
+
+export const JEV_NOUL_THRESHOLDS = {
+  self_harm: 0.3,
+  distress: 0.4,
+  disappointment: 0.5,
+} as const;
+
+const GUARDRAIL_QUESTIONS = {
+  disappointment: {
+    type: "noul" as const,
+    instructions:
+      "The student sounds crushed, hopeless about school, calls themselves a failure, or wants to give up on everything — not ordinary academic struggle such as 'this question is hard' or 'I give up on this question'.",
+  },
+  self_harm: {
+    type: "noul" as const,
+    instructions:
+      "The student expresses a wish to die, suicide, self-injury, being better off dead, or giving up on life, living, or themselves. Phrases such as 'I want to give up on life' are yes even without the word suicide. If unsure, prefer yes.",
+  },
+  distress: {
+    type: "noul" as const,
+    instructions:
+      "The student shows panic, a breakdown, intense anxiety, or acute emotional crisis beyond normal exam stress.",
+  },
+  escalate: {
+    type: "noul" as const,
+    instructions:
+      "Should a parent or tutor be notified now? Yes if disappointment, distress, or self-harm applies.",
+  },
+  severity: {
+    type: "score" as const,
+    instructions: "How serious is the safety concern in the student's latest message?",
+    criteria: [
+      "Ordinary academic struggle only",
+      "Disappointment or failure talk about school",
+      "Acute distress, panic, or breakdown",
+      "Self-harm or giving up on life",
+    ],
+  },
+};
+
+function pct(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function severityFromJevScore(score: number): GuardrailSeverity {
+  if (score >= 2.5) return "critical";
+  if (score >= 1.5) return "high";
+  if (score >= 0.5) return "medium";
+  return "low";
+}
+
+export function classificationFromJev(options: {
+  answers: {
+    disappointment: JevNoulAnswer;
+    self_harm: JevNoulAnswer;
+    distress: JevNoulAnswer;
+    escalate: JevNoulAnswer;
+    severity?: JevScoreAnswer;
+  };
+  studentText: string;
+}): GuardrailClassification {
+  const categories: GuardrailCategory[] = [];
+  if (options.answers.self_harm.noul >= JEV_NOUL_THRESHOLDS.self_harm) {
+    categories.push("self_harm");
+  }
+  if (options.answers.distress.noul >= JEV_NOUL_THRESHOLDS.distress) {
+    categories.push("distress");
+  }
+  if (options.answers.disappointment.noul >= JEV_NOUL_THRESHOLDS.disappointment) {
+    categories.push("disappointment");
+  }
+
+  const hit = categories.length > 0;
+  const scored = options.answers.severity
+    ? severityFromJevScore(options.answers.severity.score)
+    : "low";
+  const severity = hit ? maxSeverity(severityFor(categories), scored) : "low";
+  const flagged = [
+    categories.includes("self_harm") ? `self-harm (${pct(options.answers.self_harm.noul)})` : null,
+    categories.includes("distress") ? `distress (${pct(options.answers.distress.noul)})` : null,
+    categories.includes("disappointment")
+      ? `disappointment (${pct(options.answers.disappointment.noul)})`
+      : null,
+  ].filter(Boolean);
+
+  return {
+    hit,
+    categories,
+    severity,
+    reason: hit
+      ? `Jev flagged ${flagged.join(" and ")}.`
+      : "Jev did not flag disappointment, distress, or self-harm.",
+    snippet: previewText(options.studentText, 280),
+    escalate: hit || options.answers.escalate.noul >= 0.4,
+    source: "jev",
+  };
+}
+
+async function classifyWithJev(input: {
+  studentName: string;
+  studentText: string;
+  assistantText?: string;
+  recentStudentTurns?: string[];
+}): Promise<GuardrailClassification | null> {
+  const response = await decideWithJev({
+    state: {
+      studentName: input.studentName,
+      latestStudentMessage: input.studentText,
+      tutorReply: input.assistantText || null,
+      earlierStudentTurns: (input.recentStudentTurns ?? []).slice(-4),
+    },
+    questions: GUARDRAIL_QUESTIONS,
+  });
+  if (!response) return null;
+
+  const disappointment = asNoul(response.answers.disappointment);
+  const selfHarm = asNoul(response.answers.self_harm);
+  const distress = asNoul(response.answers.distress);
+  const escalate = asNoul(response.answers.escalate);
+  if (!disappointment || !selfHarm || !distress || !escalate) return null;
+
+  return classificationFromJev({
+    answers: {
+      disappointment,
+      self_harm: selfHarm,
+      distress,
+      escalate,
+      severity: asScore(response.answers.severity) ?? undefined,
+    },
+    studentText: input.studentText,
+  });
 }
 
 async function classifyWithModel(input: {
@@ -175,6 +308,16 @@ export async function classifyStudentTurn(input: {
   recentStudentTurns?: string[];
 }): Promise<GuardrailClassification & { promptVersion: string }> {
   const heuristic = heuristicClassify(input.studentText);
+
+  try {
+    const jev = await classifyWithJev(input);
+    if (jev) {
+      return { ...mergeClassifications(heuristic, jev), promptVersion: GUARDRAIL_PROMPT_VERSION };
+    }
+  } catch {
+    // Fall through to the LLM classifier, then keywords.
+  }
+
   try {
     const model = await classifyWithModel(input);
     const merged = mergeClassifications(heuristic, model);
