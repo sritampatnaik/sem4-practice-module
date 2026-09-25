@@ -58,6 +58,7 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
   - topic/family key
   - mode
 - The first UI surface is the student sidebar, which shows latest, previous, and best saved MCQ results so improvement or regression is visible over time.
+- Initial live testing now confirms the score-history flow can save into the Supabase table and render back into the sidebar.
 
 ## Current subject-sourcing direction
 
@@ -134,3 +135,4 @@ For the new signed-in MCQ history flow, also verify:
 3. the save does not fail
 4. the sidebar Testing-progress panel updates with latest / previous / best
 5. repeating the same topic with a different quiz updates the same subject + topic/family + mode bucket
+6. check the Supabase dashboard if needed to confirm rows land in `public.testing_attempts`

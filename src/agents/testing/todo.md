@@ -2,11 +2,11 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Date started:** 2026-08-17  
-**Last updated:** 2026-09-22
+**Last updated:** 2026-09-26
 
 ## Session wrap-up
 
-This session finished the first score-tracking slice for the Testing Agent while keeping the one-agent routing architecture intact.
+The first score-tracking slice is now wired and has passed initial signed-in live checks against the real Supabase table.
 
 ## Completed recently
 
@@ -31,35 +31,39 @@ This session finished the first score-tracking slice for the Testing Agent while
 
 ## In progress now
 
-- [ ] Apply the new Supabase migration for `testing_attempts`.
-- [ ] Run signed-in end-to-end MCQ checks after the migration:
-  - [ ] submit a quiz
-  - [ ] confirm the save succeeds
-  - [ ] confirm the sidebar refreshes with latest / previous / best
+- [x] Apply the new Supabase migration for `testing_attempts`.
+- [x] Run initial signed-in end-to-end MCQ checks after the migration:
+  - [x] submit a quiz
+  - [x] confirm the save succeeds
+  - [x] confirm the sidebar refreshes with latest / previous / best
+- [ ] Run a stronger repeated-attempt validation pass:
+  - [ ] same topic, different score
+  - [ ] confirm improving/regressing/stable behaviour
+  - [ ] check another subject/topic case
 - [ ] Decide whether Testing follow-up logic should later read the persistent score summaries as well as note-only performance logs.
 
 ## Blocked / dependent work
 
-- [ ] Run a signed-in Testing flow for **O-Level kinematics MCQs** and confirm the saved score appears in the sidebar.
+- [ ] Run a signed-in Testing flow for **O-Level kinematics MCQs** and confirm repeated attempts update the same topic bucket.
 - [ ] Run a signed-in Testing flow for **JC differentiation quiz** and confirm repeated attempts update the same topic bucket.
 - [ ] Confirm guest behaviour stays safe and simply does **not** persist score history.
 
 **Blockers:**
-- live Testing-flow validation still depends on `OPENAI_API_KEY`
-- live score tracking also depends on applying the new Supabase migration first
+- live Testing-flow generation still depends on `OPENAI_API_KEY`
+- richer evidence is still needed for repeated-attempt trend behaviour beyond the first successful manual score-history checks
 
 ## First tasks for next session
 
-1. Apply the `testing_attempts` Supabase migration.
-2. Configure `OPENAI_API_KEY` if needed for live desk checks.
-3. Run a signed-in MCQ flow and confirm:
+1. Configure `OPENAI_API_KEY` if needed for live desk checks.
+2. Run a signed-in MCQ flow and confirm:
    - correct **Testing** stamp shown
    - answer key stays in the widget
    - score save succeeds
    - sidebar updates immediately
-4. Repeat the same topic with different questions and confirm the history bucket shows improvement/regression correctly.
+3. Repeat the same topic with different questions and confirm the history bucket shows improvement/regression correctly.
+4. Test at least one second subject/topic so the progress feature is not only verified on one path.
 5. Record the live results and any blockers in `progress.md`.
-6. If score tracking works, decide whether the next slice is:
+6. If score tracking keeps working, decide whether the next slice is:
    - agent-side use of stored score summaries
    - richer filtering/history UI
    - or more harness/eval coverage

@@ -41,6 +41,7 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - grouped by subject + topic/family + mode
   - surfaced in the sidebar as latest / previous / best with a simple trend state
   - this is separate from `recordPerformance`
+  - initial live testing now looks good after the table was created in Supabase
 
 ## Scope
 
@@ -118,7 +119,7 @@ This separation matters for the professors' software-engineering emphasis.
 - **Physics**: Testing-owned source-tool path implemented and exercised through the harness
 - **Maths**: Testing-owned source-tool path implemented and exercised through the harness
 - **Chemistry**: Testing-owned source-tool path implemented and exercised through the harness
-- **Score tracking**: signed-in MCQ attempt persistence and sidebar trend summary implemented in code; still needs Supabase migration + signed-in end-to-end validation
+- **Score tracking**: signed-in MCQ attempt persistence and sidebar trend summary are implemented and now reaching the live Supabase table in initial testing
 
 All three now follow the same intended source-tool contract.
 
@@ -231,7 +232,7 @@ All three now follow the same intended source-tool contract.
 ## Open follow-up work
 
 1. Improve source-pack quality for Maths, Physics, and Chemistry so outcomes, concepts, hints, and misconceptions are less coarse
-2. Apply the new Supabase migration for `testing_attempts` and confirm signed-in score saves work end-to-end
+2. Do a more thorough signed-in score-tracking pass across multiple topics and repeated attempts
 3. Confirm live UI behaviour after the auth/login path, including sidebar score-history updates after MCQ submission
 4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, and follow-up prompts
 5. Decide whether Testing follow-up logic should also consume the stored score summaries later

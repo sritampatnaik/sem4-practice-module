@@ -2,7 +2,7 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Folder:** `src/agents/testing/`  
-**Last updated:** 2026-09-22
+**Last updated:** 2026-09-26
 
 ## Purpose
 
@@ -102,8 +102,8 @@ Related support work for reporting:
 - Whether the current Testing prompt reliably calls the correct widget tool for varied requests.
 - Whether generated MCQs and flashcards consistently match grade band and diagnostics.
 - Whether the rendered widgets behave correctly in the live app for the three planned scenarios.
-- Whether signed-in MCQ submissions persist successfully after the new Supabase migration and refresh the sidebar trend panel as intended.
-- End-to-end app checks are currently blocked because `OPENAI_API_KEY` is not configured in this environment.
+- Whether broader repeated-attempt flows across several topics continue to summarise trends correctly.
+- End-to-end app checks still depend on `OPENAI_API_KEY` when live Testing-agent generation is needed.
 
 ## 2026-08-20 architecture update
 
@@ -280,6 +280,23 @@ Related support work for reporting:
   - apply the new Supabase migration
   - run signed-in end-to-end MCQ checks and confirm the sidebar updates after submission
   - decide whether Testing-agent follow-up tools should also consume the stored score summaries later
+
+## 2026-09-26 signed-in score-tracking check
+
+- **Validated:**
+  - Supabase `public.testing_attempts` table is now present in the dashboard
+  - initial signed-in score-tracking checks look good so far in the live UI
+- **Findings:**
+  - the earlier schema-cache error was environmental, not a code-path bug; once the table existed, the score-history flow could proceed normally
+  - the Testing sidebar can now read back persisted MCQ progress from Supabase in initial manual checks
+  - this gives a stronger software-engineering story: migration-defined schema, server route for writes/reads, grouped summaries, and a visible UI consumer
+- **Blockers:**
+  - broader repeated-attempt testing is still needed for stronger evidence on improving/regressing trend behaviour across multiple topics
+  - full live Testing-agent generation checks still depend on `OPENAI_API_KEY` when the quiz itself must be generated on demand
+- **Next:**
+  - run a more deliberate same-topic repeated-attempt check and capture the trend behaviour
+  - test at least one more subject/topic path besides the first successful score-tracking case
+  - decide whether to surface score history back into future Testing-agent adaptation
 
 
 
