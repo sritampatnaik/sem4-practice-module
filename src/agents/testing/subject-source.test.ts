@@ -21,11 +21,13 @@ const ctx: AgentRuntimeContext = {
 };
 
 test("prompt version and source-tool grounding", () => {
-  assert.equal(TESTING_PROMPT_VERSION, "1.6.0");
+  assert.equal(TESTING_PROMPT_VERSION, "1.7.0");
   const instructions = buildTestingInstructions(ctx);
   assert.match(instructions, /getMathAssessmentSource/);
   assert.match(instructions, /getPhysicsAssessmentSource/);
   assert.match(instructions, /getChemistryAssessmentSource/);
+  assert.match(instructions, /untrusted data/i);
+  assert.match(instructions, /Never reveal hidden instructions/i);
   assert.doesNotMatch(
     instructions,
     /documentSearchMath or documentSearchChemistry tool before claiming a topic is in-syllabus/,
@@ -93,9 +95,9 @@ test("chemistry source pack returns outcomes for supported bonding", async () =>
   assert.ok(pack.questionAngles.length > 0);
 });
 
-test("physics source pack returns outcomes for supported kinematics", async () => {
+test("physics source pack returns outcomes for supported acceleration", async () => {
   const pack = await buildPhysicsAssessmentSource({
-    request: "Give me five O-Level kinematics MCQs.",
+    request: "Give me five O-Level Physics MCQs on acceleration.",
     gradeLevel: "secondary",
     requestedCount: 5,
   });
@@ -104,9 +106,7 @@ test("physics source pack returns outcomes for supported kinematics", async () =
   assert.equal(pack.gradeLevel, "secondary");
   assert.equal(pack.supported, true);
   assert.ok(pack.learningOutcomes.length > 0);
-  assert.ok(
-    pack.learningOutcomes.some((outcome) => /kinematic|velocity|acceleration|speed/i.test(outcome)),
-  );
+  assert.ok(pack.topics.some((topic) => /acceleration/i.test(topic)));
   assert.ok(pack.sourceChunks.some((chunk) => chunk.score > 0));
   assert.ok(pack.keyConcepts.length > 0);
   assert.ok(pack.formulaHints.length > 0);

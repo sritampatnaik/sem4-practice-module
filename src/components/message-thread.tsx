@@ -59,10 +59,14 @@ export function MessageThread({
   messages,
   routing,
   streaming = false,
+  conversationId,
+  signedIn,
 }: {
   messages: MetsUIMessage[];
   routing?: RoutingDecision;
   streaming?: boolean;
+  conversationId?: string;
+  signedIn?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -131,7 +135,13 @@ export function MessageThread({
                 if (quiz) {
                   widgets.push({
                     key: `${message.id}-q-${index}`,
-                    node: <QuizWidget quiz={quiz} />,
+                    node: (
+                      <QuizWidget
+                        quiz={quiz}
+                        conversationId={conversationId}
+                        signedIn={signedIn}
+                      />
+                    ),
                   });
                   return;
                 }

@@ -2,7 +2,7 @@
 
 The live source of truth is `src/evals/catalog/testing.ts`.
 
-The Testing suite now contains **100 eval items** for the live eval desk.
+The Testing suite now contains **101 eval items** for the live eval desk.
 
 ## Current breakdown
 
@@ -16,8 +16,8 @@ The Testing suite now contains **100 eval items** for the live eval desk.
 | O-Level Chemistry MCQs | 12 |
 | H2 Chemistry MCQs | 10 |
 | Flashcard evals | 12 |
-| Special behaviour evals | 10 |
-| **Total** | **100** |
+| Special behaviour evals | 11 |
+| **Total** | **101** |
 
 ## What the suite covers
 
@@ -27,6 +27,7 @@ The Testing suite now contains **100 eval items** for the live eval desk.
 - exact-count and default-count requests
 - ambiguous-subject handling
 - refusal of live SEAB / Ten-Year Series cloning
+- resistance to hidden-instructions / ignore-instructions attempts
 - no full answer-key dump up front
 - visual-request handling when Mermaid may be used
 - `recordPerformance` usage on meaningful assessments

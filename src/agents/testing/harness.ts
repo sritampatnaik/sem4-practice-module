@@ -38,18 +38,49 @@ export type TestingHarnessResult = {
   text: string;
   finishReason: string;
   toolCalls: Array<{
+    stepNumber?: number;
+    toolCallId?: string;
     toolName: string;
     input: unknown;
+    dynamic?: boolean;
   }>;
   toolResults: Array<{
+    stepNumber?: number;
+    toolCallId?: string;
     toolName: string;
     output: unknown;
+    dynamic?: boolean;
   }>;
   steps: Array<{
     stepNumber: number;
     text: string;
-    toolCalls: string[];
+    toolCalls: Array<{
+      toolCallId?: string;
+      toolName: string;
+      input: unknown;
+      dynamic?: boolean;
+    }>;
+    toolResults: Array<{
+      toolCallId?: string;
+      toolName: string;
+      output: unknown;
+      dynamic?: boolean;
+    }>;
   }>;
+};
+
+type ToolCallPart = {
+  toolCallId?: string;
+  toolName: string;
+  input: unknown;
+  dynamic?: boolean;
+};
+
+type ToolResultPart = {
+  toolCallId?: string;
+  toolName: string;
+  output: unknown;
+  dynamic?: boolean;
 };
 
 function defaultSessionId() {
@@ -80,6 +111,46 @@ export function listTestingHarnessFixtures() {
   };
 }
 
+function asToolCallPart(value: unknown): ToolCallPart | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.toolName !== "string") return null;
+
+  return {
+    toolCallId: typeof raw.toolCallId === "string" ? raw.toolCallId : undefined,
+    toolName: raw.toolName,
+    input: raw.input,
+    dynamic: raw.dynamic === true ? true : undefined,
+  };
+}
+
+function asToolResultPart(value: unknown): ToolResultPart | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.toolName !== "string") return null;
+
+  return {
+    toolCallId: typeof raw.toolCallId === "string" ? raw.toolCallId : undefined,
+    toolName: raw.toolName,
+    output: raw.output,
+    dynamic: raw.dynamic === true ? true : undefined,
+  };
+}
+
+function dedupeByKey<T>(values: T[], keyOf: (value: T) => string) {
+  const seen = new Set<string>();
+  const results: T[] = [];
+
+  for (const value of values) {
+    const key = keyOf(value);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(value);
+  }
+
+  return results;
+}
+
 export async function runTestingHarness(request: TestingHarnessRequest): Promise<TestingHarnessResult> {
   const scenario = resolveScenario(request);
   if (request.scenarioId && !scenario) {
@@ -95,6 +166,42 @@ export async function runTestingHarness(request: TestingHarnessRequest): Promise
   const { text: sanitizedPrompt, flagged } = sanitizeStudentMessage(prompt);
   const agent = createTestingAgent(ctx);
   const result = await agent.generate({ prompt: sanitizedPrompt });
+  const steps = result.steps.map((step, index) => ({
+    stepNumber: index,
+    text: step.text,
+    toolCalls: step.toolCalls
+      .map((toolCall) => asToolCallPart(toolCall))
+      .filter((toolCall): toolCall is ToolCallPart => toolCall !== null),
+    toolResults: step.toolResults
+      .map((toolResult) => asToolResultPart(toolResult))
+      .filter((toolResult): toolResult is ToolResultPart => toolResult !== null),
+  }));
+  const toolCallsFromSteps = steps.flatMap((step) =>
+    step.toolCalls.map((toolCall) => ({
+      stepNumber: step.stepNumber,
+      ...toolCall,
+    })),
+  );
+  const toolResultsFromSteps = steps.flatMap((step) =>
+    step.toolResults.map((toolResult) => ({
+      stepNumber: step.stepNumber,
+      ...toolResult,
+    })),
+  );
+  const topLevelToolCalls = result.toolCalls
+    .map((toolCall) => asToolCallPart(toolCall))
+    .filter((toolCall): toolCall is ToolCallPart => toolCall !== null)
+    .map((toolCall) => ({
+      stepNumber: undefined,
+      ...toolCall,
+    }));
+  const topLevelToolResults = result.toolResults
+    .map((toolResult) => asToolResultPart(toolResult))
+    .filter((toolResult): toolResult is ToolResultPart => toolResult !== null)
+    .map((toolResult) => ({
+      stepNumber: undefined,
+      ...toolResult,
+    }));
 
   return {
     scenarioId: scenario?.id,
@@ -107,18 +214,16 @@ export async function runTestingHarness(request: TestingHarnessRequest): Promise
     subject: request.subject ?? scenario?.subject,
     text: result.text,
     finishReason: String(result.finishReason),
-    toolCalls: result.toolCalls.map((toolCall) => ({
-      toolName: toolCall.toolName,
-      input: toolCall.input,
-    })),
-    toolResults: result.toolResults.map((toolResult) => ({
-      toolName: toolResult.toolName,
-      output: toolResult.output,
-    })),
-    steps: result.steps.map((step, index) => ({
-      stepNumber: index,
-      text: step.text,
-      toolCalls: step.toolCalls.map((toolCall) => toolCall.toolName),
-    })),
+    toolCalls: dedupeByKey(
+      [...toolCallsFromSteps, ...topLevelToolCalls],
+      (toolCall) =>
+        `${toolCall.toolCallId ?? ""}:${toolCall.stepNumber ?? ""}:${toolCall.toolName}:${JSON.stringify(toolCall.input)}`,
+    ),
+    toolResults: dedupeByKey(
+      [...toolResultsFromSteps, ...topLevelToolResults],
+      (toolResult) =>
+        `${toolResult.toolCallId ?? ""}:${toolResult.stepNumber ?? ""}:${toolResult.toolName}:${JSON.stringify(toolResult.output)}`,
+    ),
+    steps,
   };
 }

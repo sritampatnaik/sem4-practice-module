@@ -240,6 +240,11 @@ function hasSupportedMatch(
     "give",
     "make",
     "about",
+    "math",
+    "maths",
+    "mathematics",
+    "physics",
+    "chemistry",
   ]);
   const terms = query
     .toLowerCase()
@@ -250,7 +255,9 @@ function hasSupportedMatch(
   return chunks.some((chunk) => {
     if (chunk.gradeLevel !== gradeLevel) return false;
     const haystack = `${chunk.title} ${chunk.excerpt}`.toLowerCase();
-    return terms.some((term) => haystack.includes(term));
+    const matches = terms.filter((term) => haystack.includes(term)).length;
+    const minimumMatches = Math.min(terms.length, terms.length > 1 ? 2 : 1);
+    return matches >= minimumMatches;
   });
 }
 

@@ -2,81 +2,81 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Date started:** 2026-08-17  
-**Last updated:** 2026-08-20
+**Last updated:** 2026-09-26
 
 ## Session wrap-up
 
-This session is now focused on turning the Testing Agent into a more modular assessment system while staying inside the current one-agent routing architecture.
+Testing now has a first Testing-local guardrail layer plus stronger deterministic unit coverage, while the earlier score-tracking slice remains wired and passing its initial signed-in live checks.
 
 ## Completed recently
 
-- [x] Re-read `src/agents/testing/README.md` and keep all changes inside Testing scope.
-- [x] Review `prompts.ts` against the README rules:
-  - [x] widget-first output
-  - [x] original items only
-  - [x] grade-band and diagnostic alignment
-  - [x] no full answer key in the first paragraph
-  - [x] ambiguous subject handling
-- [x] Review `tools.ts` and confirm the schema matches the documented widget contract:
-  - [x] MCQ: 2-6 items, 3-5 options, valid `correctOptionId`
-  - [x] flashcards: 3-8 cards with `front`, `back`, `topic`
-- [x] Review `index.ts` wiring and confirm the Testing agent has the expected tools only.
-- [x] Tighten `prompts.ts` where README-required behaviour was missing.
-- [x] Tighten `tools.ts` where schema constraints were too loose.
-- [x] Sync `langflow/prompts/testing.system.md` after the prompt update.
-- [x] Record the session findings in `progress.md`.
-- [x] Decide the high-level architecture direction:
-  - [x] keep one public Testing agent
-  - [x] treat other specialist agents as black boxes
-  - [x] split new work into internal Testing modules/tools instead of new top-level routed agents
-- [x] Add internal scaffolding for:
-  - [x] assessment planning
-  - [x] Mermaid-based visual planning
-  - [x] server-side Testing-performance logs under `logs/`
-  - [x] reading recent Testing-performance notes back into future Testing turns
+- [x] Keep score tracking separate from the note-only `recordPerformance` tool.
+- [x] Add a dedicated score-history model for repeated MCQ attempts:
+  - [x] topic/family key normalisation
+  - [x] latest / previous / best summary
+  - [x] improving / regressing / stable trend state
+- [x] Add persistent signed-in MCQ attempt storage via Supabase:
+  - [x] new `testing_attempts` migration
+  - [x] `src/lib/testing-progress.ts`
+  - [x] `src/app/api/testing-progress/route.ts`
+- [x] Wire quiz submission to save completed scores from the UI:
+  - [x] `src/components/quiz-widget.tsx`
+  - [x] `src/components/message-thread.tsx`
+  - [x] `src/components/studio-shell.tsx`
+- [x] Add a first student-visible UI surface for progress:
+  - [x] `src/components/testing-progress-panel.tsx`
+  - [x] `src/components/student-sidebar.tsx`
+- [x] Add score-history unit coverage and pass targeted lint/type checks.
+- [x] Update Testing docs/context files with the score-tracking architecture and current blockers.
+- [x] Add Testing-local guardrails for prompt-disclosure resistance, live-paper wording refusal, and answer-key-dump blocking in prose.
+- [x] Add deterministic unit coverage for:
+  - [x] `assessment-planner.ts`
+  - [x] `guardrails.ts`
+  - [x] `tools.ts` validation paths
+- [x] Tighten `recordPerformance` with a strict note-only input contract.
+- [x] Add a Testing eval item for ignore-instructions / hidden-rules resistance.
 
 ## In progress now
 
-- [x] Build an independent Testing harness surface:
-  - [x] fixture profiles
-  - [x] fixture scenarios
-  - [x] direct `createTestingAgent(ctx)` harness path
-  - [x] `GET /api/testing-harness` fixture listing
-- [ ] Run full `POST /api/testing-harness` scenario checks with `OPENAI_API_KEY`.
-- [ ] Decide whether `recordPerformance` should log every generated assessment by default or only selected milestone attempts.
-- [ ] Decide whether the next verification slice should focus on:
-  - [ ] correctness checking for generated MCQs
-  - [ ] marking reported student outcomes
-  - [ ] both, if the scope stays manageable
-- [ ] Decide when Mermaid output is worth surfacing in prose before any shared UI renderer exists.
+- [x] Apply the new Supabase migration for `testing_attempts`.
+- [x] Run initial signed-in end-to-end MCQ checks after the migration:
+  - [x] submit a quiz
+  - [x] confirm the save succeeds
+  - [x] confirm the sidebar refreshes with latest / previous / best
+- [ ] Run a stronger repeated-attempt validation pass:
+  - [ ] same topic, different score
+  - [ ] confirm improving/regressing/stable behaviour
+  - [ ] check another subject/topic case
+- [ ] Decide whether Testing follow-up logic should later read the persistent score summaries as well as note-only performance logs.
+- [ ] Run live harness or desk checks for the new Testing-local guardrails once `OPENAI_API_KEY` is available.
 
 ## Blocked / dependent work
 
-- [ ] Run a Testing flow for **O-Level kinematics MCQs**.
-- [ ] Run a Testing flow for **chemical bonding flashcards**.
-- [ ] Run a Testing flow for **JC differentiation quiz**.
-- [ ] Confirm each run shows the **Testing** stamp, renders the right widget, and keeps the answer key in the widget rather than dumping it in prose.
+- [ ] Run a signed-in Testing flow for **O-Level kinematics MCQs** and confirm repeated attempts update the same topic bucket.
+- [ ] Run a signed-in Testing flow for **JC differentiation quiz** and confirm repeated attempts update the same topic bucket.
+- [ ] Confirm guest behaviour stays safe and simply does **not** persist score history.
 
-**Blocker:** live Testing-flow validation is blocked until `OPENAI_API_KEY` is configured in the environment.
+**Blockers:**
+- live Testing-flow generation still depends on `OPENAI_API_KEY`
+- richer evidence is still needed for repeated-attempt trend behaviour beyond the first successful manual score-history checks
+- live model evidence is still needed for the new guardrails because the current session only validated deterministic local tests, type-checking, and eval-catalog wiring
 
 ## First tasks for next session
 
-1. Configure `OPENAI_API_KEY`.
-2. Run the Testing harness scenarios through `POST /api/testing-harness`.
-3. Run the three Testing scenarios from the README through the full desk only after the harness behaviour is acceptable.
-4. Check whether the agent meaningfully uses:
-   - `planAssessment`
-   - `getRecentPerformance`
-   - `recordPerformance`
-5. Record live behaviour in `progress.md`:
-   - correct widget chosen
+1. Configure `OPENAI_API_KEY` if needed for live desk checks.
+2. Run a signed-in MCQ flow and confirm:
    - correct **Testing** stamp shown
-   - answer key kept in widget
-   - grade-band / subject quality
-6. If any issue appears:
-   - tighten `prompts.ts` if it is an instruction-quality problem
-   - tighten `tools.ts` if it is a schema problem
-   - coordinate with Sritam before touching shared widget files
+   - answer key stays in the widget
+   - score save succeeds
+   - sidebar updates immediately
+3. Repeat the same topic with different questions and confirm the history bucket shows improvement/regression correctly.
+4. Test at least one second subject/topic so the progress feature is not only verified on one path.
+5. Run one prompt-injection or answer-key-dump harness scenario and confirm the new guardrail prose fallback appears while tool calls remain intact.
+6. Record the live results and any blockers in `progress.md`.
+7. If score tracking keeps working, decide whether the next slice is:
+   - agent-side use of stored score summaries
+   - richer filtering/history UI
+   - or more harness/eval coverage
 
 ## Fortnightly report prep
 
@@ -91,5 +91,7 @@ This session is now focused on turning the Testing Agent into a more modular ass
 - [ ] Improve guidance for mixed-subject or unclear-subject Testing requests if needed.
 - [ ] Check whether the short study note after widget creation is consistently concise and useful.
 - [ ] Add direct tool-contract checks for the Testing harness and logging flow.
+- [ ] Decide whether persistent score summaries should inform future Testing-agent adaptation.
 - [ ] Decide whether a combined verifier / marker module should be added next.
 - [ ] Decide whether richer SVG / HTML / CSS visual generation is still needed once Mermaid-first behaviour is tested.
+- [ ] Decide whether Testing needs any additional guardrail-specific harness fixtures beyond the new eval and unit-test coverage.

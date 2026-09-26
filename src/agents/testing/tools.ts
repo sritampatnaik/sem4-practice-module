@@ -93,6 +93,63 @@ const mermaidEdgeSchema = z.object({
   label: nonEmptyText.optional(),
 });
 
+function extractTrailingNumericResult(explanation: string) {
+  const matches = [
+    ...explanation.matchAll(/=\s*(?:\$)?(-?\d+(?:\.\d+)?)(?![\d.])/g),
+  ];
+  const last = matches.at(-1)?.[1];
+  return last ? Number(last) : null;
+}
+
+function extractLeadingNumericValue(label: string) {
+  const match = label.match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
+}
+
+function sameNumericValue(left: number, right: number) {
+  return Math.abs(left - right) < 1e-9;
+}
+
+function validatePhysicsMcqCorrectness(items: z.infer<typeof mcqItemSchema>[]) {
+  const issues: string[] = [];
+
+  for (const item of items) {
+    const explanationValue = extractTrailingNumericResult(item.explanation);
+    const numericOptions = item.options
+      .map((option) => ({
+        id: option.id,
+        label: option.label,
+        value: extractLeadingNumericValue(option.label),
+      }))
+      .filter((option) => option.value !== null) as Array<{
+      id: string;
+      label: string;
+      value: number;
+    }>;
+
+    if (explanationValue === null || numericOptions.length < 2) continue;
+
+    const correct = numericOptions.find(
+      (option) => option.id === item.correctOptionId,
+    );
+    if (!correct) continue;
+
+    if (sameNumericValue(correct.value, explanationValue)) continue;
+
+    const matchingOption = numericOptions.find((option) =>
+      sameNumericValue(option.value, explanationValue),
+    );
+
+    if (!matchingOption) continue;
+
+    issues.push(
+      `Item '${item.id}' explanation resolves to ${explanationValue}, but correctOptionId points to '${correct.label}' instead of '${matchingOption.label}'.`,
+    );
+  }
+
+  return issues;
+}
+
 export const planAssessmentTool = tool({
   description:
     "Plan a Testing response by selecting MCQ vs flashcards, extracting topics, and deciding if a Mermaid diagram would help.",
@@ -171,45 +228,60 @@ export const createMermaidDiagramTool = tool({
   }),
 });
 
+export const mcqSetInputSchema = z
+  .object({
+    title: nonEmptyText,
+    subject: subjectSchema,
+    items: z.array(mcqItemSchema).min(2).max(6),
+  })
+  .superRefine((set, ctx) => {
+    const duplicateItemIds = findDuplicateIds(set.items);
+    for (const duplicateId of duplicateItemIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate item id '${duplicateId}' is not allowed.`,
+        path: ["items"],
+      });
+    }
+  });
+
 export const createMcqSetTool = tool({
   description: "Build an interactive multiple-choice quiz. The UI renders this as a quiz widget.",
-  inputSchema: z
-    .object({
-      title: nonEmptyText,
-      subject: subjectSchema,
-      items: z.array(mcqItemSchema).min(2).max(6),
-    })
-    .superRefine((set, ctx) => {
-      const duplicateItemIds = findDuplicateIds(set.items);
-      for (const duplicateId of duplicateItemIds) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate item id '${duplicateId}' is not allowed.`,
-          path: ["items"],
-        });
+  inputSchema: mcqSetInputSchema,
+  execute: async (input) => {
+    if (input.subject === "physics") {
+      const issues = validatePhysicsMcqCorrectness(input.items);
+      if (issues.length) {
+        throw new Error(
+          `Physics MCQ validation failed: ${issues.join(" ")}`,
+        );
       }
-    }),
-  execute: async (input) => input,
+    }
+
+    return input;
+  },
 });
+
+export const flashcardSetInputSchema = z
+  .object({
+    title: nonEmptyText,
+    subject: subjectSchema,
+    cards: z.array(flashcardSchema).min(3).max(8),
+  })
+  .superRefine((deck, ctx) => {
+    const duplicateCardIds = findDuplicateIds(deck.cards);
+    for (const duplicateId of duplicateCardIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate card id '${duplicateId}' is not allowed.`,
+        path: ["cards"],
+      });
+    }
+  });
 
 export const createFlashcardsTool = tool({
   description: "Build an interactive flashcard deck. The UI renders this as a flip deck.",
-  inputSchema: z
-    .object({
-      title: nonEmptyText,
-      subject: subjectSchema,
-      cards: z.array(flashcardSchema).min(3).max(8),
-    })
-    .superRefine((deck, ctx) => {
-      const duplicateCardIds = findDuplicateIds(deck.cards);
-      for (const duplicateId of duplicateCardIds) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate card id '${duplicateId}' is not allowed.`,
-          path: ["cards"],
-        });
-      }
-    }),
+  inputSchema: flashcardSetInputSchema,
   execute: async (input) => input,
 });
 
@@ -224,19 +296,22 @@ export function getRecentPerformanceTool(ctx: AgentRuntimeContext) {
   });
 }
 
+export const recordPerformanceInputSchema = z
+  .object({
+    subject: subjectSchema,
+    mode: testingModeSchema,
+    title: nonEmptyText,
+    topics: z.array(nonEmptyText).min(1).max(8),
+    visualFormat: visualFormatSchema.default("none"),
+    note: nonEmptyText,
+  })
+  .strict();
+
 export function recordPerformanceTool(ctx: AgentRuntimeContext) {
   return tool({
     description:
-      "Persist a compact Testing note for this session. Log real student outcomes only when they are explicitly known.",
-    inputSchema: z.object({
-      subject: subjectSchema,
-      mode: testingModeSchema,
-      title: nonEmptyText,
-      topics: z.array(nonEmptyText).min(1).max(8),
-      visualFormat: visualFormatSchema.default("none"),
-      note: nonEmptyText,
-      outcome: nonEmptyText.optional(),
-    }),
+      "Persist a compact Testing note for this session after a meaningful assessment. This tool is for assessment notes only and must not include outcome or score fields.",
+    inputSchema: recordPerformanceInputSchema,
     execute: async (input) => {
       const savedPaths = await appendAssessmentPerformanceEntry({
         sessionId: ctx.sessionId,
