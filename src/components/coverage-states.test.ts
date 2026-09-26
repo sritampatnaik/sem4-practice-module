@@ -6,6 +6,7 @@ import { ConversationRail } from "./conversation-rail";
 import { EvalDatasetDesk } from "./eval-dataset-desk";
 import { EvalModelPicker } from "./eval-model-picker";
 import BeautifulLoadingState from "./primitives/LoadingState";
+import { TestingProgressPanel } from "./testing-progress-panel";
 import { LoadingState } from "./ui/loading-state";
 import { TaskRow } from "./ui/task-row";
 
@@ -101,4 +102,13 @@ test("task rows show an error state and preserve a supplied detail", () => {
   }));
   assert.match(pending, /Prepare quiz/);
   assert.doesNotMatch(pending, /data-status=/);
+});
+
+test("testing progress explains that score history requires sign-in", () => {
+  const html = renderToStaticMarkup(createElement(TestingProgressPanel, {
+    signedIn: false,
+  }));
+  assert.match(html, /Testing progress/);
+  assert.match(html, /Sign in to save quiz scores/);
+  assert.doesNotMatch(html, /Loading saved score history/);
 });
