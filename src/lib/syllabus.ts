@@ -160,16 +160,25 @@ export async function searchSyllabus(options: {
   const sameGradeTitle = ranked
     .filter((row) => row.chunk.gradeLevel === options.gradeLevel && row.titleHit)
     .sort((a, b) => b.score - a.score);
-  const otherGrade = ranked
-    .filter((row) => row.chunk.gradeLevel !== options.gradeLevel)
+  const otherGradeTitle = ranked
+    .filter((row) => row.chunk.gradeLevel !== options.gradeLevel && row.titleHit)
     .sort((a, b) => Number(b.titleHit) - Number(a.titleHit) || b.termScore - a.termScore);
   const sameGradeBody = ranked
     .filter((row) => row.chunk.gradeLevel === options.gradeLevel && !row.titleHit)
     .sort((a, b) => b.score - a.score);
+  const otherGradeBody = ranked
+    .filter((row) => row.chunk.gradeLevel !== options.gradeLevel && !row.titleHit)
+    .sort((a, b) => b.termScore - a.termScore);
 
-  // In-band title hits first so gradeLevel lands on the right outcome family.
-  // Other bands next so "is Maclaurin in O-Level?" still retrieves the A-Level home.
-  const ordered = [...sameGradeTitle, ...otherGrade, ...sameGradeBody].slice(0, limit);
+  // Prefer in-band results when the query is only present in body text, but still let
+  // strong off-band title hits surface early for boundary questions such as
+  // "is Maclaurin in O-Level?".
+  const ordered = [
+    ...sameGradeTitle,
+    ...otherGradeTitle,
+    ...sameGradeBody,
+    ...otherGradeBody,
+  ].slice(0, limit);
 
   if (ordered.length) {
     return ordered.map((row) => toHit(row.chunk, row.score));

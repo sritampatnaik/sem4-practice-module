@@ -6,7 +6,7 @@
 
 ## Session wrap-up
 
-The first score-tracking slice is now wired and has passed initial signed-in live checks against the real Supabase table.
+Testing now has a first Testing-local guardrail layer plus stronger deterministic unit coverage, while the earlier score-tracking slice remains wired and passing its initial signed-in live checks.
 
 ## Completed recently
 
@@ -28,6 +28,13 @@ The first score-tracking slice is now wired and has passed initial signed-in liv
   - [x] `src/components/student-sidebar.tsx`
 - [x] Add score-history unit coverage and pass targeted lint/type checks.
 - [x] Update Testing docs/context files with the score-tracking architecture and current blockers.
+- [x] Add Testing-local guardrails for prompt-disclosure resistance, live-paper wording refusal, and answer-key-dump blocking in prose.
+- [x] Add deterministic unit coverage for:
+  - [x] `assessment-planner.ts`
+  - [x] `guardrails.ts`
+  - [x] `tools.ts` validation paths
+- [x] Tighten `recordPerformance` with a strict note-only input contract.
+- [x] Add a Testing eval item for ignore-instructions / hidden-rules resistance.
 
 ## In progress now
 
@@ -41,6 +48,7 @@ The first score-tracking slice is now wired and has passed initial signed-in liv
   - [ ] confirm improving/regressing/stable behaviour
   - [ ] check another subject/topic case
 - [ ] Decide whether Testing follow-up logic should later read the persistent score summaries as well as note-only performance logs.
+- [ ] Run live harness or desk checks for the new Testing-local guardrails once `OPENAI_API_KEY` is available.
 
 ## Blocked / dependent work
 
@@ -51,6 +59,7 @@ The first score-tracking slice is now wired and has passed initial signed-in liv
 **Blockers:**
 - live Testing-flow generation still depends on `OPENAI_API_KEY`
 - richer evidence is still needed for repeated-attempt trend behaviour beyond the first successful manual score-history checks
+- live model evidence is still needed for the new guardrails because the current session only validated deterministic local tests, type-checking, and eval-catalog wiring
 
 ## First tasks for next session
 
@@ -62,8 +71,9 @@ The first score-tracking slice is now wired and has passed initial signed-in liv
    - sidebar updates immediately
 3. Repeat the same topic with different questions and confirm the history bucket shows improvement/regression correctly.
 4. Test at least one second subject/topic so the progress feature is not only verified on one path.
-5. Record the live results and any blockers in `progress.md`.
-6. If score tracking keeps working, decide whether the next slice is:
+5. Run one prompt-injection or answer-key-dump harness scenario and confirm the new guardrail prose fallback appears while tool calls remain intact.
+6. Record the live results and any blockers in `progress.md`.
+7. If score tracking keeps working, decide whether the next slice is:
    - agent-side use of stored score summaries
    - richer filtering/history UI
    - or more harness/eval coverage
@@ -84,3 +94,4 @@ The first score-tracking slice is now wired and has passed initial signed-in liv
 - [ ] Decide whether persistent score summaries should inform future Testing-agent adaptation.
 - [ ] Decide whether a combined verifier / marker module should be added next.
 - [ ] Decide whether richer SVG / HTML / CSS visual generation is still needed once Mermaid-first behaviour is tested.
+- [ ] Decide whether Testing needs any additional guardrail-specific harness fixtures beyond the new eval and unit-test coverage.

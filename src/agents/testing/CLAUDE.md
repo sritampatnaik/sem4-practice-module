@@ -34,8 +34,13 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - top-level `toolCalls`
   - top-level `toolResults`
   - per-step tool payloads
+- Testing now also has a **Testing-local guardrail middleware layer**:
+  - resists hidden-prompt / ignore-instructions attempts
+  - blocks obvious live-paper wording leaks
+  - blocks obvious full answer-key dumps in prose
+  - preserves tool calls/results while filtering text blocks
 - Physics MCQ generation has an extra validation guard for **numeric explanation vs correct-answer mismatches**
-- `recordPerformance` is now treated as a **note-only tool** during assessment generation
+- `recordPerformance` is now treated as a **note-only tool** during assessment generation and its tool schema is strict about extra fields
 - Signed-in students now also have **persistent MCQ score tracking** backed by Supabase:
   - scores are recorded from the UI after quiz submission
   - grouped by subject + topic/family + mode
@@ -210,7 +215,9 @@ All three now follow the same intended source-tool contract.
 - Zod-backed tool schemas for widget contracts
 - Validation for duplicate IDs and invalid `correctOptionId`
 - Physics MCQ validation for explanation-vs-answer numeric mismatches
+- Strict note-only `recordPerformance` input contract
 - Structured source-pack contract for Maths, Physics, and Chemistry
+- Deterministic unit tests for planner behaviour, Testing guardrails, and tool validation
 - Harness-based debugging surface for Testing in isolation
 
 ### Safety and guardrails
@@ -218,6 +225,7 @@ All three now follow the same intended source-tool contract.
 - API keys stay in environment variables
 - Input still passes through existing guardrails
 - Live-paper cloning remains disallowed
+- Testing now adds a narrow local middleware backstop for prompt-disclosure resistance and obvious answer-key/live-paper prose leaks
 - `recordPerformance` is note-only during assessment generation, so invented outcome fields are disallowed
 - Physics source-tool failures should surface explicitly rather than silently invent content
 
@@ -234,7 +242,7 @@ All three now follow the same intended source-tool contract.
 1. Improve source-pack quality for Maths, Physics, and Chemistry so outcomes, concepts, hints, and misconceptions are less coarse
 2. Do a more thorough signed-in score-tracking pass across multiple topics and repeated attempts
 3. Confirm live UI behaviour after the auth/login path, including sidebar score-history updates after MCQ submission
-4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, and follow-up prompts
+4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, follow-up prompts, and any further guardrail edge cases
 5. Decide whether Testing follow-up logic should also consume the stored score summaries later
 6. Decide whether harness output should include even richer debugging metadata
 

@@ -228,24 +228,26 @@ export const createMermaidDiagramTool = tool({
   }),
 });
 
+export const mcqSetInputSchema = z
+  .object({
+    title: nonEmptyText,
+    subject: subjectSchema,
+    items: z.array(mcqItemSchema).min(2).max(6),
+  })
+  .superRefine((set, ctx) => {
+    const duplicateItemIds = findDuplicateIds(set.items);
+    for (const duplicateId of duplicateItemIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate item id '${duplicateId}' is not allowed.`,
+        path: ["items"],
+      });
+    }
+  });
+
 export const createMcqSetTool = tool({
   description: "Build an interactive multiple-choice quiz. The UI renders this as a quiz widget.",
-  inputSchema: z
-    .object({
-      title: nonEmptyText,
-      subject: subjectSchema,
-      items: z.array(mcqItemSchema).min(2).max(6),
-    })
-    .superRefine((set, ctx) => {
-      const duplicateItemIds = findDuplicateIds(set.items);
-      for (const duplicateId of duplicateItemIds) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate item id '${duplicateId}' is not allowed.`,
-          path: ["items"],
-        });
-      }
-    }),
+  inputSchema: mcqSetInputSchema,
   execute: async (input) => {
     if (input.subject === "physics") {
       const issues = validatePhysicsMcqCorrectness(input.items);
@@ -260,24 +262,26 @@ export const createMcqSetTool = tool({
   },
 });
 
+export const flashcardSetInputSchema = z
+  .object({
+    title: nonEmptyText,
+    subject: subjectSchema,
+    cards: z.array(flashcardSchema).min(3).max(8),
+  })
+  .superRefine((deck, ctx) => {
+    const duplicateCardIds = findDuplicateIds(deck.cards);
+    for (const duplicateId of duplicateCardIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate card id '${duplicateId}' is not allowed.`,
+        path: ["cards"],
+      });
+    }
+  });
+
 export const createFlashcardsTool = tool({
   description: "Build an interactive flashcard deck. The UI renders this as a flip deck.",
-  inputSchema: z
-    .object({
-      title: nonEmptyText,
-      subject: subjectSchema,
-      cards: z.array(flashcardSchema).min(3).max(8),
-    })
-    .superRefine((deck, ctx) => {
-      const duplicateCardIds = findDuplicateIds(deck.cards);
-      for (const duplicateId of duplicateCardIds) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate card id '${duplicateId}' is not allowed.`,
-          path: ["cards"],
-        });
-      }
-    }),
+  inputSchema: flashcardSetInputSchema,
   execute: async (input) => input,
 });
 
@@ -292,18 +296,22 @@ export function getRecentPerformanceTool(ctx: AgentRuntimeContext) {
   });
 }
 
+export const recordPerformanceInputSchema = z
+  .object({
+    subject: subjectSchema,
+    mode: testingModeSchema,
+    title: nonEmptyText,
+    topics: z.array(nonEmptyText).min(1).max(8),
+    visualFormat: visualFormatSchema.default("none"),
+    note: nonEmptyText,
+  })
+  .strict();
+
 export function recordPerformanceTool(ctx: AgentRuntimeContext) {
   return tool({
     description:
       "Persist a compact Testing note for this session after a meaningful assessment. This tool is for assessment notes only and must not include outcome or score fields.",
-    inputSchema: z.object({
-      subject: subjectSchema,
-      mode: testingModeSchema,
-      title: nonEmptyText,
-      topics: z.array(nonEmptyText).min(1).max(8),
-      visualFormat: visualFormatSchema.default("none"),
-      note: nonEmptyText,
-    }),
+    inputSchema: recordPerformanceInputSchema,
     execute: async (input) => {
       const savedPaths = await appendAssessmentPerformanceEntry({
         sessionId: ctx.sessionId,
