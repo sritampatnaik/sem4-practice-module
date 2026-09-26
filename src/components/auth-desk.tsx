@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { EntityChip } from "@/components/atoms/EntityChip";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { LoadingState } from "@/components/ui/loading-state";
+import { Spinner } from "@/components/ui/spinner";
 
 export type AuthPayload = {
   user: { id: string; email: string };
@@ -27,7 +28,7 @@ export function AuthDesk({
   const signup = mode === "signup";
 
   async function submit() {
-    if (!configured) return;
+    if (!configured || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -61,7 +62,10 @@ export function AuthDesk({
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="ui-card w-full max-w-xl px-7 py-8 sm:px-9 sm:py-10">
         <EntityChip name="METS" color="#111827" monogram="M" className="ml-0" />
-        <p className="ui-label mt-4">NUS-ISS Practice Module · Team 5</p>
+        <p className="ui-label mt-4 inline-flex items-center gap-1.5">
+          <Icon icon="school" size={13} />
+          NUS-ISS Practice Module · Team 5
+        </p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
           METS
         </h1>
@@ -79,13 +83,17 @@ export function AuthDesk({
 
         <form
           className="mt-8 grid gap-5"
+          aria-busy={busy}
           onSubmit={(event) => {
             event.preventDefault();
             void submit();
           }}
         >
           <label className="grid gap-2">
-            <span className="ui-label">Email</span>
+            <span className="ui-label inline-flex items-center gap-1.5">
+              <Icon icon="mail" size={12} />
+              Email
+            </span>
             <input
               type="email"
               autoComplete="email"
@@ -94,11 +102,14 @@ export function AuthDesk({
               className="ui-field text-base"
               placeholder="you@school.edu.sg"
               required
-              disabled={!configured}
+              disabled={!configured || busy}
             />
           </label>
           <label className="grid gap-2">
-            <span className="ui-label">Password</span>
+            <span className="ui-label inline-flex items-center gap-1.5">
+              <Icon icon="password" size={12} />
+              Password
+            </span>
             <input
               type="password"
               autoComplete={signup ? "new-password" : "current-password"}
@@ -108,42 +119,61 @@ export function AuthDesk({
               placeholder="At least 6 characters"
               minLength={6}
               required
-              disabled={!configured}
+              disabled={!configured || busy}
             />
           </label>
           {error ? <p className="text-sm text-red">{error}</p> : null}
-          {busy ? <LoadingState label={signup ? "Creating your desk" : "Signing in"} /> : null}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" variant="primary" disabled={busy || !configured}>
-              {signup ? "Create account" : "Sign in"}
-            </Button>
+          <div className="grid gap-3 pt-1">
             <Button
-              type="button"
-              variant="quiet"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                setMode(signup ? "login" : "signup");
-                setError(null);
-              }}
+              type="submit"
+              variant="primary"
+              className="w-full"
+              disabled={busy || !configured}
+              aria-busy={busy}
             >
-              {signup ? "I already have an account" : "Create an account"}
+              {busy ? (
+                <Spinner />
+              ) : (
+                <Icon icon={signup ? "createAccount" : "signIn"} size={14} />
+              )}
+              {busy
+                ? signup
+                  ? "Creating account"
+                  : "Signing in"
+                : signup
+                  ? "Create account"
+                  : "Sign in"}
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={() =>
-                onSignedIn({
-                  user: { id: "guest", email: "" },
-                  profile: null,
-                  sessionId: crypto.randomUUID(),
-                })
-              }
-            >
-              Continue as guest
-            </Button>
+            <div className="grid gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                disabled={busy}
+                onClick={() => {
+                  setMode(signup ? "login" : "signup");
+                  setError(null);
+                }}
+              >
+                {signup ? "I already have an account" : "Create an account"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={busy}
+                onClick={() =>
+                  onSignedIn({
+                    user: { id: "guest", email: "" },
+                    profile: null,
+                    sessionId: crypto.randomUUID(),
+                  })
+                }
+              >
+                <Icon icon="guest" size={14} />
+                Continue as guest
+              </Button>
+            </div>
           </div>
         </form>
       </section>

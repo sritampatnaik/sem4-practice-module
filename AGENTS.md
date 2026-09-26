@@ -19,11 +19,12 @@ METS is a **hierarchical multi-agent tutor** for Singapore Primary, O-Level, and
 3. **Orchestration** (`src/agents/orchestration/router.ts`) classifies intent, subject, grade band, and target agent.
 4. `createAgent(routing.agent, ctx)` builds **one** specialist `ToolLoopAgent`.
 5. That agent streams the reply. Testing tools render as quiz / flashcard widgets.
-6. The turn is logged to `logs/prompts.jsonl`, the audit rail, and optionally Langflow.
+6. **Guardrail** (`src/agents/guardrail`) silently classifies the turn. On disappointment, distress, or self-harm it stores an alert and notifies a parent/tutor. The student never sees this agent.
+7. The turn is logged to `logs/prompts.jsonl`, the audit rail, and optionally Langflow.
 
-Specialists never call each other. Only the chat route picks the agent.
+Specialists never call each other. Only the chat route picks the student-facing agent. Guardrail is hooked from the chat route after the specialist reply — it is not a routing target.
 
-## Five agents (open the matching README)
+## Five student-facing agents (open the matching README)
 
 | Owner | Agent | Instructions |
 | --- | --- | --- |
@@ -32,6 +33,8 @@ Specialists never call each other. Only the chat route picks the agent.
 | Chua Hieng Weih | Physics | `src/agents/physics/README.md` |
 | Lizabeth Annabel Tukiman | Chemistry | `src/agents/chemistry/README.md` |
 | Muhammad Harun Bin Abdul Rashid | Testing | `src/agents/testing/README.md` |
+
+Hidden from students: Guardrail (`src/agents/guardrail/README.md`) monitors chat and writes parent/tutor alerts to `/admin`. Do not add it to `createAgent` or student nav.
 
 Also read `TEAM.md` and `docs/HOW-IT-WORKS.md`.
 
@@ -44,3 +47,4 @@ Also read `TEAM.md` and `docs/HOW-IT-WORKS.md`.
 - When you edit a system prompt, bump `*_PROMPT_VERSION` in that agent's `prompts.ts` and copy the gist into `langflow/prompts/`.
 - Use Vercel AI SDK: `ToolLoopAgent`, `tool({ inputSchema })`, `stepCountIs`. Do not use the raw OpenAI SDK.
 - Keep Singapore English spelling and grade-band limits in prompts.
+- Do not route students to Guardrail. Do not link `/admin` from the student desk.

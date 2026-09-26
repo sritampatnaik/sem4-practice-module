@@ -6,6 +6,8 @@ const COOKIE = "mets-auth";
 export type AuthUser = {
   id: string;
   email: string;
+  /** From Auth app_metadata only — never user_metadata. */
+  role?: string;
 };
 
 type StoredSession = {
@@ -89,9 +91,20 @@ async function readSession(): Promise<StoredSession | null> {
   }
 }
 
-function asUser(id: string, email: string | undefined): AuthUser | null {
+function roleFromAppMeta(meta: unknown): string | undefined {
+  if (!meta || typeof meta !== "object") return undefined;
+  const raw = meta as Record<string, unknown>;
+  const role = raw.role ?? raw.mets_role;
+  return typeof role === "string" && role.trim() ? role.trim().toLowerCase() : undefined;
+}
+
+function asUser(
+  id: string,
+  email: string | undefined,
+  appMetadata?: unknown,
+): AuthUser | null {
   if (!email) return null;
-  return { id, email };
+  return { id, email, role: roleFromAppMeta(appMetadata) };
 }
 
 export async function getAccessToken() {
@@ -106,7 +119,11 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 
   const current = await supabase.auth.getUser(stored.access_token);
   if (current.data.user) {
-    return asUser(current.data.user.id, current.data.user.email);
+    return asUser(
+      current.data.user.id,
+      current.data.user.email,
+      current.data.user.app_metadata,
+    );
   }
 
   const refreshed = await supabase.auth.refreshSession({
@@ -121,7 +138,11 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     refresh_token: refreshed.data.session.refresh_token,
     expires_at: refreshed.data.session.expires_at,
   });
-  return asUser(refreshed.data.user.id, refreshed.data.user.email);
+  return asUser(
+    refreshed.data.user.id,
+    refreshed.data.user.email,
+    refreshed.data.user.app_metadata,
+  );
 }
 
 export async function signUpStudent(
@@ -144,7 +165,11 @@ export async function signUpStudent(
       expires_at: created.data.session.expires_at,
     });
     return {
-      user: { id: created.data.user.id, email: created.data.user.email },
+      user: asUser(
+        created.data.user.id,
+        created.data.user.email,
+        created.data.user.app_metadata,
+      )!,
     };
   }
   return signInStudent(email, password);
@@ -168,6 +193,10 @@ export async function signInStudent(
     expires_at: signed.data.session.expires_at,
   });
   return {
-    user: { id: signed.data.user.id, email: signed.data.user.email },
+    user: asUser(
+      signed.data.user.id,
+      signed.data.user.email,
+      signed.data.user.app_metadata,
+    )!,
   };
 }

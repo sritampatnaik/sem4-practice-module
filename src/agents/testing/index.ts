@@ -3,17 +3,18 @@ import { getModel } from "@/lib/llm";
 import { documentSearchTool } from "../_shared/tools";
 import type { AgentRuntimeContext } from "../_shared/types";
 import { buildTestingInstructions, TESTING_PROMPT_VERSION } from "./prompts";
+import { selectAssessmentSourceTool } from "./subject-source";
 import {
   createFlashcardsTool,
   createMcqSetTool,
   createMermaidDiagramTool,
+  getChemistryAssessmentSourceTool,
+  getMathAssessmentSourceTool,
   getPhysicsAssessmentSourceTool,
   getRecentPerformanceTool,
   planAssessmentTool,
   recordPerformanceTool,
 } from "./tools";
-
-type TestingToolName = "getPhysicsAssessmentSource";
 
 function requiredFirstStepTool(messages: Array<{ role?: string; content?: unknown }>) {
   const latest = [...messages].reverse().find((message) => message.role === "user");
@@ -22,15 +23,7 @@ function requiredFirstStepTool(messages: Array<{ role?: string; content?: unknow
       ? latest.content
       : JSON.stringify(latest?.content ?? "");
 
-  if (
-    /\b(physics|kinematics|acceleration|velocity|speed|force|motion|moment|pressure|density|wave|light|lens|circuit|current|voltage|resistance|magnetism|electromagnetism)\b/i.test(
-      text
-    )
-  ) {
-    return "getPhysicsAssessmentSource" as const;
-  }
-
-  return undefined;
+  return selectAssessmentSourceTool(text);
 }
 
 export function createTestingAgent(ctx: AgentRuntimeContext) {
@@ -42,6 +35,8 @@ export function createTestingAgent(ctx: AgentRuntimeContext) {
       planAssessment: planAssessmentTool,
       getRecentPerformance: getRecentPerformanceTool(ctx),
       getPhysicsAssessmentSource: getPhysicsAssessmentSourceTool,
+      getMathAssessmentSource: getMathAssessmentSourceTool,
+      getChemistryAssessmentSource: getChemistryAssessmentSourceTool,
       createMcqSet: createMcqSetTool,
       createFlashcards: createFlashcardsTool,
       createMermaidDiagram: createMermaidDiagramTool,
@@ -52,7 +47,7 @@ export function createTestingAgent(ctx: AgentRuntimeContext) {
     },
     prepareStep: ({ stepNumber, messages }) => {
       if (stepNumber !== 0) return {};
-      const toolName: TestingToolName | undefined = requiredFirstStepTool(messages);
+      const toolName = requiredFirstStepTool(messages);
       return toolName ? { toolChoice: { type: "tool", toolName } } : {};
     },
     stopWhen: stepCountIs(10),

@@ -4,17 +4,18 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMemoryItem, PromptLogEntry, RoutingDecision, StudentProfile } from "@/agents/_shared/types";
-import { schoolGradeLabel } from "@/agents/_shared/types";
-import { EntityChip } from "@/components/atoms/EntityChip";
 import { ValuePill } from "@/components/atoms/ValuePill";
-import { AppFrame, NavLink } from "@/components/app-frame";
+import { AppFrame, DeskNav } from "@/components/app-frame";
 import { ConversationRail, type ConversationItem } from "@/components/conversation-rail";
+import { StudentSidebar } from "@/components/student-sidebar";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import { PromptBar } from "@/components/ui/prompt-bar";
 import ThinkingState from "@/components/primitives/ThinkingState";
 import StreamingText from "@/components/primitives/StreamingText";
 import { AGENT_COPY } from "@/lib/agent-copy";
+import { isTestingWidgetToolType, shouldSuppressTestingBusyIndicator } from "@/lib/testing-turn";
 import type { MetsUIMessage } from "@/lib/ui-types";
 import { MessageThread } from "./message-thread";
 
@@ -29,10 +30,6 @@ const STARTERS = [
   "Convert 72 km/h to m/s and show the working.",
   "Balance Fe + O₂ → Fe₂O₃, then quiz me on redox.",
 ];
-
-function gradeLabel(profile: StudentProfile) {
-  return schoolGradeLabel(profile.grade, profile.gradeLevel);
-}
 
 function toUiMessages(items: ChatMemoryItem[]): MetsUIMessage[] {
   return items.map((item, index) => ({
@@ -142,58 +139,22 @@ export function StudioShell({
 
   return (
     <AppFrame
-      nav={
-        <>
-          <NavLink href="/">Tutor</NavLink>
-          <NavLink href="/evals">Evals</NavLink>
-        </>
-      }
+      nav={<DeskNav />}
       actions={
-        <Button type="button" variant="quiet" size="sm" onClick={onReset}>
+        <Button type="button" variant="quiet" size="sm" className="gap-1.5" onClick={onReset}>
+          <Icon icon={signedIn ? "signOut" : "guest"} size={14} />
           {signedIn ? "Sign out" : "Leave desk"}
         </Button>
       }
       sidebar={
-        <>
-          <div>
-            <p className="ui-label">Student</p>
-            <div className="mt-3">
-              <EntityChip
-                name={profile.name}
-                color={signedIn ? "#2f6fec" : "#64748b"}
-                monogram={profile.name.charAt(0).toUpperCase()}
-              />
-            </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight">{profile.name}</h1>
-            <p className="mt-1 text-sm text-ink-2">{gradeLabel(profile)}</p>
-            {email ? <p className="mt-1 truncate text-xs text-ink-3">{email}</p> : null}
-            {signedIn ? (
-              <ValuePill className="mt-3 ml-0" tone="accent">
-                Signed in
-              </ValuePill>
-            ) : (
-              <ValuePill className="mt-3 ml-0" tone="neutral">
-                Guest desk
-              </ValuePill>
-            )}
-            <dl className="mt-6 grid gap-3">
-              {(["math", "physics", "chemistry"] as const).map((subject) => (
-                <div key={subject}>
-                  <dt className="ui-label">{subject}</dt>
-                  <dd className="mt-1 text-sm capitalize">
-                    {profile.diagnostic[subject] ?? "unseen"}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+        <StudentSidebar profile={profile} email={email} signedIn={signedIn}>
           <ConversationRail
             items={conversations}
             activeId={activeId}
             onNew={() => void startNewChat()}
             onPick={(id) => setActiveId(id)}
           />
-        </>
+        </StudentSidebar>
       }
       rail={<RoutingRail sessionId={activeId} />}
     >
@@ -202,6 +163,7 @@ export function StudioShell({
           key={activeId}
           profile={profile}
           sessionId={activeId}
+          signedIn={signedIn}
           initialMessages={history}
           onFirstUserMessage={(text) => {
             setConversations((current) =>
@@ -225,11 +187,13 @@ export function StudioShell({
 function ChatPane({
   profile,
   sessionId,
+  signedIn,
   initialMessages,
   onFirstUserMessage,
 }: {
   profile: StudentProfile;
   sessionId: string;
+  signedIn?: boolean;
   initialMessages: MetsUIMessage[];
   onFirstUserMessage: (text: string) => void;
 }) {
@@ -262,6 +226,14 @@ function ChatPane({
   }, [messages, status]);
 
   const busy = status === "submitted" || status === "streaming";
+  const lastAssistant = [...messages].reverse().find((message) => message.role === "assistant");
+  const hideTestingBusy = shouldSuppressTestingBusyIndicator({
+    agent: routing?.agent,
+    status,
+    hasWidgetTool: Boolean(
+      lastAssistant?.parts.some((part) => isTestingWidgetToolType(part.type)),
+    ),
+  });
 
   function send(text: string) {
     const trimmed = text.trim();
@@ -282,7 +254,8 @@ function ChatPane({
           </p>
         </div>
         {routing ? (
-          <ValuePill className="hidden sm:inline-flex" tone={routingTone(routing.agent)}>
+          <ValuePill className="hidden gap-1 sm:inline-flex" tone={routingTone(routing.agent)}>
+            <Icon icon={routing.agent} size={12} />
             {AGENT_COPY[routing.agent].label} · {routing.intent} ·{" "}
             {Math.round(routing.confidence * 100)}%
           </ValuePill>
@@ -293,9 +266,15 @@ function ChatPane({
         {messages.length === 0 ? (
           <EmptyDesk name={profile.name} onPick={send} />
         ) : (
-          <MessageThread messages={messages} routing={routing} />
+          <MessageThread
+            messages={messages}
+            routing={routing}
+            streaming={status === "streaming"}
+            conversationId={sessionId}
+            signedIn={signedIn}
+          />
         )}
-        {busy ? (
+        {busy && !hideTestingBusy ? (
           <LoadingState
             className="mt-5"
             variant={status === "streaming" ? "Dots" : "Drive"}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Icon, type MetsIconName } from "@/components/icons";
 
 /* ─────────────────────────────────────────────────────────
  * CHAT — interactive panel with tabs, replies, and composer.
@@ -49,19 +50,25 @@ const DEFAULT_LABELS: ChatComposerLabels = {
 export function ChatUserBubble({
   children,
   visible = true,
+  size = "compact",
 }: {
   children: ReactNode;
   visible?: boolean;
+  size?: "compact" | "message";
 }) {
+  const message = size === "message";
   return (
-    <div className="flex justify-end pl-14">
+    <div className={message ? "flex w-full justify-end" : "flex justify-end pl-14"}>
       <div
-        className="rounded-xl bg-field px-3 py-1.5 text-[13px] leading-[1.4] text-ink
-          transition-[opacity,transform] duration-300"
+        className={
+          message
+            ? "max-w-[min(36rem,85%)] rounded-2xl bg-field px-4 py-2.5 text-[0.9375rem] leading-6 text-ink shadow-[var(--bui-shadow-hairline)]"
+            : "rounded-xl bg-field px-3 py-1.5 text-[13px] leading-[1.4] text-ink"
+        }
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? "translateY(0)" : "translateY(10px)",
-          transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)",
+          transition: "opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), transform 300ms cubic-bezier(0.23, 1, 0.32, 1)",
         }}
       >
         {children}
@@ -169,21 +176,15 @@ export default function ChatComposer({
           ))}
         </div>
         <div className="flex items-center gap-1">
-          {[
-            <path key="p" d="M12 5v14M5 12h14" />,
-            <g key="h"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></g>,
-            <g key="e" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></g>,
-          ].map((icon, i) => (
+          {(["plus", "history", "more"] as MetsIconName[]).map((name) => (
             <button
-              key={i}
+              key={name}
               type="button"
               aria-label="Action"
               className="flex size-6 items-center justify-center rounded-[6px] text-ink-3
                 transition-colors duration-100 hover:bg-hover hover:text-ink-2"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {icon}
-              </svg>
+              <Icon icon={name} size={15} strokeWidth={2} />
             </button>
           ))}
         </div>
@@ -243,9 +244,7 @@ export default function ChatComposer({
                 color: canSend ? "var(--surface)" : "var(--ink-2)",
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 19V5M5 12l7-7 7 7" />
-              </svg>
+              <Icon icon="send" size={16} strokeWidth={2.2} />
             </button>
           </div>
         </div>

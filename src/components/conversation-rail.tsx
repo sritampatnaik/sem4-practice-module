@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/atoms/Button";
+import { Icon } from "@/components/icons";
 import GlideMenu from "@/components/primitives/GlideMenu";
 
 export type ConversationItem = {
@@ -25,6 +26,7 @@ export function ConversationRail({
       <div className="flex items-center justify-between gap-2">
         <p className="ui-label">Chats</p>
         <Button type="button" variant="quiet" size="xs" onClick={onNew}>
+          <Icon icon="newChat" size={13} />
           New chat
         </Button>
       </div>
@@ -41,10 +43,11 @@ export function ConversationRail({
                 data-menu-row
                 title={item.title}
                 onClick={() => onPick(item.id)}
-                className={`relative z-10 flex h-8 w-full items-center rounded-[8px] px-2 text-left text-[13px] ${
+                className={`relative z-10 flex h-8 w-full items-center gap-1.5 rounded-[8px] px-2 text-left text-[13px] ${
                   active ? "font-medium text-ink" : "text-ink-2"
                 }`}
               >
+                <Icon icon="chat" size={13} className="shrink-0 text-ink-3" />
                 <span className="truncate">{item.title || "New chat"}</span>
               </button>
             );

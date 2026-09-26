@@ -18,6 +18,8 @@
     "@ai-sdk/google": "^3.0.118",
     "@ai-sdk/openai": "^3.0.96",
     "@ai-sdk/react": "^3.0.258",
+    "@hugeicons/core-free-icons": "^4.3.4",
+    "@hugeicons/react": "^1.1.10",
     "@langfuse/client": "^5.10.2",
     "@langfuse/otel": "^5.10.2",
     "@opentelemetry/sdk-trace-node": "^2.10.0",

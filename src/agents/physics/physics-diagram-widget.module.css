@@ -1,0 +1,89 @@
+.card {
+  margin: 0.9rem 0 1.1rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--bui-ink) 14%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--bui-surface) 92%, white);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--bui-ink) 8%, transparent);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem 0.8rem;
+}
+
+.title {
+  color: var(--bui-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.description {
+  margin-top: 0.25rem;
+  color: var(--bui-ink-2);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.badge {
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--bui-accent) 25%, transparent);
+  border-radius: 999px;
+  padding: 0.24rem 0.5rem;
+  color: var(--bui-accent-ink);
+  background: color-mix(in srgb, var(--bui-accent) 8%, transparent);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  height: clamp(18rem, 48vw, 25rem);
+  overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, var(--bui-ink) 8%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--bui-accent) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--bui-accent) 5%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--bui-surface) 82%, white);
+  background-size: 1.5rem 1.5rem;
+  touch-action: none;
+}
+
+.board svg text {
+  cursor: default;
+  user-select: none;
+}
+
+.board :global(.JXGtext) {
+  margin: 0;
+  padding: 0;
+  color: var(--bui-ink);
+  background: transparent;
+  font-family: inherit;
+}
+
+.fallback {
+  padding: 1rem 1.1rem;
+  color: var(--bui-red);
+  font-size: 0.8rem;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

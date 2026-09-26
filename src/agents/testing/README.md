@@ -23,8 +23,10 @@ Then add a short study note in prose. Do not dump the full answer key in the fir
 | `prompts.ts` | System prompt. Bump `TESTING_PROMPT_VERSION` on every edit. |
 | `tools.ts` | Zod schemas for MCQ and flashcard payloads. |
 | `index.ts` | `createTestingAgent` wiring. |
+| `subject-source.ts` | Testing-owned Maths / Physics / Chemistry source packs. |
 | `assessment-planner.ts` | Internal planning helpers for mode / topic / visual decisions. |
 | `performance-log.ts` | Server-side Testing-performance log helpers under `logs/`. |
+| `score-history.ts` | Testing score-history grouping and trend summary helpers for repeated MCQ attempts. |
 | `langflow/prompts/testing.system.md` | Keep in sync with `prompts.ts`. |
 
 If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / `flashcard-widget.tsx` / `message-thread.tsx`. Coordinate with the orchestration / UI owner (Sritam) before editing those.
@@ -34,22 +36,37 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - `createMcqSet` — 2–6 items, 3–5 options, `correctOptionId` must match an option `id`
 - `createFlashcards` — 3–8 cards with `front`, `back`, `topic`
 - `documentSearchMath` / `documentSearchPhysics` / `documentSearchChemistry` — stay in-syllabus
-- `getPhysicsAssessmentSource` — Testing-owned Physics source pack for syllabus-grounded concepts, formula hints, distractor seeds, and question angles before building a Physics widget
+- `getPhysicsAssessmentSource` — Testing-owned Physics source pack for syllabus-grounded learning outcomes, concepts, formula hints, distractor seeds, and question angles before building a Physics widget
+- `getMathAssessmentSource` — Testing-owned Maths source pack for learning outcomes, key concepts, method/formula hints, distractor seeds, and question angles before building a Maths widget
+- `getChemistryAssessmentSource` — Testing-owned Chemistry source pack for learning outcomes, key concepts, equation/formula hints, distractor seeds, and question angles before building a Chemistry widget
 
 ## Internal helper tools now available
 
 - `planAssessment` — internal planning aid for MCQ vs flashcard, topic extraction, and whether a Mermaid diagram may help
 - `getRecentPerformance` — reads the latest Testing notes for the current session from `logs/testing-performance/`
 - `createMermaidDiagram` — builds Mermaid text for simple labelled visuals; the current UI does **not** render Mermaid yet
-- `recordPerformance` — stores a compact Testing note for later follow-up; this tool is for notes only, so do not include outcome or score fields
+- `recordPerformance` — stores a compact Testing note for later follow-up; this tool is note-only, so do not include outcome or score fields
+
+## Score tracking
+
+- Signed-in students now have persistent **MCQ attempt tracking** backed by Supabase.
+- This is separate from `recordPerformance`:
+  - `recordPerformance` remains a note-only Testing tool for agent follow-up
+  - score tracking stores completed quiz results from the UI
+- Repeated attempts are grouped by:
+  - subject
+  - topic/family key
+  - mode
+- The first UI surface is the student sidebar, which shows latest, previous, and best saved MCQ results so improvement or regression is visible over time.
+- Initial live testing now confirms the score-history flow can save into the Supabase table and render back into the sidebar.
 
 ## Current subject-sourcing direction
 
 - Testing still stays as **one public routed agent**.
 - Testing must **not** communicate with Math / Physics / Chemistry agents directly.
 - Instead, Testing should own its own subject-source tools inside `src/agents/testing/`.
-- **Current rollout status:** Physics-first. Physics requests should use `getPhysicsAssessmentSource` before `createMcqSet` or `createFlashcards`.
-- Maths and Chemistry can still use the shared syllabus-search path for now until equivalent Testing-owned source tools are added.
+- **Current rollout status:** Maths, Physics, and Chemistry each have a Testing-owned source tool. Call the matching source tool before `createMcqSet` or `createFlashcards`.
+- Do not treat raw `documentSearchMath` / `documentSearchPhysics` / `documentSearchChemistry` as the grounding step for quiz generation.
 
 The `execute` functions currently echo the structured input. That is enough for the UI. Do not return a different shape without updating `McqSet` / `FlashcardSet` in `src/agents/_shared/types.ts` **and** the widgets.
 
@@ -66,10 +83,10 @@ The `execute` functions currently echo the structured input. That is enough for 
 - Match Primary vs O-Level vs A-Level from the profile.
 - If the subject is ambiguous, pick one and say so, or ask one clarifying question.
 - Treat Math / Physics / Chemistry as black-box specialists. Testing should use its own tools and shared syllabus search rather than calling subject agents.
-- For Physics in the current rollout, Testing should ground the assessment through `getPhysicsAssessmentSource` instead of relying on unstated subject knowledge alone.
-- For Physics calculation MCQs, the final numeric answer in the explanation must agree with the marked correct option.
+- Ground Maths, Physics, and Chemistry assessments through `getMathAssessmentSource`, `getPhysicsAssessmentSource`, and `getChemistryAssessmentSource` instead of relying on unstated subject knowledge alone.
+- `recordPerformance` is for assessment notes only and should not log outcome or score fields during ordinary assessment generation.
 - Keep one public Testing agent. If you need more modularity, add helper modules/tools inside `src/agents/testing/` rather than adding new top-level routed agents.
-- If a Physics topic is not strongly supported by the source tool, fail explicitly and ask for a narrower topic instead of making content up.
+- If a topic is not strongly supported by the matching source tool, fail explicitly and ask for a narrower topic instead of making content up.
 
 ## How to test
 
@@ -101,10 +118,21 @@ Suggested workflow:
    - `{"scenarioId":"secondary-kinematics-mcq"}`
    - or a custom `prompt`, `profile`, and optional `recentChats`
 4. inspect:
-   - Physics source-tool usage before widget generation
+   - Maths / Physics / Chemistry source-tool usage before widget generation
    - widget tool choice
    - prompt quality
    - Mermaid planning behaviour
    - performance-log writes
 
 This is the preferred local structure when teammate-owned agents or routing are incomplete.
+
+## Score-tracking checks
+
+For the new signed-in MCQ history flow, also verify:
+
+1. finish an MCQ while signed in
+2. the widget shows the score locally
+3. the save does not fail
+4. the sidebar Testing-progress panel updates with latest / previous / best
+5. repeating the same topic with a different quiz updates the same subject + topic/family + mode bucket
+6. check the Supabase dashboard if needed to confirm rows land in `public.testing_attempts`

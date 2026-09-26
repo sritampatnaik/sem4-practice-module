@@ -21,11 +21,12 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
 ### Current Testing state after this work
 
 - Testing is still one routed agent and still does **not** communicate with other specialist agents.
-- Physics now has a **Testing-owned source-tool path**:
+- Testing now has **Testing-owned syllabus grounding tools for all three subjects**:
   - `getPhysicsAssessmentSource`
-  - implemented in `src/agents/testing/subject-source.ts`
-- Obvious Physics requests now follow a more explicit flow:
-  1. source Physics material first
+  - `getMathAssessmentSource`
+  - `getChemistryAssessmentSource`
+- Clear subject requests now follow a more explicit flow:
+  1. source subject-grounded material first
   2. build exactly one widget
   3. optionally record a compact Testing note
   4. return brief prose without leaking the full answer key
@@ -35,6 +36,12 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - per-step tool payloads
 - Physics MCQ generation has an extra validation guard for **numeric explanation vs correct-answer mismatches**
 - `recordPerformance` is now treated as a **note-only tool** during assessment generation
+- Signed-in students now also have **persistent MCQ score tracking** backed by Supabase:
+  - scores are recorded from the UI after quiz submission
+  - grouped by subject + topic/family + mode
+  - surfaced in the sidebar as latest / previous / best with a simple trend state
+  - this is separate from `recordPerformance`
+  - initial live testing now looks good after the table was created in Supabase
 
 ## Scope
 
@@ -56,12 +63,15 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
 - This preserves the repository architecture rule that specialists do not call each other.
 - Any subject grounding needed by Testing must come from **Testing-owned tools or helpers**, not another specialist's prompt loop.
 
-### 3. Physics-first subject sourcing
+### 3. Testing-owned subject sourcing
 
-- The first implemented subject-source path is **Physics**.
-- Testing now uses `getPhysicsAssessmentSource` before widget generation for obvious Physics requests.
-- The source pack is built in `src/agents/testing/subject-source.ts`.
-- The goal is to make Physics assessment content more explicit, testable, and less dependent on unstated model knowledge.
+- Testing now uses its own source tools rather than specialist-agent communication.
+- The current source-tool set is:
+  - `getPhysicsAssessmentSource`
+  - `getMathAssessmentSource`
+  - `getChemistryAssessmentSource`
+- The source packs are built in `src/agents/testing/subject-source.ts`.
+- The goal is to make assessment content more explicit, testable, and less dependent on unstated model knowledge.
 
 ### 4. Separation of concerns
 
@@ -71,6 +81,7 @@ The intended responsibility split is:
 - **assessment planner** → infer mode, topics, and visual need
 - **widget tools** → produce valid MCQ / flashcard payloads
 - **logging tools** → record compact Testing notes for follow-up
+- **score-history persistence** → save completed signed-in MCQ attempts and summarise improvement/regression
 
 This separation matters for the professors' software-engineering emphasis.
 
@@ -90,6 +101,8 @@ This separation matters for the professors' software-engineering emphasis.
 ### Subject/source tools
 
 - `getPhysicsAssessmentSource`
+- `getMathAssessmentSource`
+- `getChemistryAssessmentSource`
 - `documentSearchMath`
 - `documentSearchPhysics`
 - `documentSearchChemistry`
@@ -103,11 +116,12 @@ This separation matters for the professors' software-engineering emphasis.
 
 ## Current rollout state
 
-- **Physics**: Physics-first source-tool path implemented
-- **Maths**: still uses the earlier Testing flow
-- **Chemistry**: still uses the earlier Testing flow
+- **Physics**: Testing-owned source-tool path implemented and exercised through the harness
+- **Maths**: Testing-owned source-tool path implemented and exercised through the harness
+- **Chemistry**: Testing-owned source-tool path implemented and exercised through the harness
+- **Score tracking**: signed-in MCQ attempt persistence and sidebar trend summary are implemented and now reaching the live Supabase table in initial testing
 
-Future extension should likely reuse the same contract shape introduced for Physics.
+All three now follow the same intended source-tool contract.
 
 ## Important implementation files
 
@@ -118,7 +132,10 @@ Future extension should likely reuse the same contract shape introduced for Phys
 - `src/agents/testing/harness.ts`
 - `src/agents/testing/assessment-planner.ts`
 - `src/agents/testing/performance-log.ts`
+- `src/agents/testing/score-history.ts`
 - `src/agents/testing/fixtures/scenarios.ts`
+- `src/agents/testing/score-history.test.ts`
+- `src/agents/testing/subject-source.test.ts`
 - `src/agents/testing/progress.md`
 
 ## Testing harness notes
@@ -135,6 +152,8 @@ Future extension should likely reuse the same contract shape introduced for Phys
 - `secondary-kinematics-mcq`
 - `secondary-kinematics-followup`
 - `secondary-physics-waves-flashcards`
+- `jc-differentiation-quiz`
+- `secondary-bonding-flashcards`
 
 ### Initial live findings before the harness/debug fix
 
@@ -152,9 +171,11 @@ Future extension should likely reuse the same contract shape introduced for Phys
 
 ### Findings after the quality fixes
 
-1. **Physics-first sourcing is working**
+1. **All-subject source-tool routing is working for clear prompts**
    - obvious Physics requests source through `getPhysicsAssessmentSource` first
-   - then call exactly one widget tool
+   - obvious Maths requests source through `getMathAssessmentSource` first
+   - obvious Chemistry requests source through `getChemistryAssessmentSource` first
+   - then each flow calls exactly one widget tool
 
 2. **Harness debugging is working**
    - top-level and per-step payloads are visible
@@ -167,13 +188,13 @@ Future extension should likely reuse the same contract shape introduced for Phys
    - it now behaves as a note-only tool in the successful reruns
    - invented outcome fields were removed from the later successful runs
 
-5. **Physics source heuristics improved, but are still somewhat coarse**
+5. **Source-pack heuristics improved, but are still somewhat coarse**
    - wave prompts now suggest a **wave diagram** instead of an irrelevant force diagram
-   - source chunks and key concepts can still be broader than ideal because they come from syllabus excerpts
+   - source chunks, key concepts, and hints can still be broader than ideal because they come from syllabus excerpts
 
 6. **Remaining limitation**
-   - Physics is the only subject with the new Testing-owned source path so far
-   - Maths and Chemistry still need equivalent rollout if the architecture should become consistent
+   - the contract exists for all three subjects, but source-pack quality and follow-up behaviour still need refinement
+   - harness coverage should keep expanding for more mixed, follow-up, and unsupported-topic cases
 
 ## Software-engineering points to highlight in the final report
 
@@ -189,7 +210,7 @@ Future extension should likely reuse the same contract shape introduced for Phys
 - Zod-backed tool schemas for widget contracts
 - Validation for duplicate IDs and invalid `correctOptionId`
 - Physics MCQ validation for explanation-vs-answer numeric mismatches
-- Structured source-pack contract for Physics
+- Structured source-pack contract for Maths, Physics, and Chemistry
 - Harness-based debugging surface for Testing in isolation
 
 ### Safety and guardrails
@@ -210,14 +231,15 @@ Future extension should likely reuse the same contract shape introduced for Phys
 
 ## Open follow-up work
 
-1. Add equivalent Testing-owned source tools for Maths and Chemistry
-2. Confirm live UI behaviour after the auth/login path
-3. Extend eval coverage for source-tool ordering, note-only logging, and unsupported-topic failures
-4. Decide whether harness output should include even richer debugging metadata
-5. Run more end-to-end checks once credentials and UI flow are convenient
+1. Improve source-pack quality for Maths, Physics, and Chemistry so outcomes, concepts, hints, and misconceptions are less coarse
+2. Do a more thorough signed-in score-tracking pass across multiple topics and repeated attempts
+3. Confirm live UI behaviour after the auth/login path, including sidebar score-history updates after MCQ submission
+4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, and follow-up prompts
+5. Decide whether Testing follow-up logic should also consume the stored score summaries later
+6. Decide whether harness output should include even richer debugging metadata
 
 ## Suggested final-report framing
 
 If you need a concise explanation of your design choices:
 
-> The Testing agent was refactored to stay self-contained and software-engineering-driven. Instead of depending on direct communication with subject agents, it now uses Testing-owned subject-sourcing tools, starting with a Physics-first implementation. This preserves modular boundaries, improves testability, makes failures more explicit, and aligns better with the project's emphasis on maintainable architecture rather than only raw feature output.
+> The Testing agent was refactored to stay self-contained and software-engineering-driven. Instead of depending on direct communication with subject agents, it now uses Testing-owned subject-sourcing tools for Maths, Physics, and Chemistry. This preserves modular boundaries, improves testability, makes failures more explicit, and aligns better with the project's emphasis on maintainable architecture rather than only raw feature output.

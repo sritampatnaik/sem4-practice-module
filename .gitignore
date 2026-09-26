@@ -20,6 +20,9 @@
 # production
 /build
 
+# syllabus source PDFs (maps live in data/syllabus/*.md)
+/data/syllabus/*.pdf
+
 # misc
 .DS_Store
 .idea
