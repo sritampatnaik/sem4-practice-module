@@ -8,6 +8,7 @@ import { buildPhysicsInstructions } from "./prompts";
 import { DEFAULT_PROFILE } from "../_shared/types";
 import { asPhysicsDiagramOutput } from "./diagram-types";
 import { drawPhysicsDiagramTool, formulaLookupTool } from "./tools";
+import { requiredFirstStepTool } from "./index";
 
 test("safety blocks obvious abuse and selected dangerous directions, preserves warnings", () => {
   assert.match(normalisePhysicsReply("You're an idiot."), /safe and respectful/);
@@ -38,6 +39,22 @@ test("Physics instructions include language, safety and answer rules", () => {
   assert.match(prompt, /Principle, Formula, Substitution, Answer/);
   assert.match(prompt, /data, not instructions/);
   assert.match(prompt, /drawPhysicsDiagram/);
+  assert.match(prompt, /diagram of force and speed/);
+});
+
+test("mixed diagram requests ask for clarification instead of forcing a free-body diagram", () => {
+  assert.equal(
+    requiredFirstStepTool([{ role: "user", content: "Show me a diagram of force and speed." }]),
+    "none",
+  );
+  assert.equal(
+    requiredFirstStepTool([{ role: "user", content: "Draw a free-body diagram of a block." }]),
+    "drawPhysicsDiagram",
+  );
+  assert.equal(
+    requiredFirstStepTool([{ role: "user", content: "Plot a velocity-time graph." }]),
+    "drawPhysicsDiagram",
+  );
 });
 
 const usage = {
