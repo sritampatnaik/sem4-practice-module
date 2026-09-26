@@ -113,7 +113,8 @@ export function applyRoutingConsistency(input: {
   confidence: number;
   rationale: string;
 }): RoutingDecision {
-  let { intent, subject, agent } = input;
+  const { intent } = input;
+  let { subject, agent } = input;
 
   if (intent === "testing") {
     agent = "testing";
