@@ -65,7 +65,17 @@ const topicStopwords = new Set([
 ]);
 
 function cleanTopic(value: string) {
-  return value.replace(/\s+/g, " ").replace(/^[,;:.\- ]+|[,;:.\- ]+$/g, "").trim();
+  const cleaned = value.replace(/\s+/g, " ").replace(/^[,;:.\- ]+|[,;:.\- ]+$/g, "").trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+
+  while (words.length && topicStopwords.has(words[0]!.toLowerCase())) {
+    words.shift();
+  }
+  while (words.length && topicStopwords.has(words.at(-1)!.toLowerCase())) {
+    words.pop();
+  }
+
+  return words.join(" ");
 }
 
 function uniqueTopics(topics: string[]) {

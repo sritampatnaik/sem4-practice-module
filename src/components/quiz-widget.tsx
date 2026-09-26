@@ -7,9 +7,35 @@ import { Icon } from "@/components/icons";
 import ApprovalCard, { type ApprovalQuestion } from "@/components/primitives/ApprovalCard";
 import { MarkdownBody } from "./markdown-body";
 
-export function QuizWidget({ quiz }: { quiz: McqSet }) {
+type AttemptSaveState = "idle" | "saving" | "saved" | "error" | "guest";
+
+function uniqueTopics(quiz: McqSet) {
+  const seen = new Set<string>();
+  const topics: string[] = [];
+
+  for (const item of quiz.items) {
+    const topic = item.topic.trim();
+    const normalised = topic.toLowerCase();
+    if (!normalised || seen.has(normalised)) continue;
+    seen.add(normalised);
+    topics.push(topic);
+  }
+
+  return topics;
+}
+
+export function QuizWidget({
+  quiz,
+  conversationId,
+  signedIn,
+}: {
+  quiz: McqSet;
+  conversationId?: string;
+  signedIn?: boolean;
+}) {
   const marks = useRef<boolean[]>([]);
   const [score, setScore] = useState<number | null>(null);
+  const [attemptState, setAttemptState] = useState<AttemptSaveState>("idle");
 
   const questions = useMemo<ApprovalQuestion[]>(
     () =>
@@ -30,6 +56,41 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
     [quiz.items],
   );
 
+  async function saveAttempt(nextScore: number) {
+    if (!signedIn || !conversationId) {
+      setAttemptState("guest");
+      return;
+    }
+
+    setAttemptState("saving");
+
+    try {
+      const response = await fetch("/api/testing-progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          subject: quiz.subject,
+          mode: "mcq",
+          title: quiz.title,
+          score: nextScore,
+          totalQuestions: quiz.items.length,
+          topics: uniqueTopics(quiz),
+        }),
+      });
+
+      if (!response.ok) {
+        setAttemptState("error");
+        return;
+      }
+
+      setAttemptState("saved");
+      window.dispatchEvent(new Event("testing-progress-updated"));
+    } catch {
+      setAttemptState("error");
+    }
+  }
+
   if (score !== null) {
     return (
       <div className="flex flex-wrap items-center gap-3" style={{ animation: "pop-in 260ms cubic-bezier(0.23,1,0.32,1) both" }}>
@@ -40,9 +101,19 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
           {score} / {quiz.items.length} marked
         </span>
         <p className="text-[12.5px] text-ink-2">{quiz.title}</p>
+        {attemptState === "saving" ? (
+          <p className="text-[12.5px] text-ink-3">Saving this score…</p>
+        ) : attemptState === "saved" ? (
+          <p className="text-[12.5px] text-ink-3">Saved to your Testing progress.</p>
+        ) : attemptState === "guest" ? (
+          <p className="text-[12.5px] text-ink-3">Sign in to track score history across quizzes.</p>
+        ) : attemptState === "error" ? (
+          <p className="text-[12.5px] text-red">Could not save this score.</p>
+        ) : null}
         <Button type="button" variant="ghost" size="sm" onClick={() => {
           marks.current = [];
           setScore(null);
+          setAttemptState("idle");
         }}>
           Sit it again
         </Button>
@@ -94,7 +165,9 @@ export function QuizWidget({ quiz }: { quiz: McqSet }) {
           marks.current[index] = option.id === item.correctOptionId;
         }}
         onSubmitted={() => {
-          setScore(marks.current.filter(Boolean).length);
+          const nextScore = marks.current.filter(Boolean).length;
+          setScore(nextScore);
+          void saveAttempt(nextScore);
         }}
       />
     </div>

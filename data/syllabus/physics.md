@@ -8,6 +8,7 @@ Retrieval: each level-two heading is a separate chunk. Keep its body below 900 c
 
 - Reference: [MOE Primary Science 2023](https://www.moe.gov.sg/-/media/files/primary/syllabus/2023-primary-science.ashx); physics strands only, not a standalone Primary Physics examination.
 - Retained scope: materials, states of matter, magnets, forces, light, heat, simple electrical systems, energy and fair investigations.
+- Magnets: identify poles and that unlike poles attract while like poles repel.
 - Explain with observations and familiar examples. Teach simple measurement and fair tests; do not require F = ma, vector components, Ohm's-law algebra or quantum theory.
 - Verification limit: the central MOE PDF was access-blocked on 2026-09-05. This retained Primary outline is not a fresh outcome-by-outcome audit; the 2026 school briefing below corroborates light and heat changes.
 

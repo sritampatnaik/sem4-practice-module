@@ -192,6 +192,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      testing_attempts: {
+        Row: {
+          completed_at: string;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          mode: string;
+          score: number;
+          subject: string;
+          title: string;
+          topic_key: string;
+          topic_label: string;
+          topics: Json;
+          total_questions: number;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string;
+          conversation_id: string;
+          created_at?: string;
+          id: string;
+          mode: string;
+          score: number;
+          subject: string;
+          title: string;
+          topic_key: string;
+          topic_label: string;
+          topics?: Json;
+          total_questions: number;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          mode?: string;
+          score?: number;
+          subject?: string;
+          title?: string;
+          topic_key?: string;
+          topic_label?: string;
+          topics?: Json;
+          total_questions?: number;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       guardrail_alerts: {
         Row: {
           acknowledged_at: string | null;

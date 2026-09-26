@@ -9,6 +9,7 @@ import { EntityChip } from "@/components/atoms/EntityChip";
 import { ValuePill } from "@/components/atoms/ValuePill";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { TestingProgressPanel } from "./testing-progress-panel";
 
 function gradeLabel(profile: StudentProfile) {
   return schoolGradeLabel(profile.grade, profile.gradeLevel);
@@ -66,6 +67,7 @@ export function StudentSidebar({
           Diagnostics
         </Link>
       </div>
+      <TestingProgressPanel signedIn={signedIn} />
       {children}
     </>
   );
