@@ -21,7 +21,7 @@ jobs:
   checks:
     name: Project checks
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository
@@ -51,6 +51,24 @@ jobs:
       - name: Build application
         run: npm run build
 
+  promptfoo:
+    name: Promptfoo evals
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Validate Promptfoo configuration
         run: npm run promptfoo:validate
 
@@ -78,12 +96,11 @@ jobs:
             promptfoo/promptfoo-results.junit.xml
           if-no-files-found: warn
           retention-days: 14
-
   sonar:
     name: SonarQube
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository
