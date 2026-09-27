@@ -45,6 +45,11 @@ yarn-error.log*
 
 # local prompt logs
 /logs
+/promptfoo/tests.generated.json
+/promptfoo/*.json
+/promptfoo/*.html
+/promptfoo/*.csv
+/promptfoo/*.xml
 
 # vercel
 .vercel

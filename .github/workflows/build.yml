@@ -51,6 +51,34 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Validate Promptfoo configuration
+        run: npm run promptfoo:validate
+
+      - name: Ensure Promptfoo model key is configured
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ]; then
+            echo "OPENAI_API_KEY secret is required for Promptfoo CI."
+            exit 1
+          fi
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Run Promptfoo evals
+        run: npm run promptfoo:ci
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload Promptfoo artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-results
+          path: |
+            promptfoo/promptfoo-results.json
+            promptfoo/promptfoo-results.junit.xml
+          if-no-files-found: warn
+          retention-days: 14
+
   sonar:
     name: SonarQube
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
