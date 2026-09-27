@@ -59,108 +59,139 @@ export function AuthDesk({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <section className="ui-card w-full max-w-xl px-7 py-8 sm:px-9 sm:py-10">
-        <EntityChip name="METS" color="#111827" monogram="M" className="ml-0" />
-        <p className="ui-label mt-4 inline-flex items-center gap-1.5">
-          <Icon icon="school" size={13} />
-          NUS-ISS Practice Module · Team 5
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
-          METS
-        </h1>
-        <p className="mt-3 max-w-md text-[0.95rem] leading-6 text-ink-2">
-          {signup
-            ? "Create an account so we can keep your name, year, and previous chats."
-            : "Sign in to pick up your student profile and previous chats, or continue as a guest."}
-        </p>
-        {configured ? null : (
-          <p className="mt-4 text-sm leading-6 text-ink-2" role="status">
-            Cloud login needs <code>SUPABASE_URL</code> and a publishable or
-            anon key on the server. You can still open the desk as a guest.
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-canvas via-page to-canvas px-4 py-10">
+      <section className="w-full max-w-xl rounded-2xl border border-line/50 bg-surface/95 px-8 py-10 shadow-overlay backdrop-blur-sm sm:px-10 sm:py-12">
+        <div className="mb-8 text-center">
+          <div className="mb-4 inline-flex items-center justify-center rounded-2xl bg-accent/10 p-4">
+            <EntityChip name="METS" color="#111827" monogram="M" className="ml-0 shadow-md" />
+          </div>
+          <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-3">
+            <Icon icon="school" size={14} />
+            NUS-ISS Practice Module · Team 5
           </p>
+          <h1 className="mt-4 bg-gradient-to-r from-ink to-ink-2 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
+            METS
+          </h1>
+          <p className="mt-2 text-sm font-medium text-ink-3">Multi-Agent Educational & Testing System</p>
+        </div>
+        
+        <div className="mb-8 rounded-xl border border-line/50 bg-inset/30 p-5">
+          <p className="text-center text-sm leading-relaxed text-ink-2">
+            {signup
+              ? "Create an account to save your profile, progress, and chat history across sessions."
+              : "Sign in to access your student profile and previous chats, or continue as a guest for a quick session."}
+          </p>
+        </div>
+        
+        {configured ? null : (
+          <div className="mb-6 rounded-lg border border-orange/30 bg-orange-tint p-4">
+            <p className="text-sm leading-6 text-ink-2" role="status">
+              Cloud login requires <code className="rounded bg-field px-2 py-0.5 font-mono text-xs">SUPABASE_URL</code> and a publishable key. 
+              You can still use the desk as a guest.
+            </p>
+          </div>
         )}
 
         <form
-          className="mt-8 grid gap-5"
+          className="space-y-5"
           aria-busy={busy}
           onSubmit={(event) => {
             event.preventDefault();
             void submit();
           }}
         >
-          <label className="grid gap-2">
-            <span className="ui-label inline-flex items-center gap-1.5">
-              <Icon icon="mail" size={12} />
-              Email
-            </span>
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="ui-field text-base"
-              placeholder="you@school.edu.sg"
-              required
-              disabled={!configured || busy}
-            />
-          </label>
-          <label className="grid gap-2">
-            <span className="ui-label inline-flex items-center gap-1.5">
-              <Icon icon="password" size={12} />
-              Password
-            </span>
-            <input
-              type="password"
-              autoComplete={signup ? "new-password" : "current-password"}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="ui-field text-base"
-              placeholder="At least 6 characters"
-              minLength={6}
-              required
-              disabled={!configured || busy}
-            />
-          </label>
-          {error ? <p className="text-sm text-red">{error}</p> : null}
-          <div className="grid gap-3 pt-1">
+          <div className="space-y-4">
+            <label className="block space-y-2">
+              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-3">
+                <Icon icon="mail" size={13} />
+                Email
+              </span>
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-lg border border-line bg-field px-4 py-3 text-base text-ink shadow-hairline transition-all placeholder:text-ink-3 focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-tint)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="you@school.edu.sg"
+                required
+                disabled={!configured || busy}
+              />
+            </label>
+            
+            <label className="block space-y-2">
+              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-3">
+                <Icon icon="password" size={13} />
+                Password
+              </span>
+              <input
+                type="password"
+                autoComplete={signup ? "new-password" : "current-password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-lg border border-line bg-field px-4 py-3 text-base text-ink shadow-hairline transition-all placeholder:text-ink-3 focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-tint)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="At least 6 characters"
+                minLength={6}
+                required
+                disabled={!configured || busy}
+              />
+            </label>
+          </div>
+          
+          {error ? (
+            <div className="rounded-lg border border-red/30 bg-red-tint p-4">
+              <p className="text-sm font-medium text-red">{error}</p>
+            </div>
+          ) : null}
+          
+          <div className="space-y-3 pt-2">
             <Button
               type="submit"
               variant="primary"
-              className="w-full"
+              className="h-12 w-full gap-2 text-base font-semibold shadow-btn transition-all hover:scale-[1.02] active:scale-[0.98]"
               disabled={busy || !configured}
               aria-busy={busy}
             >
               {busy ? (
                 <Spinner />
               ) : (
-                <Icon icon={signup ? "createAccount" : "signIn"} size={14} />
+                <Icon icon={signup ? "createAccount" : "signIn"} size={16} />
               )}
               {busy
                 ? signup
-                  ? "Creating account"
-                  : "Signing in"
+                  ? "Creating account..."
+                  : "Signing in..."
                 : signup
                   ? "Create account"
                   : "Sign in"}
             </Button>
-            <div className="grid gap-2">
+            
+            <div className="space-y-2">
               <Button
                 type="button"
                 variant="secondary"
-                className="w-full"
+                className="h-11 w-full font-medium transition-all hover:scale-[1.01]"
                 disabled={busy}
                 onClick={() => {
                   setMode(signup ? "login" : "signup");
                   setError(null);
                 }}
               >
-                {signup ? "I already have an account" : "Create an account"}
+                {signup ? "Already have an account? Sign in" : "New to METS? Create account"}
               </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-line/50" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-surface px-2 text-ink-3">Or</span>
+                </div>
+              </div>
+              
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full"
+                className="h-11 w-full gap-2 font-medium transition-all hover:scale-[1.01]"
                 disabled={busy}
                 onClick={() =>
                   onSignedIn({
@@ -170,7 +201,7 @@ export function AuthDesk({
                   })
                 }
               >
-                <Icon icon="guest" size={14} />
+                <Icon icon="guest" size={16} />
                 Continue as guest
               </Button>
             </div>
