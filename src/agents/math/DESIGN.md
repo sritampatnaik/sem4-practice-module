@@ -20,7 +20,7 @@ Math implements the shared METS tutoring experience. The proposed common contrac
 
 The overall role covers Primary, O-Level Mathematics and Additional Mathematics, and JC H1/H2 Mathematics. For this submission, demonstrated reliability should be limited to an agreed topic set rather than claimed across the whole curriculum.
 
-Proposed initial demonstration:
+Candidate demonstration examples (not an agreed syllabus scope):
 
 | Band | Topic | Representative task |
 | --- | --- | --- |
@@ -31,6 +31,31 @@ Proposed initial demonstration:
 
 These examples establish a testable starting point, not confirmed curriculum coverage. Confirm coverage against the maintained syllabus corpus and team requirements.
 
+### Scope and reference preparation
+
+**Agreed preparation approach (12 September 2026):** Map the full intended coverage across Primary, Secondary, and JC first, then select a smaller implementation pilot. This commits to preparing the coverage map, not to implementing or claiming reliability across every topic.
+
+Initial scope inventory:
+
+| Level | Intended coverage to map | Decisions to resolve from official documents and team scope |
+| --- | --- | --- |
+| Primary | Primary Mathematics, including progression across school years | Supported years; Standard/Foundation coverage; applicable curriculum version and examination cohort |
+| Secondary | Mathematics and Additional Mathematics | Course/qualification distinctions, cohort and syllabus codes; treatment of the O-Level/SEC transition |
+| JC | H1 and H2 Mathematics, mapped separately | Cohort, syllabus codes, assumed knowledge, and differences in topic coverage |
+
+For every course, the completed map should identify topics, learning objectives, prerequisites, exclusions, and official assessment expectations. Select the pilot after this map is reviewed, using reference availability, representative tutoring needs, tool capability, and evaluation feasibility. The pilot is not yet selected.
+
+Complete these steps in order before finalising topic-specific teaching rules or evaluation answers:
+
+1. **Define the intended coverage.** List the school years, qualifications/courses, examination cohorts, and topics we intend to support. Distinguish this overall scope from a smaller implementation pilot. Resolve whether Primary includes Standard and/or Foundation, whether Secondary includes Mathematics and/or Additional Mathematics and which qualification applies, and whether JC includes H1 and/or H2. Broad band labels alone are insufficient. The existing syllabus map and example questions are starting inventories, not the approved scope.
+2. **Establish the official reference set.** For each selected course and cohort, obtain the relevant MOE curriculum and SEAB examination syllabus, assessment objectives, paper specifications, specimen materials, and published marking guidance where available. Check the proposed topic boundaries against these documents. Keep examination specifications, question-specific marking schemes, and the module's project-assessment rubric distinct. Record unavailable official marking material explicitly; a locally authored practice rubric must not be presented as official.
+3. **Select trusted supplementary references by topic.** Only after the official scope is established, choose established textbooks, institutional teaching resources, or research-backed pedagogical guidance for explanations, methods, misconceptions, and feedback. Assess each source's authorship, edition, mathematical correctness, suitability for the course, and permitted use. A longstanding reputation alone does not establish current syllabus alignment. Use supplementary sources to support teaching, not to override official course boundaries.
+4. **Map references to teaching and evaluation.** Connect each selected topic to its learning objectives, prerequisites, exclusions, official references, supplementary references, and assessment criteria. Use this mapping to prepare reference answers and topic-specific checks. Decide which content needs runtime retrieval only after identifying the claim it must support.
+
+Maintain a reference register with title, issuing body/author, version or edition, syllabus code and examination year where applicable, URL, relevant pages/sections, access date, intended use, and any reuse restrictions. Distinguish locating a source from reviewing it and accepting it for the selected scope. Link to material when copying or ingestion is not permitted.
+
+The outputs are an agreed scope matrix, an official-reference checklist with gaps, and a topic-to-reference map. Collect the official material needed for the selected scope; do not expand the commitment merely because additional material is available. This sequence does not authorise broadening the repository's syllabus-only RAG corpus or adding a new retrieval system.
+
 Supported experiences are conceptual explanation, guided problem solving, explicitly requested worked solutions, checking supplied working, and syllabus questions. A brief understanding check is part of teaching; generated quiz sets and flashcard decks belong to Testing.
 
 Excluded from the initial commitment: image or handwriting input, formal proof verification, comprehensive symbolic equation solving, university mathematics, autonomous changes to student mastery, and guarantees of learning improvement. University content explicitly requested by a student may be acknowledged as outside the evaluated scope. Math does not invoke other specialists or implement quiz widgets, authentication, storage, or routing.
@@ -40,10 +65,10 @@ Excluded from the initial commitment: image or handwriting input, formal proof v
 | Component | Current implementation | Implication |
 | --- | --- | --- |
 | Agent | `index.ts`: `ToolLoopAgent`, temperature 0.2, eight-step limit | Tools are available to the model; their use is not guaranteed |
-| Prompt | `prompts.ts`, version 1.0.0 | Requests verification, syllabus checks, LaTeX, and named methods |
-| Calculation | `tools.ts`: mathjs `evaluate` and `simplify` | The name `equationSolver` does not establish general equation-solving capability |
+| Prompt | `prompts.ts`, version 1.1.1 | Requests verification, syllabus checks, LaTeX, and named methods, plus examination-alignment rules: show working for method marks, prefer exact form, do not drill supplied formulae, answer assessment questions from retrieved evidence |
+| Calculation | `tools.ts`: mathjs `evaluate`, `simplify`, `solve` (degree 1-3 in one unknown, with candidate roots validated against the original expression so domain exclusions are reported rather than returned) and `derivative` | Solves the polynomial cases its name implies, and reports exact values only from rational arithmetic. It cannot integrate symbolically, keep surds in radical form, solve simultaneous equations, or solve trigonometric, exponential and logarithmic equations; undefined results are failures, not values. Limits are stated in the tool description and covered by the 20 repeatable checks in `tool-checks.mjs` |
 | Context | Shared profile and recent-chat prompt formatting | Personalisation depends on supplied context, which is not authoritative instruction |
-| Retrieval | Shared keyword search over syllabus Markdown | Grade matching increases ranking; a returned passage is not proof of topic coverage |
+| Retrieval | Shared keyword search over syllabus Markdown, now including per-band assessment-format sections (AO weightings, scheme of assessment, calculator policy, MF27 contents) summarised from the SEAB references | Grade matching increases ranking; a returned passage is not proof of topic coverage. Assessment-format text is a summary of the official documents, not a verbatim copy |
 | Supplementary lookup | Shared Wikipedia lookup | Not an authority for Singapore syllabus coverage |
 
 The chat route chooses one agent per turn. Math receives the profile and recent memory through `AgentRuntimeContext`, while the agent stream also receives UI messages. Memory previews are truncated; they must not be treated as a complete learning history.
@@ -76,6 +101,7 @@ Consistency means common meanings for context, uncertainty, evidence, and outcom
 | Quiz or flashcard request | Explain that assessment generation belongs to Testing; do not claim an actual handoff occurred |
 | Tool failure or unsupported calculation | Try one meaningful correction if the error is recoverable; otherwise explain the limitation and never claim successful tool verification |
 | Conflicting evidence or a challenged answer | Recheck assumptions, calculation inputs, and relevant evidence; correct an error when found and explain unresolved disagreement rather than automatically agreeing or repeating the answer |
+| Exam mechanics question (mark allocation, paper structure, calculator rules, what the formula list supplies) | Retrieve the assessment-format evidence for the student's band and answer from it; distinguish what is provided in the examination from what must be known; do not guess a mark allocation, paper format, or cohort-specific rule without retrieved evidence |
 
 Use Singapore English and LaTeX. Adapt methods to the student's band. Respect explicit requests for hints, brevity, or complete working within the shared academic-integrity rules. A follow-up should respond to the student's new difficulty rather than repeat the previous answer unchanged. Present equations with enough surrounding explanation that the response remains understandable without relying on colour or visual layout alone.
 
@@ -114,7 +140,7 @@ M1–M8 are Math's evidence obligations under the proposed common contract. They
 | M7 | Behaviour is reproducible and changes are traceable | Revision, model, prompt version, dataset version, configuration, and evaluation results |
 | M8 | Student information and untrusted content are handled appropriately | Shared security review and Math-specific adversarial cases |
 
-For calculation outputs, distinguish numerical approximation from exact results. Current numeric output rounds JavaScript numbers to eight significant digits; include precision-sensitive cases before making claims about exactness. Review accepted expression capabilities and execution limits before expanding mathjs use.
+For calculation outputs, distinguish numerical approximation from exact results. The tool returns the full-precision value and a ten-significant-digit approximation, and reports an exact fraction only when the expression itself evaluates exactly in rational arithmetic. An earlier implementation inferred exactness by round-tripping a float within a tolerance; review on 12 September 2026 showed that this labelled 0.3333333333334 as exactly one third, and it has been removed. Absence of an exact value means none was established, not that the decimal is exact. Surds remain decimal-only. Undefined results, such as division by zero or a derivative at a singular point, are returned as failures rather than values. Review accepted expression capabilities and execution limits before expanding mathjs use.
 
 For failures, distinguish invalid input, unsupported capability, missing evidence, and infrastructure failure. Proposed policy: at most one corrected retry for a recoverable expression error, then explain the limitation. This policy is not currently enforced and must be reconciled with the overall agent step budget.
 
@@ -216,11 +242,15 @@ Record Git revision and any uncommitted changes, dataset and syllabus-corpus ver
 
 ## Delivery sequence and definition of done
 
-1. Map assessment rubric criteria to requirements M1–M8 and evidence. Confirm the demonstration topics and user offering.
-2. Agree the common tutoring contract, owners, critical-failure definitions, and acceptance targets with the team. Map Math requirements to it and record any justified deviations.
-3. Establish a reproducible baseline and identify failures before adding features.
-4. Implement prioritised Math-owned improvements and coordinate shared fixes separately.
-5. Run Math acceptance, cross-subject alignment, and team integration checks; document results, residual risks, and unsupported capabilities.
+For concrete, file-level tasks implementing this sequence, with acceptance checks and status, see [BUILD-PLAN.md](./BUILD-PLAN.md). That document currently covers the reference-material slice of steps 1–3 below, moving into step 5.
+
+1. Agree the overall syllabus scope and distinguish it from the implementation pilot. Keep the demonstration examples provisional until then.
+2. Assemble and review the official syllabus and examination references for that scope, recording missing marking guidance.
+3. Select trusted supplementary references for the chosen topics and complete the topic-to-reference map.
+4. Map the module assessment rubric to requirements M1–M8. Agree the common tutoring contract, owners, failure definitions, and evaluation criteria with the team, using the reference map to prepare reviewed cases and answers.
+5. Check evaluation readiness, establish a reproducible baseline, and identify failures before adding features.
+6. Implement prioritised Math-owned improvements and coordinate shared fixes separately.
+7. Run Math acceptance, cross-subject alignment, and team integration checks; document results, residual risks, and unsupported capabilities.
 
 The submission evidence should include this agreed design, the evaluation cases and scoring rubric, a baseline and final results report, and a short record of design decisions and remaining limitations. Optional comparisons or extra features follow only after the core evidence is complete.
 
@@ -230,16 +260,19 @@ Before integration, name the owner who will triage failures spanning routing, to
 
 Completion means the agreed offering is implemented, acceptance evidence is reproducible, shared integration expectations are checked, prompt copies are synchronised when changed, and remaining limitations have an owner or an explicitly accepted exclusion. A polished demo alone is insufficient evidence.
 
-For the early design stage, completion means the team has agreed the offering, common contract, ownership, and evaluation approach. Once these are settled, establish the baseline before expanding this plan; add requirements when the rubric, observed failures, or integration evidence justify them.
+For the early design stage, completion means the team has agreed the scope, offering, common contract, ownership, and evaluation approach, with the supporting references reviewed and gaps recorded. Once these are settled, establish the baseline before expanding this plan; add requirements when the rubric, observed failures, or integration evidence justify them.
 
 ## Decisions pending
 
 | Decision | Status |
 | --- | --- |
+| Scope preparation approach | Agreed 12 September 2026: map all intended levels first, then select a pilot |
 | Module rubric mapping | Awaiting assessment requirements |
 | Common tutoring contract and central source of truth | Proposed here for team discussion; no shared policy change made |
 | Cross-subject cases and teaching/Testing transition evidence | Awaiting agreement with subject, Testing, and Orchestration owners |
 | Topic set and supported experiences | Proposed above; awaiting agreement |
+| Official syllabus and examination reference set | To assemble after course/cohort selection; marking-material availability not yet established |
+| Supplementary references by topic | To select after review of official scope and assessment references |
 | Evaluation targets and critical-failure definitions | Proposed above; awaiting agreement |
 | Shared platform/evaluation owners and contracts | Awaiting team alignment |
 | Latency, cost and retry budgets | Measure baseline, then agree |
