@@ -309,3 +309,169 @@ export const equationSolverTool = tool({
     }
   },
 });
+
+// --- graphing ---------------------------------------------------------------
+
+const SAMPLE_COUNT = 241;
+const MAX_DOMAIN_WIDTH = 1_000;
+
+/** Real roots of a polynomial of degree 1-3, or [] when it is not one. */
+function polynomialRootsOf(expression: string): number[] {
+  try {
+    const coefficients = (rationalize(expression, {}, true) as unknown as { coefficients: number[] }).coefficients;
+    const degree = coefficients.length - 1;
+    if (degree < 1 || degree > 3) return [];
+    const [c, b, a, d] = coefficients;
+    const roots =
+      degree === 1
+        ? (polynomialRoot(c, b) as unknown[])
+        : degree === 2
+          ? (polynomialRoot(c, b, a) as unknown[])
+          : (polynomialRoot(c, b, a, d) as unknown[]);
+    return roots.map(realOrNull).filter((r): r is number => r !== null);
+  } catch {
+    return [];
+  }
+}
+
+const round = (value: number) => Number(value.toPrecision(6));
+
+export const drawMathGraphTool = tool({
+  description: [
+    "Sketch y = f(x) over a domain when seeing the shape helps: curve sketching, roots, turning points, or comparing a function with a student's sketch.",
+    "Marks roots, turning points and the y-intercept where it can find them exactly.",
+    "One real function of one variable; it refuses anything else. Use the student's own function and domain — do not invent values.",
+  ].join(" "),
+  inputSchema: z.object({
+    expression: z.string().describe("The function in terms of the variable, e.g. 'x^2 - 4x + 3'"),
+    variable: z.string().default("x"),
+    xMin: z.number().default(-10),
+    xMax: z.number().default(10),
+    title: z.string().default("").describe("Short caption, e.g. 'y = x^2 - 4x + 3'"),
+  }),
+  execute: async ({
+    expression,
+    variable,
+    xMin,
+    xMax,
+    title,
+  }: {
+    expression: string;
+    variable: string;
+    xMin: number;
+    xMax: number;
+    title: string;
+  }) => {
+    const guard = guardExpression(expression);
+    if (guard) return guard;
+
+    if (!Number.isFinite(xMin) || !Number.isFinite(xMax) || xMin >= xMax) {
+      return fail("input", "The domain needs xMin < xMax, both finite.");
+    }
+    if (xMax - xMin > MAX_DOMAIN_WIDTH) {
+      return fail("unsupported", `Keep the domain within ${MAX_DOMAIN_WIDTH} units so the sketch stays readable.`);
+    }
+
+    const names = unknownsIn(expression);
+    if (!Array.isArray(names)) return names;
+    const others = names.filter((n) => n !== variable);
+    if (others.length > 0) {
+      return fail("unsupported", `Only ${variable} may vary; found ${others.join(", ")}. Substitute values for the others first.`);
+    }
+
+    let compiled: { evaluate(scope: Record<string, number>): unknown };
+    try {
+      compiled = parse(expression).compile();
+    } catch {
+      return fail("input", "Could not read that function.");
+    }
+
+    // Sample, splitting the curve wherever it stops being a real number.
+    const step = (xMax - xMin) / (SAMPLE_COUNT - 1);
+    const segments: Array<Array<{ x: number; y: number }>> = [];
+    let current: Array<{ x: number; y: number }> = [];
+    const ys: number[] = [];
+
+    for (let i = 0; i < SAMPLE_COUNT; i += 1) {
+      const x = xMin + i * step;
+      const y = realOrNull((() => {
+        try {
+          return compiled.evaluate({ [variable]: x });
+        } catch {
+          return null;
+        }
+      })());
+      if (y === null) {
+        if (current.length > 1) segments.push(current);
+        current = [];
+        continue;
+      }
+      ys.push(y);
+      current.push({ x: round(x), y: round(y) });
+    }
+    if (current.length > 1) segments.push(current);
+
+    if (segments.length === 0) {
+      return fail("undefined", `${expression} has no real values on that domain. Try a different range.`);
+    }
+
+    // Keep a wild asymptote from flattening the interesting part: clamp the
+    // view to the middle of the sampled values, not the extremes.
+    const sorted = [...ys].sort((a, b) => a - b);
+    const low = sorted[Math.floor(sorted.length * 0.05)];
+    const high = sorted[Math.ceil(sorted.length * 0.95) - 1];
+    const span = Math.max(high - low, 1);
+    const yMin = round(low - span * 0.2);
+    const yMax = round(high + span * 0.2);
+    const clamped = sorted[0] < yMin || sorted[sorted.length - 1] > yMax;
+
+    const inView = (x: number) => x >= xMin && x <= xMax;
+    const valueAt = (x: number) =>
+      realOrNull((() => {
+        try {
+          return compiled.evaluate({ [variable]: x });
+        } catch {
+          return null;
+        }
+      })());
+
+    const marks: Array<{ kind: "root" | "turning-point" | "y-intercept"; x: number; y: number; label: string }> = [];
+
+    for (const root of polynomialRootsOf(expression)) {
+      if (inView(root)) marks.push({ kind: "root", x: round(root), y: 0, label: `x = ${round(root)}` });
+    }
+
+    try {
+      const slope = mathDerivative(expression, variable).toString();
+      for (const x of polynomialRootsOf(slope)) {
+        const y = valueAt(x);
+        if (y !== null && inView(x)) {
+          marks.push({ kind: "turning-point", x: round(x), y: round(y), label: `(${round(x)}, ${round(y)})` });
+        }
+      }
+    } catch {
+      // Not differentiable in closed form here; the curve alone is still useful.
+    }
+
+    if (inView(0)) {
+      const y = valueAt(0);
+      if (y !== null) marks.push({ kind: "y-intercept", x: 0, y: round(y), label: `y = ${round(y)}` });
+    }
+
+    return {
+      renderer: "jsxgraph" as const,
+      spec: {
+        kind: "function-graph" as const,
+        title: title.trim() || `y = ${expression}`,
+        expression,
+        variable,
+        xLabel: variable,
+        yLabel: "y",
+        segments,
+        marks,
+        bounds: { xMin: round(xMin), xMax: round(xMax), yMin, yMax },
+        ...(clamped ? { clamped: true } : {}),
+      },
+    };
+  },
+});
