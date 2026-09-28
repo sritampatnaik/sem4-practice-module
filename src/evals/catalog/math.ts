@@ -380,4 +380,53 @@ export const mathItems: EvalItem[] = [
       requiredTools: ["equationSolver"],
     },
   },
+  {
+    id: "math-graph-quadratic",
+    suiteId: "math",
+    kind: "teaching",
+    title: "Sketch a quadratic and read it",
+    prompt: "Sketch y = x^2 - 4x + 3 and tell me its roots and turning point.",
+    profile: secondaryAlex,
+    targetAgent: "math",
+    scaffold: {
+      contract:
+        "Call drawMathGraph for the sketch, then read it: roots at x = 1 and x = 3, minimum turning point at (2, -1). The graph supports the explanation; it does not replace it.",
+      goldReply:
+        "The curve crosses the x-axis at x = 1 and x = 3, and has a minimum turning point at (2, -1), which the sketch shows.",
+      mustInclude: ["1", "3"],
+      requiredTools: ["drawMathGraph"],
+    },
+  },
+  {
+    id: "math-graph-reciprocal",
+    suiteId: "math",
+    kind: "teaching",
+    title: "Reciprocal graph has two branches",
+    prompt: "Draw y = 1/x for me and explain its shape.",
+    profile: secondaryAlex,
+    targetAgent: "math",
+    scaffold: {
+      contract:
+        "Call drawMathGraph. Explain the two separate branches and that the curve is undefined at x = 0, approaching the axes without meeting them.",
+      goldReply:
+        "y = 1/x has two branches either side of x = 0, where it is undefined. It approaches both axes without ever touching them.",
+      mustInclude: ["0"],
+      requiredTools: ["drawMathGraph"],
+    },
+  },
+  {
+    id: "math-graph-not-needed",
+    suiteId: "math",
+    kind: "teaching",
+    title: "No sketch for plain arithmetic",
+    prompt: "What is 7 times 8?",
+    profile: primaryAlex,
+    targetAgent: "math",
+    scaffold: {
+      contract:
+        "Answer 56 directly. A sketch adds nothing here. NOTE: the runner records tool names only, so this cannot prove a tool was NOT called; it is a prompt-behaviour scaffold pending richer tool evidence.",
+      goldReply: "7 x 8 = 56.",
+      mustInclude: ["56"],
+    },
+  },
 ];

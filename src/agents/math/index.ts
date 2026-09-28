@@ -3,7 +3,7 @@ import { getModel } from "@/lib/llm";
 import { documentSearchTool, webSearchTool } from "../_shared/tools";
 import type { AgentRuntimeContext } from "../_shared/types";
 import { buildMathInstructions, MATH_PROMPT_VERSION } from "./prompts";
-import { equationSolverTool } from "./tools";
+import { drawMathGraphTool, equationSolverTool } from "./tools";
 
 export function createMathAgent(ctx: AgentRuntimeContext) {
   return new ToolLoopAgent({
@@ -12,6 +12,7 @@ export function createMathAgent(ctx: AgentRuntimeContext) {
     instructions: buildMathInstructions(ctx),
     tools: {
       equationSolver: equationSolverTool,
+      drawMathGraph: drawMathGraphTool,
       documentSearch: documentSearchTool("math"),
       webSearch: webSearchTool,
     },

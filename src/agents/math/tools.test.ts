@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { equationSolverTool } from "./tools";
+import { drawMathGraphTool, equationSolverTool } from "./tools";
 
 type ToolResult = Record<string, unknown>;
 
@@ -18,6 +18,19 @@ const execute = equationSolverTool.execute as unknown as (
 
 const call = (args: CallArgs) =>
   execute({ mode: "evaluate", variable: "x", ...args }, { toolCallId: "test", messages: [] });
+
+type GraphArgs = { expression: string; variable?: string; xMin?: number; xMax?: number; title?: string };
+
+const executeGraph = drawMathGraphTool.execute as unknown as (
+  input: GraphArgs,
+  options: { toolCallId: string; messages: never[] },
+) => Promise<ToolResult>;
+
+const graph = (args: GraphArgs) =>
+  executeGraph(
+    { variable: "x", xMin: -10, xMax: 10, title: "", ...args },
+    { toolCallId: "test", messages: [] },
+  );
 
 const roots = (result: ToolResult) =>
   (result.roots as Array<{ value: number }>).map((root) => root.value).sort((a, b) => a - b);
@@ -133,4 +146,48 @@ test("guards its inputs", async () => {
 
   const tooLong = await call({ expression: `1 + ${"1 + ".repeat(80)}1` });
   assert.equal(tooLong.ok, false);
+});
+
+test("sketches a quadratic, marking roots, turning point and intercept", async () => {
+  const result = await graph({ expression: "x^2 - 4x + 3" });
+  assert.equal(result.renderer, "jsxgraph");
+
+  const spec = result.spec as {
+    segments: Array<Array<{ x: number; y: number }>>;
+    marks: Array<{ kind: string; x: number; y: number }>;
+  };
+  assert.ok(spec.segments.length >= 1, "a parabola is one continuous piece");
+
+  const rootXs = spec.marks
+    .filter((mark) => mark.kind === "root")
+    .map((mark) => mark.x)
+    .sort((a, b) => a - b);
+  assert.deepEqual(rootXs, [1, 3]);
+
+  const turning = spec.marks.find((mark) => mark.kind === "turning-point");
+  assert.equal(turning?.x, 2);
+  assert.equal(turning?.y, -1);
+
+  assert.equal(spec.marks.find((mark) => mark.kind === "y-intercept")?.y, 3);
+});
+
+test("breaks the curve at a pole instead of drawing through it", async () => {
+  const result = await graph({ expression: "1/x", xMin: -5, xMax: 5 });
+  const spec = result.spec as { segments: unknown[]; bounds: { yMin: number; yMax: number } };
+  assert.ok(spec.segments.length >= 2, "1/x has two branches");
+  assert.ok(
+    spec.bounds.yMax < 100 && spec.bounds.yMin > -100,
+    "the view is trimmed rather than dominated by the asymptote",
+  );
+});
+
+test("refuses graphs it cannot draw honestly", async () => {
+  assert.equal((await graph({ expression: "x + y" })).ok, false, "only one variable may vary");
+  assert.equal((await graph({ expression: "x^2", xMin: 5, xMax: 5 })).ok, false, "empty domain");
+  assert.equal((await graph({ expression: "x^2", xMin: -100000, xMax: 100000 })).ok, false, "domain too wide");
+  assert.equal(
+    (await graph({ expression: "sqrt(x - 100)", xMin: -10, xMax: 10 })).ok,
+    false,
+    "nothing real to plot there",
+  );
 });
