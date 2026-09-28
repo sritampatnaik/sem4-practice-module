@@ -5,6 +5,7 @@
 **Syllabus corpus:** `data/syllabus/math.md`
 
 **Design and assessment plan:** [DESIGN.md](./DESIGN.md) — proposed user offering, teaching playbook, engineering requirements, team alignment, and evaluation criteria.
+**Build plan:** [BUILD-PLAN.md](./BUILD-PLAN.md) — concrete, file-level tasks moving the design from prototype to integration, with acceptance checks and status.
 
 Tell a coding agent: *You are working on the METS Math Agent only. Read this file fully. Do not edit other specialist folders. Do not build quizzes here.*
 
@@ -23,14 +24,14 @@ You explain, show working, and verify numbers. If the student wants a quiz, tell
 | File | Purpose |
 | --- | --- |
 | `prompts.ts` | System prompt. Bump `MATH_PROMPT_VERSION` on every edit. |
-| `tools.ts` | `equationSolver` (mathjs evaluate / simplify). |
+| `tools.ts` | `equationSolver` (mathjs): modes `evaluate`, `simplify`, `solve` (degree 1-3, one unknown), `derivative`. |
 | `index.ts` | `createMathAgent` wiring. |
 | `data/syllabus/math.md` | Curriculum map for RAG (topics, not worked solutions). |
 | `langflow/prompts/math.system.md` | Keep in sync with `prompts.ts`. |
 
 ## Tools you must keep
 
-- `equationSolver` — verify arithmetic and simple algebra before a final answer
+- `equationSolver` — verify arithmetic and algebra, solve linear/quadratic/cubic equations in one unknown, and differentiate, before a final answer. It cannot integrate symbolically, keep surds exact, or solve simultaneous/trigonometric equations — do those by hand and say so
 - `documentSearch` — from `../_shared/tools` with subject `"math"`
 - `webSearch` — optional Wikipedia stub; syllabus search comes first
 
