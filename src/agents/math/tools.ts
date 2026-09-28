@@ -22,7 +22,7 @@ const fractionMath = create(all);
 fractionMath.config({ number: "Fraction" });
 
 const MAX_EXPRESSION_LENGTH = 200;
-const MAX_EXACT_DENOMINATOR = 10_000n;
+const MAX_EXACT_DENOMINATOR = BigInt(10000);
 
 type Failure = {
   ok: false;
@@ -88,9 +88,9 @@ function exactRationalOf(expression: string): string | null {
   try {
     const value = fractionMath.evaluate(expression) as { s?: number; n?: bigint; d?: bigint; constructor?: { name?: string } };
     if (value?.constructor?.name !== "Fraction") return null;
-    const n = BigInt(value.n ?? 0n);
-    const d = BigInt(value.d ?? 1n);
-    if (d <= 1n || d > MAX_EXACT_DENOMINATOR) return null;
+    const n = BigInt(value.n ?? 0);
+    const d = BigInt(value.d ?? 1);
+    if (d <= BigInt(1) || d > MAX_EXACT_DENOMINATOR) return null;
     return `${(value.s ?? 1) < 0 ? "-" : ""}${n}/${d}`;
   } catch {
     return null;
