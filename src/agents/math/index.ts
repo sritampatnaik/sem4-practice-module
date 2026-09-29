@@ -3,10 +3,10 @@ import { getModel } from "@/lib/llm";
 import { documentSearchTool, webSearchTool } from "../_shared/tools";
 import type { AgentRuntimeContext } from "../_shared/types";
 import { buildMathInstructions, MATH_PROMPT_VERSION } from "./prompts";
+import { examFactsTool } from "./exam-facts";
+import { requiredFirstStepTool } from "./first-step";
 import { drawMathGraphTool, equationSolverTool } from "./tools";
 import { mathGuardrails } from "./guardrails";
-
-type MathToolName = "equationSolver" | "drawMathGraph" | "documentSearch";
 
 /**
  * Output cap per step. The longest normal reply in the 2026-09-29 baseline was
@@ -15,62 +15,6 @@ type MathToolName = "equationSolver" | "drawMathGraph" | "documentSearch";
  * guardrail tells the student when a reply was cut short.
  */
 export const MATH_MAX_OUTPUT_TOKENS = 2000;
-
-/**
- * Picks the tool the first step must use, where the question makes it obvious.
- *
- * Prompt instructions alone do not guarantee a tool call, and an unverified
- * calculation or an ungrounded syllabus claim is exactly what this agent must
- * not produce. Anything ambiguous returns undefined and the model chooses.
- */
-export function requiredFirstStepTool(messages: Array<{ role?: string; content?: unknown }>) {
-  const latest = [...messages].reverse().find((message) => message.role === "user");
-  const text = typeof latest?.content === "string" ? latest.content : JSON.stringify(latest?.content ?? "");
-
-  // Asking about the syllabus or the paper must be answered from evidence,
-  // never from the model's recollection of a mark scheme.
-  if (
-    /\b(syllabus|in (?:the )?(?:primary|secondary|o-level|a-level|h1|h2)|examinable|exam format|paper [12]|marks?|mark scheme|calculator|formula (?:sheet|list)|mf27|weighting)\b/i.test(
-      text,
-    )
-  ) {
-    return "documentSearch" as const;
-  }
-
-  // An explicit request to see the shape.
-  if (/\b(sketch|draw|plot|graph|curve)\b/i.test(text)) {
-    return "drawMathGraph" as const;
-  }
-
-  // Arithmetic and algebra that should be checked rather than asserted: either
-  // a verb asking for it, or numbers joined by an operator ("3/4 of 12").
-  // The solver cannot integrate, but it checks an integral by differentiating
-  // the answer, which is the method a student should use too.
-  const asksToCalculate =
-    /\b(solve|differentiate|derivative|integrate|simplify|expand|factorise|factorize|evaluate|calculate|compute|work out|roots?|turning point)\b/i.test(
-      text,
-    );
-  const hasArithmetic =
-    /\d\s*[-+*/×÷^]\s*\d/.test(text) ||
-    /\d\s*(?:times|plus|minus|divided by|multiplied by)\s*\d/i.test(text);
-  // A word problem has neither: it gives numbers and asks for a quantity
-  // ("23 sweets, give 8 away, how many are left?"). Both must be present, so a
-  // chatty message that happens to contain a number stays with the model.
-  const asksForQuantity =
-    /\b(how (?:many|much|far|long|old)|find (?:the|its|their|[a-z]\b)|probability of|what (?:fraction|percentage)|sum of|total|average|area|perimeter|volume)\b/i.test(
-      text,
-    );
-  const hasNumber =
-    /\d/.test(text) ||
-    /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|hundred|thousand|half|quarter|dozen)\b/i.test(
-      text,
-    );
-  if (asksToCalculate || hasArithmetic || (asksForQuantity && hasNumber)) {
-    return "equationSolver" as const;
-  }
-
-  return undefined;
-}
 
 export function createMathAgent(ctx: AgentRuntimeContext) {
   return new ToolLoopAgent({
@@ -81,11 +25,12 @@ export function createMathAgent(ctx: AgentRuntimeContext) {
       equationSolver: equationSolverTool,
       drawMathGraph: drawMathGraphTool,
       documentSearch: documentSearchTool("math"),
+      examFacts: examFactsTool,
       webSearch: webSearchTool,
     },
     prepareStep: ({ stepNumber, messages }) => {
       if (stepNumber !== 0) return {};
-      const toolName: MathToolName | undefined = requiredFirstStepTool(messages);
+      const toolName = requiredFirstStepTool(messages);
       return toolName ? { toolChoice: { type: "tool", toolName } } : {};
     },
     stopWhen: stepCountIs(8),

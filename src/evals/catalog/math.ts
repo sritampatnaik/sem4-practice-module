@@ -187,12 +187,12 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Search the syllabus map for the supplied formula list. Say the standard Maclaurin expansions, including sin x, are on MF27 (the list of formulae and results given in every H1/H2 paper), so recall drilling is unnecessary. The 9758 syllabus itself says 'a list of formulae and results' and does not name MF27, so either name is correct.",
+        "Check the exam facts for MF27. Say the standard Maclaurin expansions, including sin x, are on MF27 (the list of formulae and results given in every H1/H2 paper), so recall drilling is unnecessary. The 9758 syllabus itself says 'a list of formulae and results' and does not name MF27, so either name is correct.",
       goldReply:
         "Standard Maclaurin expansions, including sin x, are printed on MF27, which you are given in the examination. You do not need to memorise it, but you do need to know when and how to apply it.",
       // Matches "MF27 list of formulae", "formula list" and "List of Formulae and Results".
       mustInclude: ["formula"],
-      requiredTools: ["documentSearch"],
+      requiredTools: ["examFacts"],
     },
   },
   {
@@ -205,11 +205,11 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Retrieve the 4049 assessment format. Calculators are permitted in both papers. Do not confuse this with PSLE Paper 1, which is non-calculator.",
+        "Check the exam facts for 4049. Calculators are permitted in both papers. Do not confuse this with PSLE Paper 1, which is non-calculator.",
       goldReply:
         "Yes. For O-Level Additional Mathematics (4049) a calculator is permitted in both Paper 1 and Paper 2, each 2 h 15 min and 90 marks.",
       mustInclude: ["yes"],
-      requiredTools: ["documentSearch"],
+      requiredTools: ["examFacts"],
     },
   },
   {
@@ -222,11 +222,11 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Retrieve the PSLE assessment format. Paper 1 is non-calculator; Paper 2 allows a calculator. State both rather than only the prohibition.",
+        "Check the exam facts for PSLE Standard. Paper 1 is non-calculator; Paper 2 allows a calculator. State both rather than only the prohibition.",
       goldReply:
         "No, Paper 1 is a non-calculator paper. You may use an approved calculator in Paper 2.",
       mustInclude: ["no", "paper 2"],
-      requiredTools: ["documentSearch"],
+      requiredTools: ["examFacts"],
     },
   },
   {
@@ -240,11 +240,11 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Retrieve the 9758 assessment objectives. AO1 techniques 30%, AO2 formulate and solve problems 60%, AO3 reasoning and communication 10%. Do not invent a different split.",
+        "Check the exam facts for 9758. AO1 techniques 30%, AO2 formulate and solve problems 60%, AO3 reasoning and communication 10%. Do not invent a different split.",
       goldReply:
         "For H2 Mathematics (9758) the weightings are roughly 30% for using techniques and procedures, 60% for formulating and solving problems including real-world contexts, and 10% for reasoning and communication.",
       mustInclude: ["30", "60", "10"],
-      requiredTools: ["documentSearch"],
+      requiredTools: ["examFacts"],
     },
   },
   {
@@ -257,11 +257,11 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Retrieve both PSLE formats. Foundation is 80 marks against Standard's 100 marks, with assessment objectives scoped to simple contexts. Describe it as a different assessment, not a lesser one. (The Foundation duration is not yet confirmed against the printed table, so it is left out.)",
+        "Check the exam facts for both PSLE formats. Foundation is 80 marks against Standard's 100 marks, with assessment objectives scoped to simple contexts. Describe it as a different assessment, not a lesser one. (The Foundation duration is not yet confirmed against the printed table, so it is left out.)",
       goldReply:
         "Not quite. Foundation Mathematics is its own assessment: 80 marks against 100 for Standard, and its objectives are written around simple contexts rather than being a trimmed Standard paper.",
       mustInclude: ["80"],
-      requiredTools: ["documentSearch"],
+      requiredTools: ["examFacts"],
     },
   },
   {
@@ -275,12 +275,12 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Retrieve the MF27 description. Standard differentiation rules are not on MF27 and must be known. Correct the student's premise rather than agreeing, and do not claim to have verified anything the retrieval did not support.",
+        "Check the exam facts for MF27. Standard differentiation rules are not on MF27 and must be known. Correct the student's premise rather than agreeing, and do not claim to have verified anything the retrieval did not support.",
       goldReply:
         "That is not right. MF27 lists some derivatives and integrals, but the product, quotient and chain rules are not on it, so you do need to know those.",
       mustInclude: ["not"],
       mustNotInclude: ["you can skip"],
-      requiredTools: ["documentSearch"],
+      requiredTools: ["examFacts"],
     },
   },
   {

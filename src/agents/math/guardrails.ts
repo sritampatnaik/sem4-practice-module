@@ -20,6 +20,21 @@ const PROMPT_DISCLOSURE = [
 ];
 
 /**
+ * Markup the student must never receive as text. Graphs come from
+ * drawMathGraph, which is bounded and testable, so a self-drawn image or a copy
+ * of the tool's data is removed. Each pattern also matches a reply cut off
+ * part-way through (the `$` alternative).
+ */
+const STRIPPED_MARKUP = [
+  /[ \t]*!\[[^\]]*\]\([^)]*(?:\)|$)/g, // markdown image
+  /[ \t]*data:image\/[\w.+-]+;base64,[A-Za-z0-9+/=]*/gi, // bare base64 image
+  /[ \t]*<img\b[^>]*(?:>|$)/gi,
+  /[ \t]*<svg\b[\s\S]*?(?:<\/svg>|$)/gi,
+  /[ \t]*<jsxgraph\b[\s\S]*?(?:<\/jsxgraph>|\/>|$)/gi, // the graph tool's output echoed back
+  /(?:\[?\s*\{\s*"x"\s*:\s*-?[\d.eE+-]+\s*,\s*"y"\s*:\s*-?[\d.eE+-]+\s*\}\s*,?\s*\]?\s*){3,}/g, // plotted points
+];
+
+/**
  * Tidies a Math reply without changing any mathematics.
  *
  * It never invents or corrects a value: the only edits are removing markup the
@@ -35,22 +50,7 @@ export function normaliseMathReply(text: string): string {
     .map((part, index) => {
       // Odd indices are fenced code, which is left exactly as written.
       if (index % 2) return part;
-      let next = part
-        // Graphs must come from drawMathGraph, which is bounded and testable.
-        // Stripping image markup stops the model drawing its own instead. The
-        // open-ended forms catch a reply cut off in the middle of an image.
-        .replace(/[ \t]*!\[[^\]]*\]\([^)]*\)/g, "")
-        .replace(/[ \t]*!\[[^\]]*\]\([^)]*$/, "")
-        .replace(/[ \t]*data:image\/[\w.+-]+;base64,[A-Za-z0-9+/=]*/gi, "")
-        .replace(/[ \t]*<img\b[^>]*>/gi, "")
-        .replace(/[ \t]*<img\b[^>]*$/i, "")
-        .replace(/[ \t]*<svg\b[\s\S]*?<\/svg>/gi, "")
-        .replace(/[ \t]*<svg\b[\s\S]*$/i, "")
-        // Graph data copied from the tool: the widget draws it, the student
-        // should never see it as text.
-        .replace(/[ \t]*<jsxgraph\b[\s\S]*?(?:\/>|<\/jsxgraph>)/gi, "")
-        .replace(/[ \t]*<jsxgraph\b[\s\S]*$/i, "")
-        .replace(/(?:\[?\s*\{\s*"x"\s*:\s*-?[\d.eE+-]+\s*,\s*"y"\s*:\s*-?[\d.eE+-]+\s*\}\s*,?\s*\]?\s*){3,}/g, "")
+      let next = STRIPPED_MARKUP.reduce((stripped, pattern) => stripped.replace(pattern, ""), part)
         // Normalise LaTeX delimiters to the $ forms the chat renders.
         .replace(/\\\[([\s\S]*?)\\\]/g, (_, body: string) => `\n$$\n${body.trim()}\n$$\n`)
         .replace(/\\\(([\s\S]*?)\\\)/g, (_, body: string) => `$${body.trim()}$`);
