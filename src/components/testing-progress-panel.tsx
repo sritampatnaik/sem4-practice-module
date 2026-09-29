@@ -96,55 +96,81 @@ export function TestingProgressPanel({ signedIn }: { signedIn?: boolean }) {
   }, [signedIn]);
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center justify-between gap-2">
-        <p className="ui-label">Testing progress</p>
+    <div className="rounded-xl border border-line/50 bg-inset/50 p-4 shadow-sm backdrop-blur-sm">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-ink-3">Testing Progress</p>
         {signedIn ? (
-          <ValuePill className="ml-0 gap-1" tone="accent">
-            <Icon icon="quiz" size={12} />
-            MCQ
+          <ValuePill className="ml-0 gap-1 shadow-sm" tone="accent">
+            <Icon icon="quiz" size={11} />
+            <span className="text-xs">MCQ</span>
           </ValuePill>
         ) : null}
       </div>
 
       {!signedIn ? (
-        <p className="mt-2 rounded-lg bg-field px-3 py-2 text-[12.5px] leading-5 text-ink-3">
-          Sign in to save quiz scores and track topic-by-topic progress.
-        </p>
+        <div className="rounded-lg border border-line/50 bg-surface/50 p-4 text-center">
+          <Icon icon="quiz" size={20} className="mx-auto mb-2 text-ink-3" />
+          <p className="text-xs leading-relaxed text-ink-3">
+            Sign in to save quiz scores and track your topic-by-topic progress over time.
+          </p>
+        </div>
       ) : state.loading ? (
-        <p className="mt-2 rounded-lg bg-field px-3 py-2 text-[12.5px] leading-5 text-ink-3">
-          Loading saved score history…
-        </p>
+        <div className="rounded-lg border border-line/50 bg-surface/50 p-4 text-center">
+          <div className="mb-2 inline-flex size-5 animate-spin items-center justify-center rounded-full border-2 border-accent/30 border-t-accent" />
+          <p className="text-xs text-ink-3">Loading score history...</p>
+        </div>
       ) : state.error ? (
-        <p className="mt-2 rounded-lg bg-field px-3 py-2 text-[12.5px] leading-5 text-red">
-          {state.error}
-        </p>
+        <div className="rounded-lg border border-red/30 bg-red-tint p-4">
+          <p className="text-xs font-medium text-red">{state.error}</p>
+        </div>
       ) : state.summaries.length === 0 ? (
-        <p className="mt-2 rounded-lg bg-field px-3 py-2 text-[12.5px] leading-5 text-ink-3">
-          Complete a Testing MCQ while signed in to start tracking improvement.
-        </p>
+        <div className="rounded-lg border border-line/50 bg-surface/50 p-4 text-center">
+          <Icon icon="flashcards" size={20} className="mx-auto mb-2 text-ink-3" />
+          <p className="text-xs leading-relaxed text-ink-3">
+            Complete your first MCQ quiz to start tracking your improvement.
+          </p>
+        </div>
       ) : (
-        <div className="mt-2 space-y-2">
-          {state.summaries.map((summary) => (
-            <div key={`${summary.subject}:${summary.mode}:${summary.topicKey}`} className="rounded-xl bg-field px-3 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="min-w-0 flex-1 text-sm font-medium text-ink">{summary.topicLabel}</p>
-                <ValuePill className="ml-0 gap-1" tone={trendTone(summary.trend)}>
-                  {trendLabel(summary.trend)}
-                </ValuePill>
+        <div className="space-y-2">
+          {state.summaries.map((summary) => {
+            const percentage = Math.round((summary.latest.score / summary.latest.totalQuestions) * 100);
+            return (
+              <div 
+                key={`${summary.subject}:${summary.mode}:${summary.topicKey}`} 
+                className="group rounded-lg border border-line/50 bg-surface/80 p-3 shadow-sm transition-all hover:shadow-md"
+              >
+                <div className="mb-2 flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-ink">{summary.topicLabel}</p>
+                    <p className="mt-0.5 text-xs text-ink-2">{summary.title}</p>
+                  </div>
+                  <ValuePill className="ml-0 gap-1 shadow-sm" tone={trendTone(summary.trend)}>
+                    <Icon icon={summary.trend === "improving" ? "tick" : summary.trend === "regressing" ? "cancel" : "quiz"} size={10} />
+                    <span className="text-xs font-semibold">{trendLabel(summary.trend)}</span>
+                  </ValuePill>
+                </div>
+                
+                <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-ink-3/20">
+                  <div 
+                    className={`h-full rounded-full transition-all ${
+                      percentage >= 80 ? 'bg-green' : percentage >= 60 ? 'bg-accent' : 'bg-orange'
+                    }`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-3">
+                  <span className="font-medium">{subjectLabel(summary.subject)}</span>
+                  <span>•</span>
+                  <span>{summary.attemptsCount} {summary.attemptsCount === 1 ? "attempt" : "attempts"}</span>
+                  <span>•</span>
+                  <span className="font-semibold text-accent">Latest: {scoreLabel(summary.latest.score, summary.latest.totalQuestions)}</span>
+                  <span>•</span>
+                  <span className="font-semibold text-green">Best: {scoreLabel(summary.best.score, summary.best.totalQuestions)}</span>
+                </div>
               </div>
-              <p className="mt-1 text-[12.5px] text-ink-2">{summary.title}</p>
-              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-ink-3">
-                <span>{subjectLabel(summary.subject)}</span>
-                <span>{summary.attemptsCount} attempt{summary.attemptsCount === 1 ? "" : "s"}</span>
-                <span>Latest {scoreLabel(summary.latest.score, summary.latest.totalQuestions)}</span>
-                <span>Best {scoreLabel(summary.best.score, summary.best.totalQuestions)}</span>
-                {summary.previous ? (
-                  <span>Previous {scoreLabel(summary.previous.score, summary.previous.totalQuestions)}</span>
-                ) : null}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

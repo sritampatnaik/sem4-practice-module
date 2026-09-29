@@ -94,9 +94,11 @@ export function MessageThread({
             .trim();
           if (!text) return null;
           return (
-            <ChatUserBubble key={message.id} size="message">
-              <MarkdownBody text={text} className="markdown-user" />
-            </ChatUserBubble>
+            <div key={message.id} className="flex justify-end">
+              <ChatUserBubble size="message" className="shadow-sm transition-shadow hover:shadow-md">
+                <MarkdownBody text={text} className="markdown-user" />
+              </ChatUserBubble>
+            </div>
           );
         }
 
@@ -218,37 +220,43 @@ export function MessageThread({
         const visibleText = turn.hideText ? [] : textParts;
 
         return (
-          <article key={message.id} className="w-full max-w-[46rem]">
-            <div className="mb-2">
+          <article key={message.id} className="w-full max-w-full transition-opacity duration-200 animate-in fade-in">
+            <div className="mb-3">
               <EntityChip name={copy.label} color={copy.swatch} monogram={copy.label.charAt(0)} />
             </div>
             {turn.kind === "widgets" ? (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-3">
                 {widgets.map((widget) => (
-                  <div key={widget.key}>{widget.node}</div>
+                  <div key={widget.key} className="rounded-xl border border-line/50 bg-surface/50 p-4 shadow-card backdrop-blur-sm transition-all hover:shadow-raised">
+                    {widget.node}
+                  </div>
                 ))}
               </div>
             ) : turn.kind === "preparing" ? (
-              <LoadingState className="mt-1" variant="Dots" label="Preparing practice" />
+              <LoadingState className="mt-2" variant="Dots" label="Preparing practice" />
             ) : (
-              <ChatSection label={copy.label} sub="specialist" resolving={false}>
-                {visibleSteps.length > 0 ? (
-                  <ToolChips
-                    steps={visibleSteps}
-                    diffs={[]}
-                    labels={{
-                      header: `${visibleSteps.length} tool call${visibleSteps.length === 1 ? "" : "s"}`,
-                      more: "",
-                    }}
-                  />
-                ) : null}
-                {physicsWidgets.map((widget) => (
-                  <div key={widget.key}>{widget.node}</div>
-                ))}
-                {visibleText.map((text, index) => (
-                  <MarkdownBody key={`${message.id}-t-${index}`} text={text} />
-                ))}
-              </ChatSection>
+              <div className="rounded-xl border border-line/50 bg-surface/50 p-5 shadow-sm backdrop-blur-sm">
+                <ChatSection label={copy.label} sub="specialist" resolving={false}>
+                  {visibleSteps.length > 0 ? (
+                    <div className="mb-4">
+                      <ToolChips
+                        steps={visibleSteps}
+                        diffs={[]}
+                        labels={{
+                          header: `${visibleSteps.length} tool call${visibleSteps.length === 1 ? "" : "s"}`,
+                          more: "",
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                  {physicsWidgets.map((widget) => (
+                    <div key={widget.key} className="my-4">{widget.node}</div>
+                  ))}
+                  {visibleText.map((text, index) => (
+                    <MarkdownBody key={`${message.id}-t-${index}`} text={text} />
+                  ))}
+                </ChatSection>
+              </div>
             )}
           </article>
         );

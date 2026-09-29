@@ -31,43 +31,65 @@ export function StudentSidebar({
 
   return (
     <>
-      <div>
-        <p className="ui-label">Student</p>
-        <div className="mt-3">
+      <div className="rounded-xl border border-line/50 bg-inset/50 p-5 shadow-sm backdrop-blur-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-ink-3">Student Profile</p>
+        <div className="mb-4">
           <EntityChip
             name={profile.name}
             color={signedIn ? "#2f6fec" : "#64748b"}
             monogram={profile.name.charAt(0).toUpperCase()}
           />
         </div>
-        <h1 className="mt-3 text-xl font-semibold tracking-tight">{profile.name}</h1>
-        <p className="mt-1 text-sm text-ink-2">{gradeLabel(profile)}</p>
-        {email ? <p className="mt-1 truncate text-xs text-ink-3">{email}</p> : null}
-        {signedIn ? (
-          <ValuePill className="mt-3 ml-0 gap-1" tone="accent">
+        <h1 className="text-xl font-bold tracking-tight text-ink">{profile.name}</h1>
+        <p className="mt-2 flex items-center gap-2 text-sm text-ink-2">
+          <Icon icon="tutor" size={14} className="text-ink-3" />
+          {gradeLabel(profile)}
+        </p>
+        {email ? (
+          <p className="mt-2 flex items-center gap-2 truncate text-xs text-ink-3">
             <Icon icon="signedIn" size={12} />
-            Signed in
-          </ValuePill>
-        ) : (
-          <ValuePill className="mt-3 ml-0 gap-1" tone="neutral">
-            <Icon icon="guest" size={12} />
-            Guest desk
-          </ValuePill>
-        )}
-        <Link
-          href="/diagnostics"
-          className={cn(
-            "mt-5 inline-flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm no-underline transition-colors",
-            diagnosticsActive
-              ? "bg-field font-medium text-ink shadow-[var(--bui-shadow-hairline)]"
-              : "text-ink-2 hover:bg-hover hover:text-ink",
+            {email}
+          </p>
+        ) : null}
+        <div className="mt-4 pt-4 border-t border-line/50">
+          {signedIn ? (
+            <ValuePill className="ml-0 gap-1.5 shadow-sm" tone="accent">
+              <Icon icon="signedIn" size={12} />
+              <span className="font-medium">Signed in</span>
+            </ValuePill>
+          ) : (
+            <ValuePill className="ml-0 gap-1.5 shadow-sm" tone="neutral">
+              <Icon icon="guest" size={12} />
+              <span className="font-medium">Guest desk</span>
+            </ValuePill>
           )}
-        >
-          <Icon icon="question" size={14} />
-          Diagnostics
-        </Link>
+        </div>
       </div>
-      <TestingProgressPanel signedIn={signedIn} />
+      
+      <Link
+        href="/diagnostics"
+        className={cn(
+          "group mt-4 flex w-full items-center gap-2.5 rounded-lg px-4 py-3 text-sm font-medium no-underline transition-all",
+          diagnosticsActive
+            ? "bg-accent/10 text-accent shadow-[0_0_0_1px_var(--accent-tint)]"
+            : "bg-surface/50 text-ink-2 shadow-hairline hover:bg-hover hover:text-ink hover:shadow-card",
+        )}
+      >
+        <Icon 
+          icon="question" 
+          size={16} 
+          className={cn(
+            "transition-transform group-hover:scale-110",
+            diagnosticsActive ? "text-accent" : "text-ink-3"
+          )}
+        />
+        <span>Diagnostics</span>
+      </Link>
+      
+      <div className="mt-4">
+        <TestingProgressPanel signedIn={signedIn} />
+      </div>
+      
       {children}
     </>
   );

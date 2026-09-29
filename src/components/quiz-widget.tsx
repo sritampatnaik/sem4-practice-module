@@ -92,41 +92,81 @@ export function QuizWidget({
   }
 
   if (score !== null) {
+    const percentage = Math.round((score / quiz.items.length) * 100);
+    const isPerfect = score === quiz.items.length;
+    const isGood = percentage >= 70;
+    
     return (
-      <div className="flex flex-wrap items-center gap-3" style={{ animation: "pop-in 260ms cubic-bezier(0.23,1,0.32,1) both" }}>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-tint py-1 pr-2.5 pl-1 text-[12.5px] font-medium text-green">
-          <span className="flex size-4.5 items-center justify-center rounded-full bg-green text-white">
-            <Icon icon="quiz" size={12} strokeWidth={2} />
-          </span>
-          {score} / {quiz.items.length} marked
-        </span>
-        <p className="text-[12.5px] text-ink-2">{quiz.title}</p>
-        {attemptState === "saving" ? (
-          <p className="text-[12.5px] text-ink-3">Saving this score…</p>
-        ) : attemptState === "saved" ? (
-          <p className="text-[12.5px] text-ink-3">Saved to your Testing progress.</p>
-        ) : attemptState === "guest" ? (
-          <p className="text-[12.5px] text-ink-3">Sign in to track score history across quizzes.</p>
-        ) : attemptState === "error" ? (
-          <p className="text-[12.5px] text-red">Could not save this score.</p>
-        ) : null}
-        <Button type="button" variant="ghost" size="sm" onClick={() => {
-          marks.current = [];
-          setScore(null);
-          setAttemptState("idle");
-        }}>
-          Sit it again
-        </Button>
+      <div className="rounded-xl border border-line/50 bg-gradient-to-br from-green-tint to-surface p-6 shadow-card" style={{ animation: "pop-in 260ms cubic-bezier(0.23,1,0.32,1) both" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-green text-white shadow-md">
+            <Icon icon="quiz" size={20} strokeWidth={2} />
+          </div>
+          <div>
+            <h4 className="text-lg font-bold text-ink">{quiz.title}</h4>
+            <p className="text-sm text-ink-2">Multiple Choice Quiz</p>
+          </div>
+        </div>
+        
+        <div className="mb-4 rounded-lg border border-green/20 bg-white/50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-2xl font-bold text-green">
+              {score} / {quiz.items.length}
+            </span>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+              isPerfect ? 'bg-green text-white' : isGood ? 'bg-green-tint text-green' : 'bg-orange-tint text-orange'
+            }`}>
+              {isPerfect ? '🎉 Perfect!' : isGood ? '✓ Good job!' : '📚 Keep practicing'}
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-ink-3/20">
+            <div 
+              className="h-full rounded-full bg-green transition-all duration-500"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          {attemptState === "saving" ? (
+            <p className="text-sm text-ink-3">💾 Saving your score...</p>
+          ) : attemptState === "saved" ? (
+            <p className="text-sm text-green">✓ Saved to your Testing progress!</p>
+          ) : attemptState === "guest" ? (
+            <p className="text-sm text-ink-3">ℹ️ Sign in to track your score history</p>
+          ) : attemptState === "error" ? (
+            <p className="text-sm text-red">⚠️ Could not save this score</p>
+          ) : null}
+          
+          <Button 
+            type="button" 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => {
+              marks.current = [];
+              setScore(null);
+              setAttemptState("idle");
+            }}
+            className="w-full"
+          >
+            Try again
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <p className="ui-label mb-2 inline-flex items-center gap-1">
-        <Icon icon="quiz" size={12} />
-        Multiple-choice
-      </p>
+    <div className="rounded-xl border border-line/50 bg-surface/50 p-5 shadow-sm backdrop-blur-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-accent/10">
+          <Icon icon="quiz" size={16} className="text-accent" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-3">Multiple Choice Quiz</p>
+          <h4 className="text-sm font-bold text-ink">{quiz.title}</h4>
+        </div>
+      </div>
       <ApprovalCard
         key={quiz.title}
         className="max-w-full"
@@ -149,12 +189,22 @@ export function QuizWidget({
           const option = item.options[picked];
           const correct = option?.id === item.correctOptionId;
           return (
-            <div className="mt-3 rounded-control bg-field px-2.5 py-2 text-[12.5px] leading-5 text-ink-2">
-              <p className={`inline-flex items-center gap-1 font-medium ${correct ? "text-green" : "text-red"}`}>
-                <Icon icon={correct ? "tick" : "cancel"} size={13} strokeWidth={2.2} />
-                {correct ? "Correct" : "Not quite"}
+            <div className={`mt-4 rounded-lg border p-4 ${
+              correct 
+                ? 'border-green/30 bg-green-tint' 
+                : 'border-red/30 bg-red-tint'
+            }`}>
+              <p className={`mb-2 inline-flex items-center gap-2 text-sm font-bold ${
+                correct ? "text-green" : "text-red"
+              }`}>
+                <span className={`flex size-5 items-center justify-center rounded-full ${
+                  correct ? 'bg-green' : 'bg-red'
+                } text-white`}>
+                  <Icon icon={correct ? "tick" : "cancel"} size={12} strokeWidth={2.5} />
+                </span>
+                {correct ? "Correct!" : "Not quite"}
               </p>
-              <MarkdownBody text={item.explanation} className="mt-1" />
+              <MarkdownBody text={item.explanation} className="text-sm" />
             </div>
           );
         }}
