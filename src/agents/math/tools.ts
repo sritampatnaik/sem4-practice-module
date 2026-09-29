@@ -9,8 +9,10 @@ import {
   rationalize,
   simplify,
 } from "mathjs";
+import type { JSONValue } from "@ai-sdk/provider";
 import { tool } from "ai";
 import { z } from "zod";
+import { asMathGraphOutput } from "./graph-types";
 
 /**
  * This tool deliberately accepts a narrow class of school mathematics and refuses
@@ -336,6 +338,34 @@ function polynomialRootsOf(expression: string): number[] {
 
 const round = (value: number) => Number(value.toPrecision(6));
 
+/**
+ * What the model sees after a graph is drawn. The widget still receives every
+ * sampled point; the model only needs enough to explain the shape. Given the
+ * full point list, the model copied it into its reply (eval run 2, 29 Sep 2026).
+ */
+export function graphSummaryForModel(output: unknown): JSONValue {
+  const graph = asMathGraphOutput(output);
+  if (!graph) return output as JSONValue;
+  const { spec } = graph;
+  const segments = spec.segments;
+  const lastSegment = segments[segments.length - 1];
+  return {
+    shown:
+      "The graph is already displayed to the student. Explain it in words; never reproduce its points, data or markup.",
+    title: spec.title,
+    expression: spec.expression,
+    domain: { xMin: spec.bounds.xMin, xMax: spec.bounds.xMax },
+    visibleY: { yMin: spec.bounds.yMin, yMax: spec.bounds.yMax },
+    marks: spec.marks.map(({ kind, x, y }) => ({ kind, x, y })),
+    // Where one drawn piece ends and the next begins: an asymptote or a gap.
+    breaksNear: segments
+      .slice(1)
+      .map((segment, index) => round((segments[index][segments[index].length - 1].x + segment[0].x) / 2)),
+    ends: { left: segments[0][0], right: lastSegment[lastSegment.length - 1] },
+    ...(spec.clamped ? { clamped: "Some values fall outside the visible y-range." } : {}),
+  };
+}
+
 export const drawMathGraphTool = tool({
   description: [
     "Sketch y = f(x) over a domain when seeing the shape helps: curve sketching, roots, turning points, or comparing a function with a student's sketch.",
@@ -474,4 +504,5 @@ export const drawMathGraphTool = tool({
       },
     };
   },
+  toModelOutput: ({ output }) => ({ type: "json", value: graphSummaryForModel(output) }),
 });

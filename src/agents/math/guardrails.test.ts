@@ -42,6 +42,21 @@ test("an image cut off before it closes is still stripped", () => {
   assert.match(normaliseMathReply("![graph](data:image/svg+xml;base64,PHN2"), /incomplete/);
 });
 
+test("graph data copied from the tool is stripped", () => {
+  // Eval run 2 produced this: the tool's points echoed back as a fake tag.
+  assert.equal(
+    normaliseMathReply('Here is the graph of $y = 1/x$:\n\n<jsxgraph kind="function-graph" segments={[[{"x":-10,"y":-0.1},{"x":-9.9,"y":-0.101'),
+    "Here is the graph of $y = 1/x$:",
+  );
+  assert.equal(normaliseMathReply('See <jsxgraph expression="x^2" /> above.'), "See above.");
+  assert.equal(
+    normaliseMathReply('Points: [{"x":1,"y":2},{"x":2,"y":4},{"x":3,"y":6}] lie on a line.'),
+    "Points: lie on a line.",
+  );
+  const turningPoint = "The turning point is $(2, -1)$ and the roots are $x = 1$ and $x = 3$.";
+  assert.equal(normaliseMathReply(turningPoint), turningPoint);
+});
+
 type Middleware = Required<typeof mathGuardrails>;
 const stop = { unified: "stop", raw: "stop" } as const;
 const length = { unified: "length", raw: "length" } as const;
@@ -118,6 +133,8 @@ test("calculation starts with the solver, and plain questions are left to the mo
   assert.equal(requiredFirstStepTool(userTurn("Solve x^2 + 6x + 5 = 0")), "equationSolver");
   assert.equal(requiredFirstStepTool(userTurn("Differentiate x^2 sin x")), "equationSolver");
   assert.equal(requiredFirstStepTool(userTurn("What is 3/4 of 12?")), "equationSolver");
+  assert.equal(requiredFirstStepTool(userTurn("Integrate sin x with respect to x")), "equationSolver");
+  assert.equal(requiredFirstStepTool(userTurn("What does integration mean?")), undefined);
   assert.equal(requiredFirstStepTool(userTurn("What is 7 times 8?")), "equationSolver");
   assert.equal(requiredFirstStepTool(userTurn("What is a quadratic?")), undefined);
   assert.equal(requiredFirstStepTool(userTurn("Why do we complete the square?")), undefined);
@@ -159,4 +176,6 @@ test("Math instructions carry the teaching and examination rules", () => {
   assert.match(prompt, /does not replace the explanation/);
   assert.match(prompt, /Testing/);
   assert.match(prompt, /Every graph comes from the graph tool/);
+  assert.match(prompt, /never repeat its data/);
+  assert.match(prompt, /named as the syllabus names it/);
 });
