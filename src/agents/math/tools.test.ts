@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { drawMathGraphTool, equationSolverTool } from "./tools";
+import { drawMathGraphTool, equationSolverTool, graphSummaryForModel } from "./tools";
 
 type ToolResult = Record<string, unknown>;
 
@@ -179,6 +179,24 @@ test("breaks the curve at a pole instead of drawing through it", async () => {
     spec.bounds.yMax < 100 && spec.bounds.yMin > -100,
     "the view is trimmed rather than dominated by the asymptote",
   );
+});
+
+test("the model gets a short graph summary, not the plotted points", async () => {
+  const result = await graph({ expression: "1/x", xMin: -10, xMax: 10 });
+  const summary = graphSummaryForModel(result) as Record<string, unknown>;
+  assert.equal("segments" in summary, false, "no point list reaches the model");
+  assert.match(String(summary.shown), /already displayed/);
+  const breaks = summary.breaksNear as number[];
+  assert.equal(breaks.length, 1);
+  assert.ok(Math.abs(breaks[0]) < 0.1, "the break sits at the asymptote x = 0");
+  assert.ok(JSON.stringify(summary).length < 1000, "small enough that copying it is harmless");
+
+  const quadratic = graphSummaryForModel(await graph({ expression: "x^2 - 4x + 3" })) as Record<string, unknown>;
+  assert.deepEqual(quadratic.breaksNear, []);
+  assert.ok((quadratic.marks as Array<{ kind: string }>).some((mark) => mark.kind === "turning-point"));
+
+  const refusal = await graph({ expression: "x + y" });
+  assert.deepEqual(graphSummaryForModel(refusal), refusal, "a refusal reaches the model unchanged");
 });
 
 test("refuses graphs it cannot draw honestly", async () => {

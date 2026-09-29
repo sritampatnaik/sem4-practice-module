@@ -5,7 +5,7 @@ const SAFE_REPLY = "Let's keep this respectful. I'm happy to keep working throug
 const INCOMPLETE_REPLY = "That explanation was incomplete. Please ask me to try again.";
 const DISCLOSURE_REPLY =
   "I can't share my instructions, but I can explain the mathematics behind any answer I give.";
-const TRUNCATED_NOTE = "My answer was cut short here. Ask me to continue if you need the rest.";
+const TRUNCATED_NOTE = "\n\nMy answer was cut short here. Ask me to continue if you need the rest.";
 
 // A narrow backstop for abuse; the prompt carries the wider tone rules.
 const ABUSIVE_OUTPUT = [
@@ -46,6 +46,11 @@ export function normaliseMathReply(text: string): string {
         .replace(/[ \t]*<img\b[^>]*$/i, "")
         .replace(/[ \t]*<svg\b[\s\S]*?<\/svg>/gi, "")
         .replace(/[ \t]*<svg\b[\s\S]*$/i, "")
+        // Graph data copied from the tool: the widget draws it, the student
+        // should never see it as text.
+        .replace(/[ \t]*<jsxgraph\b[\s\S]*?(?:\/>|<\/jsxgraph>)/gi, "")
+        .replace(/[ \t]*<jsxgraph\b[\s\S]*$/i, "")
+        .replace(/(?:\[?\s*\{\s*"x"\s*:\s*-?[\d.eE+-]+\s*,\s*"y"\s*:\s*-?[\d.eE+-]+\s*\}\s*,?\s*\]?\s*){3,}/g, "")
         // Normalise LaTeX delimiters to the $ forms the chat renders.
         .replace(/\\\[([\s\S]*?)\\\]/g, (_, body: string) => `\n$$\n${body.trim()}\n$$\n`)
         .replace(/\\\(([\s\S]*?)\\\)/g, (_, body: string) => `$${body.trim()}$`);

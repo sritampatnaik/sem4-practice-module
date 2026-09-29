@@ -44,8 +44,10 @@ export function requiredFirstStepTool(messages: Array<{ role?: string; content?:
 
   // Arithmetic and algebra that should be checked rather than asserted: either
   // a verb asking for it, or numbers joined by an operator ("3/4 of 12").
+  // The solver cannot integrate, but it checks an integral by differentiating
+  // the answer, which is the method a student should use too.
   const asksToCalculate =
-    /\b(solve|differentiate|derivative|simplify|expand|factorise|factorize|evaluate|calculate|compute|work out|roots?|turning point)\b/i.test(
+    /\b(solve|differentiate|derivative|integrate|simplify|expand|factorise|factorize|evaluate|calculate|compute|work out|roots?|turning point)\b/i.test(
       text,
     );
   const hasArithmetic =
