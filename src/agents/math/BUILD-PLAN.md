@@ -4,6 +4,8 @@ Owner: Gu Haixiang
 Status: Draft, operational companion to [DESIGN.md](./DESIGN.md)
 Date: 12 September 2026
 
+> **29 September 2026:** parts of this document describe the September plan and are now out of date (tool list, prompt version, eval scaffolding). The current state is in [README.md](./README.md), and measured results are in [runs/](./runs/).
+
 ## Purpose and how to use this document
 
 [DESIGN.md](./DESIGN.md) sets out what Math should offer and why, including a

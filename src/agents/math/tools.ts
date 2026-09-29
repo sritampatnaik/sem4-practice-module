@@ -81,6 +81,15 @@ function realOrNull(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+/** Evaluates safely: a thrown error and a non-real result both become null. */
+function realValueOf(evaluateAt: () => unknown): number | null {
+  try {
+    return realOrNull(evaluateAt());
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Exact value from rational arithmetic on the expression itself — never from
  * approximating a float. Bigint parts are kept as bigints so a large numerator
@@ -228,13 +237,7 @@ export const equationSolverTool = tool({
 
         // The original function must exist at the point: simplifying the
         // derivative can hide a hole, as it does for x/x at 0.
-        const original = realOrNull((() => {
-          try {
-            return evaluate(expression, { [variable]: at });
-          } catch {
-            return null;
-          }
-        })());
+        const original = realValueOf(() => evaluate(expression, { [variable]: at }));
         if (original === null) {
           return {
             mode,
@@ -244,13 +247,7 @@ export const equationSolverTool = tool({
           };
         }
 
-        const slope = realOrNull((() => {
-          try {
-            return d.evaluate({ [variable]: at });
-          } catch {
-            return null;
-          }
-        })());
+        const slope = realValueOf(() => d.evaluate({ [variable]: at }));
         if (slope === null) {
           return {
             mode,
@@ -416,6 +413,8 @@ export const drawMathGraphTool = tool({
       return fail("input", "Could not read that function.");
     }
 
+    const valueAt = (x: number) => realValueOf(() => compiled.evaluate({ [variable]: x }));
+
     // Sample, splitting the curve wherever it stops being a real number.
     const step = (xMax - xMin) / (SAMPLE_COUNT - 1);
     const segments: Array<Array<{ x: number; y: number }>> = [];
@@ -424,13 +423,7 @@ export const drawMathGraphTool = tool({
 
     for (let i = 0; i < SAMPLE_COUNT; i += 1) {
       const x = xMin + i * step;
-      const y = realOrNull((() => {
-        try {
-          return compiled.evaluate({ [variable]: x });
-        } catch {
-          return null;
-        }
-      })());
+      const y = valueAt(x);
       if (y === null) {
         if (current.length > 1) segments.push(current);
         current = [];
@@ -456,14 +449,6 @@ export const drawMathGraphTool = tool({
     const clamped = sorted[0] < yMin || sorted[sorted.length - 1] > yMax;
 
     const inView = (x: number) => x >= xMin && x <= xMax;
-    const valueAt = (x: number) =>
-      realOrNull((() => {
-        try {
-          return compiled.evaluate({ [variable]: x });
-        } catch {
-          return null;
-        }
-      })());
 
     const marks: Array<{ kind: "root" | "turning-point" | "y-intercept"; x: number; y: number; label: string }> = [];
 

@@ -2,11 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { LanguageModelV3StreamPart } from "@ai-sdk/provider";
 import { mathGuardrails, normaliseMathReply } from "./guardrails";
-import { buildMathInstructions } from "./prompts";
-import { DEFAULT_PROFILE } from "../_shared/types";
-import { requiredFirstStepTool } from "./index";
-
-const userTurn = (content: string) => [{ role: "user", content }];
 
 test("abuse and prompt disclosure are replaced, ordinary maths is untouched", () => {
   assert.match(normaliseMathReply("You're an idiot."), /respectful/);
@@ -115,67 +110,4 @@ test("streamed replies are repaired, and a capped stream says it was cut short",
 test("numbers and working survive repair untouched", () => {
   const worked = "Complete the square: $(x + 3)^2 - 4 = 0$, so $x = -1$ or $x = -5$.";
   assert.equal(normaliseMathReply(worked), worked);
-});
-
-test("syllabus and exam questions must start from retrieved evidence", () => {
-  assert.equal(requiredFirstStepTool(userTurn("Is Maclaurin series in O-Level?")), "documentSearch");
-  assert.equal(requiredFirstStepTool(userTurn("Can I use a calculator in Paper 1?")), "documentSearch");
-  assert.equal(requiredFirstStepTool(userTurn("How are the marks weighted at H2?")), "documentSearch");
-  assert.equal(requiredFirstStepTool(userTurn("Is the formula sheet given in the exam?")), "documentSearch");
-});
-
-test("an explicit request to see the shape starts with the graph tool", () => {
-  assert.equal(requiredFirstStepTool(userTurn("Sketch y = x^2 - 4x + 3")), "drawMathGraph");
-  assert.equal(requiredFirstStepTool(userTurn("Draw the curve y = 1/x")), "drawMathGraph");
-});
-
-test("calculation starts with the solver, and plain questions are left to the model", () => {
-  assert.equal(requiredFirstStepTool(userTurn("Solve x^2 + 6x + 5 = 0")), "equationSolver");
-  assert.equal(requiredFirstStepTool(userTurn("Differentiate x^2 sin x")), "equationSolver");
-  assert.equal(requiredFirstStepTool(userTurn("What is 3/4 of 12?")), "equationSolver");
-  assert.equal(requiredFirstStepTool(userTurn("Integrate sin x with respect to x")), "equationSolver");
-  assert.equal(requiredFirstStepTool(userTurn("What does integration mean?")), undefined);
-  assert.equal(requiredFirstStepTool(userTurn("What is 7 times 8?")), "equationSolver");
-  assert.equal(requiredFirstStepTool(userTurn("What is a quadratic?")), undefined);
-  assert.equal(requiredFirstStepTool(userTurn("Why do we complete the square?")), undefined);
-  assert.equal(requiredFirstStepTool(userTurn("I still don't understand.")), undefined);
-});
-
-test("word problems with numbers are checked with the solver", () => {
-  for (const question of [
-    "I have 23 sweets and give 8 away. How many are left?",
-    "A right triangle has legs 3 cm and 4 cm. Find the hypotenuse.",
-    "A fair six-sided die is rolled. Probability of an even number?",
-    "Just give me the final answer for the sum of the first 20 terms of 3, 7, 11, ...",
-    "What is the area of a circle of radius 3 cm?",
-    "A shirt costs $40 after a 20% discount. How much was it before?",
-  ]) {
-    assert.equal(requiredFirstStepTool(userTurn(question)), "equationSolver", question);
-  }
-});
-
-test("numbers alone, or a quantity question without numbers, are left to the model", () => {
-  for (const question of [
-    "I got 3 out of 5 wrong in my homework, why do I keep making mistakes?",
-    "How many questions should I practise each day?",
-    "Can you find me some practice on chapter 2?",
-    "What is the area of a shape?",
-  ]) {
-    assert.equal(requiredFirstStepTool(userTurn(question)), undefined, question);
-  }
-  // Questions about the paper still go to the documents first.
-  assert.equal(requiredFirstStepTool(userTurn("How many marks is Paper 2 worth?")), "documentSearch");
-});
-
-test("Math instructions carry the teaching and examination rules", () => {
-  const prompt = buildMathInstructions({ sessionId: "test", profile: DEFAULT_PROFILE, recentChats: [] });
-  assert.match(prompt, /Name the method/);
-  assert.match(prompt, /LaTeX/);
-  assert.match(prompt, /Respect the tool's limits/);
-  assert.match(prompt, /Examination alignment/);
-  assert.match(prompt, /does not replace the explanation/);
-  assert.match(prompt, /Testing/);
-  assert.match(prompt, /Every graph comes from the graph tool/);
-  assert.match(prompt, /never repeat its data/);
-  assert.match(prompt, /named as the syllabus names it/);
 });

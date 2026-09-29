@@ -6,6 +6,8 @@ Date: 10 September 2026
 
 Last reviewed: 12 September 2026, including fetched remote branches listed below.
 
+> **29 September 2026:** parts of this document describe the September plan and are now out of date (tool list, prompt version, eval scaffolding). The current state is in [README.md](./README.md), and measured results are in [runs/](./runs/).
+
 ## Purpose
 
 This document sets out what the Math agent should offer, how it should behave, and how we will assess it. The priority is to justify design decisions and demonstrate explainability, robustness, reproducible evaluation, and integration with METS. We will confirm the scope and acceptance targets against the module assessment rubric with the team.
