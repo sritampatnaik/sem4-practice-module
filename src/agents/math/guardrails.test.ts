@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { normaliseMathReply } from "./guardrails";
+import type { LanguageModelV3StreamPart } from "@ai-sdk/provider";
+import { mathGuardrails, normaliseMathReply } from "./guardrails";
 import { buildMathInstructions } from "./prompts";
 import { DEFAULT_PROFILE } from "../_shared/types";
 import { requiredFirstStepTool } from "./index";
@@ -27,6 +28,73 @@ test("model-drawn images are stripped so graphs come from the tool", () => {
     "Here is the curve.",
   );
   assert.equal(normaliseMathReply('Look: <img src="http://example.com/graph.png">'), "Look:");
+  assert.equal(normaliseMathReply('Drawn: <svg viewBox="0 0 10 10"><path d="M0 0"/></svg> done.'), "Drawn: done.");
+});
+
+test("an image cut off before it closes is still stripped", () => {
+  // The baseline run produced exactly this: a self-drawn graph truncated mid-way.
+  assert.equal(
+    normaliseMathReply("The curve has two branches.\n\n![y = 1/x](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcv"),
+    "The curve has two branches.",
+  );
+  assert.equal(normaliseMathReply("See data:image/png;base64,iVBORw0KGgo= above."), "See above.");
+  assert.equal(normaliseMathReply('Here: <svg viewBox="0 0 10 10"><path d="M0 0 L1 1'), "Here:");
+  assert.match(normaliseMathReply("![graph](data:image/svg+xml;base64,PHN2"), /incomplete/);
+});
+
+type Middleware = Required<typeof mathGuardrails>;
+const stop = { unified: "stop", raw: "stop" } as const;
+const length = { unified: "length", raw: "length" } as const;
+const usage = {} as never;
+
+test("a reply stopped by the length cap says it was cut short", async () => {
+  const generate = mathGuardrails.wrapGenerate as Middleware["wrapGenerate"];
+  const run = (finishReason: typeof stop | typeof length) =>
+    generate({
+      doGenerate: async () => ({ content: [{ type: "text", text: "Step 1: expand" }], finishReason, usage, warnings: [] }),
+    } as never);
+
+  const finished = await run(stop);
+  assert.deepEqual(finished.content.map((part) => (part.type === "text" ? part.text : "")), ["Step 1: expand"]);
+
+  const cut = await run(length);
+  const texts = cut.content.map((part) => (part.type === "text" ? part.text : ""));
+  assert.equal(texts[0], "Step 1: expand");
+  assert.match(texts[1], /cut short/);
+});
+
+test("streamed replies are repaired, and a capped stream says it was cut short", async () => {
+  const stream = mathGuardrails.wrapStream as Middleware["wrapStream"];
+  const collect = async (finishReason: typeof stop | typeof length) => {
+    const parts: LanguageModelV3StreamPart[] = [
+      { type: "text-start", id: "t" },
+      { type: "text-delta", id: "t", delta: "Here ![g](data:image/svg" },
+      { type: "text-delta", id: "t", delta: "+xml;base64,PHN2" },
+      { type: "text-end", id: "t" },
+      { type: "finish", finishReason, usage },
+    ];
+    const result = await stream({
+      doStream: async () => ({
+        stream: new ReadableStream<LanguageModelV3StreamPart>({
+          start(controller) {
+            parts.forEach((part) => controller.enqueue(part));
+            controller.close();
+          },
+        }),
+      }),
+    } as never);
+    const out: LanguageModelV3StreamPart[] = [];
+    const reader = result.stream.getReader();
+    for (let next = await reader.read(); !next.done; next = await reader.read()) out.push(next.value);
+    return out
+      .filter((part): part is Extract<LanguageModelV3StreamPart, { type: "text-delta" }> => part.type === "text-delta")
+      .map((part) => part.delta);
+  };
+
+  assert.deepEqual(await collect(stop), ["Here"]);
+  const cut = await collect(length);
+  assert.equal(cut[0], "Here");
+  assert.match(cut[1], /cut short/);
 });
 
 test("numbers and working survive repair untouched", () => {
@@ -64,4 +132,5 @@ test("Math instructions carry the teaching and examination rules", () => {
   assert.match(prompt, /Examination alignment/);
   assert.match(prompt, /does not replace the explanation/);
   assert.match(prompt, /Testing/);
+  assert.match(prompt, /Every graph comes from the graph tool/);
 });

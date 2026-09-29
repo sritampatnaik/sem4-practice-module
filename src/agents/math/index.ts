@@ -9,6 +9,14 @@ import { mathGuardrails } from "./guardrails";
 type MathToolName = "equationSolver" | "drawMathGraph" | "documentSearch";
 
 /**
+ * Output cap per step. The longest normal reply in the 2026-09-29 baseline was
+ * 364 tokens; the one runaway (a self-drawn graph) reached 16,414. 2,000 leaves
+ * room for a long multi-part worked solution while bounding cost, and the
+ * guardrail tells the student when a reply was cut short.
+ */
+export const MATH_MAX_OUTPUT_TOKENS = 2000;
+
+/**
  * Picks the tool the first step must use, where the question makes it obvious.
  *
  * Prompt instructions alone do not guarantee a tool call, and an unverified
@@ -67,6 +75,7 @@ export function createMathAgent(ctx: AgentRuntimeContext) {
       return toolName ? { toolChoice: { type: "tool", toolName } } : {};
     },
     stopWhen: stepCountIs(8),
+    maxOutputTokens: MATH_MAX_OUTPUT_TOKENS,
     temperature: 0.2,
   });
 }
