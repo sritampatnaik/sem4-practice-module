@@ -429,4 +429,21 @@ export const mathItems: EvalItem[] = [
       mustInclude: ["56"],
     },
   },
+  {
+    id: "math-solve-shows-working",
+    suiteId: "math",
+    kind: "teaching",
+    title: "Plain solve request still teaches",
+    prompt: "Solve x^2 + 6x + 5 = 0",
+    profile: secondaryAlex,
+    targetAgent: "math",
+    scaffold: {
+      contract:
+        "Found in the first live run: the agent called the solver and replied with the roots alone. The answer must name a method and show the working a student would write, then give x = -1 and x = -5. Any valid method is acceptable (factorising, completing the square, the formula). The phrase checks below confirm only the roots and the tool call; naming a method and showing working must be judged against this contract, not string-matched.",
+      goldReply:
+        "Factorise: x^2 + 6x + 5 = (x + 1)(x + 5) = 0, so x + 1 = 0 or x + 5 = 0. Hence x = -1 or x = -5.",
+      mustInclude: ["-1", "-5"],
+      requiredTools: ["equationSolver"],
+    },
+  },
 ];
