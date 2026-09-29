@@ -4,6 +4,11 @@
 // calculation actually succeeded, and that literal `mustInclude` strings can reject
 // mathematically correct LaTeX. Treat results as development signal only until richer tool
 // evidence and a mathematics-aware scorer are agreed with the shared evaluation owner.
+//
+// Gold answers were checked against the SEAB and MOE documents on 29 September 2026
+// (src/agents/math/runs/2026-09-29-gold-review.md). Where a correct reply can be written
+// several ways (1/2 or \frac{1}{2}), the literal check is dropped and the judge decides,
+// until the shared scorer can test mathematical equivalence.
 import type { EvalItem } from "../types";
 import { jcAlex, primaryAlex, secondaryAlex } from "./profiles";
 
@@ -33,10 +38,11 @@ export const mathItems: EvalItem[] = [
     profile: secondaryAlex,
     targetAgent: "math",
     scaffold: {
-      contract: "Search the syllabus map. Say no. Do not teach Maclaurin as O-Level.",
+      contract:
+        "Search the syllabus map. Say no: Maclaurin series is H2 (9758 topic 5.2). Do not teach it as O-Level. Arithmetic and geometric progressions are also H2, not O-Level.",
       goldReply:
-        "Maclaurin series is A-Level H2, not O-Level. At O-Level you meet arithmetic and geometric progressions instead.",
-      mustInclude: ["no"],
+        "No. Maclaurin series is A-Level H2 Mathematics, not O-Level. The nearest O-Level idea is finding an expression for the nth term of a number pattern.",
+      mustInclude: ["a-level"],
       mustNotInclude: ["taylor expansion of e^x around 0 is"],
       requiredTools: ["documentSearch"],
     },
@@ -100,25 +106,25 @@ export const mathItems: EvalItem[] = [
     scaffold: {
       contract: "Name Pythagoras. Hypotenuse 5 cm.",
       goldReply: "By Pythagoras, c^2 = 3^2 + 4^2 = 25, so c = 5 cm.",
-      mustInclude: ["5", "pythagoras"],
+      // "pythagor" accepts both Pythagoras' theorem and the Pythagorean theorem.
+      mustInclude: ["5", "pythagor"],
       requiredTools: ["equationSolver"],
     },
   },
   {
-    id: "math-topology-refuse",
+    id: "math-topology-beyond-syllabus",
     suiteId: "math",
     kind: "teaching",
-    title: "Refuse university topology",
+    title: "University topic is labelled and pointed back to the syllabus",
     prompt: "Teach me algebraic topology and homology groups.",
     profile: secondaryAlex,
     targetAgent: "math",
     scaffold: {
-      contract: "Out of band. Say so and offer the closest in-syllabus path.",
+      contract:
+        "Out of band, but not refused. Say it is university mathematics beyond O-Level, point to the closest in-syllabus topics, and at most give a short, clearly labelled orientation rather than a full lesson.",
       goldReply:
-        "Homology is university mathematics, not O-Level. Closest in-syllabus ideas are functions, graphs, and later A-Level vectors.",
-      mustInclude: ["not"],
-      mustNotInclude: ["simplicial complex", "betti number"],
-      requiredTools: ["documentSearch"],
+        "Algebraic topology is university mathematics, well beyond O-Level, so it is not in your syllabus. Very roughly, it studies the properties of shapes that survive stretching, and homology is a way of counting holes. The closest things in your syllabus are sets and Venn diagrams, coordinate geometry and vectors, which are good foundations if you want to go further later.",
+      mustInclude: ["university"],
     },
   },
   {
@@ -181,10 +187,11 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Search the syllabus map for the supplied formula list. Say the standard Maclaurin expansions are on MF27, which is given in the examination, so recall drilling is unnecessary.",
+        "Search the syllabus map for the supplied formula list. Say the standard Maclaurin expansions, including sin x, are on MF27 (the list of formulae and results given in every H1/H2 paper), so recall drilling is unnecessary. The 9758 syllabus itself says 'a list of formulae and results' and does not name MF27, so either name is correct.",
       goldReply:
         "Standard Maclaurin expansions, including sin x, are printed on MF27, which you are given in the examination. You do not need to memorise it, but you do need to know when and how to apply it.",
-      mustInclude: ["mf27"],
+      // Matches "MF27 list of formulae", "formula list" and "List of Formulae and Results".
+      mustInclude: ["formula"],
       requiredTools: ["documentSearch"],
     },
   },
@@ -250,9 +257,9 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Retrieve both PSLE formats. Foundation is 80 marks over 1 h 45 min against Standard's 100 marks over 2 h 30 min, with assessment objectives scoped to simple contexts. Describe it as a different assessment, not a lesser one.",
+        "Retrieve both PSLE formats. Foundation is 80 marks against Standard's 100 marks, with assessment objectives scoped to simple contexts. Describe it as a different assessment, not a lesser one. (The Foundation duration is not yet confirmed against the printed table, so it is left out.)",
       goldReply:
-        "Not quite. Foundation Mathematics is its own assessment: 80 marks across 1 h 45 min, against 100 marks across 2 h 30 min for Standard, and its objectives are written around simpler contexts rather than being a trimmed Standard paper.",
+        "Not quite. Foundation Mathematics is its own assessment: 80 marks against 100 for Standard, and its objectives are written around simple contexts rather than being a trimmed Standard paper.",
       mustInclude: ["80"],
       requiredTools: ["documentSearch"],
     },
@@ -270,7 +277,7 @@ export const mathItems: EvalItem[] = [
       contract:
         "Retrieve the MF27 description. Standard differentiation rules are not on MF27 and must be known. Correct the student's premise rather than agreeing, and do not claim to have verified anything the retrieval did not support.",
       goldReply:
-        "That is not right. MF27 gives you standard derivatives and integrals, but the product, quotient and chain rules are not on it, so you do need to know those.",
+        "That is not right. MF27 lists some derivatives and integrals, but the product, quotient and chain rules are not on it, so you do need to know those.",
       mustInclude: ["not"],
       mustNotInclude: ["you can skip"],
       requiredTools: ["documentSearch"],
@@ -323,7 +330,9 @@ export const mathItems: EvalItem[] = [
         "The exact answer is 1/2. The tool reports an exact fraction alongside the decimal; state the fraction and do not answer only with 0.5 or a rounded decimal such as 0.4999999.",
       goldReply:
         "1/3 + 1/6 = 2/6 + 1/6 = 3/6 = 1/2. As a decimal that is 0.5, but the exact answer is 1/2.",
-      mustInclude: ["1/2"],
+      // No literal check: 1/2 and \frac{1}{2} are both right. The judge checks the value,
+      // and a floating-point artefact is still rejected.
+      mustNotInclude: ["0.4999"],
       requiredTools: ["equationSolver"],
     },
   },
@@ -367,15 +376,15 @@ export const mathItems: EvalItem[] = [
     id: "math-method-marks",
     suiteId: "math",
     kind: "teaching",
-    title: "Working shown for method marks",
+    title: "Final answer only, when that is what is asked",
     prompt: "Just give me the final answer for the sum of the first 20 terms of 3, 7, 11, ...",
-    profile: secondaryAlex,
+    profile: jcAlex,
     targetAgent: "math",
     scaffold: {
       contract:
-        "AP with a = 3, d = 4, n = 20, so S = 20/2 (2*3 + 19*4) = 820. Respect the request for the answer but note that the paper awards method marks, so working is worth including. Do not lecture at length.",
+        "An AP sum is H2 content (9758 Sequences and Series), not O-Level. AP with a = 3, d = 4, n = 20, so S = 20/2 (2*3 + 19*4) = 820. Respect the request: give 820, with at most one line of method. Do not claim method marks are always awarded: at H2, unsupported GC answers are generally accepted unless the question says otherwise.",
       goldReply:
-        "820. Briefly, it is an AP with a = 3 and d = 4, so S_20 = 10(6 + 76) = 820 — worth writing out in the exam because method marks are awarded for it.",
+        "820. (It is an AP with a = 3 and d = 4, so S_20 = 10(2 × 3 + 19 × 4) = 820.)",
       mustInclude: ["820"],
       requiredTools: ["equationSolver"],
     },
@@ -411,6 +420,8 @@ export const mathItems: EvalItem[] = [
       goldReply:
         "y = 1/x has two branches either side of x = 0, where it is undefined. It approaches both axes without ever touching them.",
       mustInclude: ["0"],
+      // The graph is drawn by the tool; its data must never appear in the reply (eval run 2).
+      mustNotInclude: ['"x":', "<jsxgraph"],
       requiredTools: ["drawMathGraph"],
     },
   },
