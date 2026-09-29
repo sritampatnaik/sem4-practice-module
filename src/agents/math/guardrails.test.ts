@@ -124,6 +124,32 @@ test("calculation starts with the solver, and plain questions are left to the mo
   assert.equal(requiredFirstStepTool(userTurn("I still don't understand.")), undefined);
 });
 
+test("word problems with numbers are checked with the solver", () => {
+  for (const question of [
+    "I have 23 sweets and give 8 away. How many are left?",
+    "A right triangle has legs 3 cm and 4 cm. Find the hypotenuse.",
+    "A fair six-sided die is rolled. Probability of an even number?",
+    "Just give me the final answer for the sum of the first 20 terms of 3, 7, 11, ...",
+    "What is the area of a circle of radius 3 cm?",
+    "A shirt costs $40 after a 20% discount. How much was it before?",
+  ]) {
+    assert.equal(requiredFirstStepTool(userTurn(question)), "equationSolver", question);
+  }
+});
+
+test("numbers alone, or a quantity question without numbers, are left to the model", () => {
+  for (const question of [
+    "I got 3 out of 5 wrong in my homework, why do I keep making mistakes?",
+    "How many questions should I practise each day?",
+    "Can you find me some practice on chapter 2?",
+    "What is the area of a shape?",
+  ]) {
+    assert.equal(requiredFirstStepTool(userTurn(question)), undefined, question);
+  }
+  // Questions about the paper still go to the documents first.
+  assert.equal(requiredFirstStepTool(userTurn("How many marks is Paper 2 worth?")), "documentSearch");
+});
+
 test("Math instructions carry the teaching and examination rules", () => {
   const prompt = buildMathInstructions({ sessionId: "test", profile: DEFAULT_PROFILE, recentChats: [] });
   assert.match(prompt, /Name the method/);
