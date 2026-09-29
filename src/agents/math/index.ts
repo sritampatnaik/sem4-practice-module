@@ -9,6 +9,14 @@ import { mathGuardrails } from "./guardrails";
 type MathToolName = "equationSolver" | "drawMathGraph" | "documentSearch";
 
 /**
+ * Output cap per step. The longest normal reply in the 2026-09-29 baseline was
+ * 364 tokens; the one runaway (a self-drawn graph) reached 16,414. 2,000 leaves
+ * room for a long multi-part worked solution while bounding cost, and the
+ * guardrail tells the student when a reply was cut short.
+ */
+export const MATH_MAX_OUTPUT_TOKENS = 2000;
+
+/**
  * Picks the tool the first step must use, where the question makes it obvious.
  *
  * Prompt instructions alone do not guarantee a tool call, and an unverified
@@ -43,7 +51,19 @@ export function requiredFirstStepTool(messages: Array<{ role?: string; content?:
   const hasArithmetic =
     /\d\s*[-+*/×÷^]\s*\d/.test(text) ||
     /\d\s*(?:times|plus|minus|divided by|multiplied by)\s*\d/i.test(text);
-  if (asksToCalculate || hasArithmetic) {
+  // A word problem has neither: it gives numbers and asks for a quantity
+  // ("23 sweets, give 8 away, how many are left?"). Both must be present, so a
+  // chatty message that happens to contain a number stays with the model.
+  const asksForQuantity =
+    /\b(how (?:many|much|far|long|old)|find (?:the|its|their|[a-z]\b)|probability of|what (?:fraction|percentage)|sum of|total|average|area|perimeter|volume)\b/i.test(
+      text,
+    );
+  const hasNumber =
+    /\d/.test(text) ||
+    /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|hundred|thousand|half|quarter|dozen)\b/i.test(
+      text,
+    );
+  if (asksToCalculate || hasArithmetic || (asksForQuantity && hasNumber)) {
     return "equationSolver" as const;
   }
 
@@ -67,6 +87,7 @@ export function createMathAgent(ctx: AgentRuntimeContext) {
       return toolName ? { toolChoice: { type: "tool", toolName } } : {};
     },
     stopWhen: stepCountIs(8),
+    maxOutputTokens: MATH_MAX_OUTPUT_TOKENS,
     temperature: 0.2,
   });
 }

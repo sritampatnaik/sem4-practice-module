@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { normaliseMathReply } from "./guardrails";
+import type { LanguageModelV3StreamPart } from "@ai-sdk/provider";
+import { mathGuardrails, normaliseMathReply } from "./guardrails";
 import { buildMathInstructions } from "./prompts";
 import { DEFAULT_PROFILE } from "../_shared/types";
 import { requiredFirstStepTool } from "./index";
@@ -27,6 +28,73 @@ test("model-drawn images are stripped so graphs come from the tool", () => {
     "Here is the curve.",
   );
   assert.equal(normaliseMathReply('Look: <img src="http://example.com/graph.png">'), "Look:");
+  assert.equal(normaliseMathReply('Drawn: <svg viewBox="0 0 10 10"><path d="M0 0"/></svg> done.'), "Drawn: done.");
+});
+
+test("an image cut off before it closes is still stripped", () => {
+  // The baseline run produced exactly this: a self-drawn graph truncated mid-way.
+  assert.equal(
+    normaliseMathReply("The curve has two branches.\n\n![y = 1/x](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcv"),
+    "The curve has two branches.",
+  );
+  assert.equal(normaliseMathReply("See data:image/png;base64,iVBORw0KGgo= above."), "See above.");
+  assert.equal(normaliseMathReply('Here: <svg viewBox="0 0 10 10"><path d="M0 0 L1 1'), "Here:");
+  assert.match(normaliseMathReply("![graph](data:image/svg+xml;base64,PHN2"), /incomplete/);
+});
+
+type Middleware = Required<typeof mathGuardrails>;
+const stop = { unified: "stop", raw: "stop" } as const;
+const length = { unified: "length", raw: "length" } as const;
+const usage = {} as never;
+
+test("a reply stopped by the length cap says it was cut short", async () => {
+  const generate = mathGuardrails.wrapGenerate as Middleware["wrapGenerate"];
+  const run = (finishReason: typeof stop | typeof length) =>
+    generate({
+      doGenerate: async () => ({ content: [{ type: "text", text: "Step 1: expand" }], finishReason, usage, warnings: [] }),
+    } as never);
+
+  const finished = await run(stop);
+  assert.deepEqual(finished.content.map((part) => (part.type === "text" ? part.text : "")), ["Step 1: expand"]);
+
+  const cut = await run(length);
+  const texts = cut.content.map((part) => (part.type === "text" ? part.text : ""));
+  assert.equal(texts[0], "Step 1: expand");
+  assert.match(texts[1], /cut short/);
+});
+
+test("streamed replies are repaired, and a capped stream says it was cut short", async () => {
+  const stream = mathGuardrails.wrapStream as Middleware["wrapStream"];
+  const collect = async (finishReason: typeof stop | typeof length) => {
+    const parts: LanguageModelV3StreamPart[] = [
+      { type: "text-start", id: "t" },
+      { type: "text-delta", id: "t", delta: "Here ![g](data:image/svg" },
+      { type: "text-delta", id: "t", delta: "+xml;base64,PHN2" },
+      { type: "text-end", id: "t" },
+      { type: "finish", finishReason, usage },
+    ];
+    const result = await stream({
+      doStream: async () => ({
+        stream: new ReadableStream<LanguageModelV3StreamPart>({
+          start(controller) {
+            parts.forEach((part) => controller.enqueue(part));
+            controller.close();
+          },
+        }),
+      }),
+    } as never);
+    const out: LanguageModelV3StreamPart[] = [];
+    const reader = result.stream.getReader();
+    for (let next = await reader.read(); !next.done; next = await reader.read()) out.push(next.value);
+    return out
+      .filter((part): part is Extract<LanguageModelV3StreamPart, { type: "text-delta" }> => part.type === "text-delta")
+      .map((part) => part.delta);
+  };
+
+  assert.deepEqual(await collect(stop), ["Here"]);
+  const cut = await collect(length);
+  assert.equal(cut[0], "Here");
+  assert.match(cut[1], /cut short/);
 });
 
 test("numbers and working survive repair untouched", () => {
@@ -56,6 +124,32 @@ test("calculation starts with the solver, and plain questions are left to the mo
   assert.equal(requiredFirstStepTool(userTurn("I still don't understand.")), undefined);
 });
 
+test("word problems with numbers are checked with the solver", () => {
+  for (const question of [
+    "I have 23 sweets and give 8 away. How many are left?",
+    "A right triangle has legs 3 cm and 4 cm. Find the hypotenuse.",
+    "A fair six-sided die is rolled. Probability of an even number?",
+    "Just give me the final answer for the sum of the first 20 terms of 3, 7, 11, ...",
+    "What is the area of a circle of radius 3 cm?",
+    "A shirt costs $40 after a 20% discount. How much was it before?",
+  ]) {
+    assert.equal(requiredFirstStepTool(userTurn(question)), "equationSolver", question);
+  }
+});
+
+test("numbers alone, or a quantity question without numbers, are left to the model", () => {
+  for (const question of [
+    "I got 3 out of 5 wrong in my homework, why do I keep making mistakes?",
+    "How many questions should I practise each day?",
+    "Can you find me some practice on chapter 2?",
+    "What is the area of a shape?",
+  ]) {
+    assert.equal(requiredFirstStepTool(userTurn(question)), undefined, question);
+  }
+  // Questions about the paper still go to the documents first.
+  assert.equal(requiredFirstStepTool(userTurn("How many marks is Paper 2 worth?")), "documentSearch");
+});
+
 test("Math instructions carry the teaching and examination rules", () => {
   const prompt = buildMathInstructions({ sessionId: "test", profile: DEFAULT_PROFILE, recentChats: [] });
   assert.match(prompt, /Name the method/);
@@ -64,4 +158,5 @@ test("Math instructions carry the teaching and examination rules", () => {
   assert.match(prompt, /Examination alignment/);
   assert.match(prompt, /does not replace the explanation/);
   assert.match(prompt, /Testing/);
+  assert.match(prompt, /Every graph comes from the graph tool/);
 });
