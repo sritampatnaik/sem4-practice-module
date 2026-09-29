@@ -62,5 +62,6 @@ test("Math instructions carry the teaching and examination rules", () => {
   assert.match(prompt, /LaTeX/);
   assert.match(prompt, /Respect the tool's limits/);
   assert.match(prompt, /Examination alignment/);
+  assert.match(prompt, /does not replace the explanation/);
   assert.match(prompt, /Testing/);
 });
