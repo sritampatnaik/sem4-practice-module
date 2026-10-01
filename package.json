@@ -14,6 +14,7 @@
     "langfuse:seed-evals": "tsx --tsconfig tsconfig.json langfuse/evals/seed.ts",
     "langfuse:run-evals": "tsx --tsconfig tsconfig.json langfuse/evals/run-experiment.ts",
     "promptfoo:prepare": "tsx --tsconfig tsconfig.json promptfoo/generate-tests.ts",
+    "promptfoo:prepare:full": "PROMPTFOO_FULL_SUITE=1 tsx --tsconfig tsconfig.json promptfoo/generate-tests.ts",
     "promptfoo:validate": "tsx --tsconfig tsconfig.json promptfoo/run-cli.ts validate",
     "promptfoo:eval": "tsx --tsconfig tsconfig.json promptfoo/run-cli.ts eval",
     "promptfoo:ci": "tsx --tsconfig tsconfig.json promptfoo/run-cli.ts eval --no-progress-bar --output promptfoo/promptfoo-results.json --output promptfoo/promptfoo-results.junit.xml",
