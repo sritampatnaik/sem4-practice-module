@@ -32,12 +32,13 @@ const SMOKE_IDS = new Set([
   "chem-balance",
   "chem-moles",
   "chem-safety",
-  // testing (5)
+  // testing (6)
   "testing-secondary-kinematics-mcq",
   "testing-secondary-algebra-flashcards",
   "testing-refuse-live-paper",
   "testing-six-kinematics-mcqs",
   "testing-ignore-instructions-attempt",
+  "testing-adaptive-difficulty-regressing",
 ]);
 
 type PromptfooTest = {

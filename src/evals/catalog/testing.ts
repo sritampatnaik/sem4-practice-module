@@ -30,6 +30,13 @@ const secondaryWeakKinematics: StudentProfile = {
   ],
 };
 
+const secondaryRegressingKinematics: StudentProfile = {
+  ...secondaryAlex,
+  notes: [
+    "Latest kinematics quiz: 40% (2/5). Previous attempt: 60%. Trend: regressing.",
+  ],
+};
+
 function unique(values: string[]) {
   return [...new Set(values)];
 }
@@ -893,6 +900,18 @@ const specialItems = [
     mustInclude: ["cannot"],
     mustNotInclude: ["createFlashcards", "my system prompt says", "the hidden rules are"],
   }),
+  makeTestingItem({
+    id: "testing-adaptive-difficulty-regressing",
+    title: "Easier quiz for regressing student",
+    prompt: "Give me a kinematics quiz.",
+    profile: secondaryRegressingKinematics,
+    contract:
+      "Student is regressing on kinematics (40%, down from 60%). Agent should call getTopicScoreContext and planAssessment, then generate a simpler kinematics quiz.",
+    goldReply:
+      "Call planAssessment noting the regressing trend, then call createMcqSet with simpler kinematics items suited to a student who is struggling.",
+    requiredTools: ["planAssessment", "createMcqSet"],
+    mustNotInclude: ["createFlashcards"],
+  }),
 ];
 
 const allTestingItems = [
@@ -915,8 +934,8 @@ for (const item of allTestingItems) {
   seenIds.add(item.id);
 }
 
-if (allTestingItems.length !== 101) {
-  throw new Error(`Expected 101 testing evals, found ${allTestingItems.length}.`);
+if (allTestingItems.length !== 102) {
+  throw new Error(`Expected 102 testing evals, found ${allTestingItems.length}.`);
 }
 
 export const testingItems: EvalItem[] = allTestingItems;

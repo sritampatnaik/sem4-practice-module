@@ -1,4 +1,5 @@
 import type { GradeLevel, Subject } from "../_shared/types";
+import type { TestingTrend } from "./score-history";
 
 export const TESTING_MODES = ["mcq", "flashcards"] as const;
 export type TestingMode = (typeof TESTING_MODES)[number];
@@ -6,11 +7,20 @@ export type TestingMode = (typeof TESTING_MODES)[number];
 export const VISUAL_FORMATS = ["none", "mermaid"] as const;
 export type VisualFormat = (typeof VISUAL_FORMATS)[number];
 
+export const DIFFICULTY_LEVELS = ["easier", "standard", "harder"] as const;
+export type DifficultyLevel = (typeof DIFFICULTY_LEVELS)[number];
+
+export type ScoreContext = {
+  trend: TestingTrend;
+  latestPercentage: number;
+};
+
 type AssessmentPlanInput = {
   request: string;
   subject?: Subject;
   gradeLevel: GradeLevel;
   requestedCount?: number;
+  scoreContext?: ScoreContext;
 };
 
 export type AssessmentPlan = {
@@ -21,6 +31,7 @@ export type AssessmentPlan = {
   topics: string[];
   needsVisual: boolean;
   visualFormat: VisualFormat;
+  difficulty: DifficultyLevel;
   rationale: string;
 };
 
@@ -130,10 +141,26 @@ function inferVisualFormat(request: string): VisualFormat {
   return visualPattern.test(request) ? "mermaid" : "none";
 }
 
+export function deriveDifficulty(scoreContext?: ScoreContext): DifficultyLevel {
+  if (!scoreContext) return "standard";
+  const { trend, latestPercentage } = scoreContext;
+  if (trend === "regressing" || latestPercentage < 60) return "easier";
+  if (trend === "improving" && latestPercentage >= 80) return "harder";
+  return "standard";
+}
+
 export function buildAssessmentPlan(input: AssessmentPlanInput): AssessmentPlan {
   const mode = inferMode(input.request);
   const visualFormat = inferVisualFormat(input.request);
   const topics = extractAssessmentTopics(input.request);
+  const difficulty = deriveDifficulty(input.scoreContext);
+
+  const difficultyRationale =
+    difficulty === "easier"
+      ? `Score context shows trend="${input.scoreContext?.trend}", latest=${input.scoreContext?.latestPercentage}% — generating easier items.`
+      : difficulty === "harder"
+        ? `Score context shows trend="${input.scoreContext?.trend}", latest=${input.scoreContext?.latestPercentage}% — generating harder items.`
+        : "No score context or score is mid-range — using standard difficulty.";
 
   const rationaleParts = [
     mode === "flashcards"
@@ -142,6 +169,7 @@ export function buildAssessmentPlan(input: AssessmentPlanInput): AssessmentPlan 
     visualFormat === "mermaid"
       ? "A simple Mermaid diagram may help because the student asked for a visual explanation."
       : "No visual cue was detected, so a plain widget should be enough.",
+    difficultyRationale,
   ];
 
   return {
@@ -152,6 +180,7 @@ export function buildAssessmentPlan(input: AssessmentPlanInput): AssessmentPlan 
     topics,
     needsVisual: visualFormat !== "none",
     visualFormat,
+    difficulty,
     rationale: rationaleParts.join(" "),
   };
 }

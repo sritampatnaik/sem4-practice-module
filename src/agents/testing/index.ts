@@ -13,6 +13,7 @@ import {
   getMathAssessmentSourceTool,
   getPhysicsAssessmentSourceTool,
   getRecentPerformanceTool,
+  getTopicScoreContextTool,
   planAssessmentTool,
   recordPerformanceTool,
 } from "./tools";
@@ -34,6 +35,7 @@ export function createTestingAgent(ctx: AgentRuntimeContext) {
     instructions: buildTestingInstructions(ctx),
     tools: {
       planAssessment: planAssessmentTool,
+      getTopicScoreContext: getTopicScoreContextTool(ctx),
       getRecentPerformance: getRecentPerformanceTool(ctx),
       getPhysicsAssessmentSource: getPhysicsAssessmentSourceTool,
       getMathAssessmentSource: getMathAssessmentSourceTool,

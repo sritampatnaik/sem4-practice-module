@@ -4,9 +4,12 @@ import type { AgentRuntimeContext } from "../_shared/types";
 import {
   buildAssessmentPlan,
   buildMermaidDiagram,
+  DIFFICULTY_LEVELS,
   TESTING_MODES,
   VISUAL_FORMATS,
+  type ScoreContext,
 } from "./assessment-planner";
+import type { TestingTrend } from "./score-history";
 import {
   appendAssessmentPerformanceEntry,
   readRecentAssessmentPerformance,
@@ -21,6 +24,8 @@ const subjectSchema = z.enum(["math", "physics", "chemistry"]);
 const gradeLevelSchema = z.enum(["primary", "secondary", "jc"]);
 const testingModeSchema = z.enum(TESTING_MODES);
 const visualFormatSchema = z.enum(VISUAL_FORMATS);
+const difficultyLevelSchema = z.enum(DIFFICULTY_LEVELS);
+const trendSchema = z.enum(["new", "improving", "regressing", "stable"] as const satisfies readonly [TestingTrend, ...TestingTrend[]]);
 const nonEmptyText = z.string().trim().min(1);
 
 function findDuplicateIds(values: { id: string }[]) {
@@ -152,15 +157,79 @@ function validatePhysicsMcqCorrectness(items: z.infer<typeof mcqItemSchema>[]) {
 
 export const planAssessmentTool = tool({
   description:
-    "Plan a Testing response by selecting MCQ vs flashcards, extracting topics, and deciding if a Mermaid diagram would help.",
+    "Plan a Testing response by selecting MCQ vs flashcards, extracting topics, deciding if a Mermaid diagram would help, and recommending difficulty based on score history. Pass latestPercentage and trend if you have topic-scoped score context.",
   inputSchema: z.object({
     request: nonEmptyText,
     subject: subjectSchema.optional(),
     gradeLevel: gradeLevelSchema,
     requestedCount: z.number().int().min(1).max(8).optional(),
+    latestPercentage: z.number().min(0).max(100).optional().describe(
+      "Student's latest score percentage for this specific topic (0–100). Only pass if you have topic-scoped score context.",
+    ),
+    trend: trendSchema.optional().describe(
+      "Score trend for this specific topic. Only pass if you have topic-scoped score context.",
+    ),
   }),
-  execute: async (input) => buildAssessmentPlan(input),
+  execute: async (input) => {
+    const scoreContext: ScoreContext | undefined =
+      input.latestPercentage !== undefined && input.trend !== undefined
+        ? { latestPercentage: input.latestPercentage, trend: input.trend }
+        : undefined;
+    return buildAssessmentPlan({ ...input, scoreContext });
+  },
 });
+
+/**
+ * Extract topic-scoped score context from profile notes or performance text.
+ * Searches notes for a line that mentions one of the given topics and contains
+ * both a percentage and a trend label. Returns null if no matching note is found.
+ * Topic-scoped: a kinematics note will not match a heat query.
+ */
+function extractTopicScoreFromNotes(
+  notes: string[],
+  topics: string[],
+): ScoreContext | null {
+  const topicWords = topics
+    .flatMap((t) => t.toLowerCase().split(/\s+/))
+    .filter((w) => w.length >= 3);
+
+  for (const note of notes) {
+    const lower = note.toLowerCase();
+    if (!topicWords.some((word) => lower.includes(word))) continue;
+
+    const percentageMatch = lower.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (!percentageMatch) continue;
+    const latestPercentage = Number(percentageMatch[1]);
+
+    const trendMatch = lower.match(/trend[:\s]+(improving|regressing|stable|new)/);
+    if (!trendMatch) continue;
+    const trend = trendMatch[1] as TestingTrend;
+
+    return { latestPercentage, trend };
+  }
+
+  return null;
+}
+
+export function getTopicScoreContextTool(ctx: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Look up topic-scoped score history for the student before calling planAssessment. " +
+      "Searches the student's profile notes and recent performance notes for a score entry matching the given subject and topics. " +
+      "Returns trend and latestPercentage only for the matching topic — a kinematics score will never affect a heat quiz. " +
+      "Returns null if no matching score history is found (guest user or first attempt on this topic).",
+    inputSchema: z.object({
+      subject: subjectSchema,
+      topics: z.array(nonEmptyText).min(1).max(4),
+    }),
+    execute: async ({ topics }) => {
+      const allNotes = ctx.profile.notes;
+      const result = extractTopicScoreFromNotes(allNotes, topics);
+      if (!result) return { available: false as const };
+      return { available: true as const, ...result };
+    },
+  });
+}
 
 const assessmentSourceInputSchema = z.object({
   request: nonEmptyText,
