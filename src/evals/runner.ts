@@ -40,6 +40,29 @@ function toolNamesFrom(value: unknown) {
   });
 }
 
+const TESTING_INTERNAL_ONLY_TOOLS = new Set([
+  "getPhysicsAssessmentSource",
+  "getMathAssessmentSource",
+  "getChemistryAssessmentSource",
+  "getTopicScoreContext",
+  "getRecentPerformance",
+  "createMermaidDiagram",
+]);
+
+function filterEvalToolCalls(item: EvalItem, toolCalls: string[]) {
+  if (item.kind !== "testing") return toolCalls;
+
+  const required = new Set(item.scaffold.requiredTools ?? []);
+  return toolCalls.filter(
+    (toolName) =>
+      !TESTING_INTERNAL_ONLY_TOOLS.has(toolName) ||
+      required.has(toolName) ||
+      toolName === "createMcqSet" ||
+      toolName === "createFlashcards" ||
+      toolName === "recordPerformance",
+  );
+}
+
 async function runRoutingItem(item: EvalItem): Promise<Omit<EvalItemResult, "accuracy" | "passed" | "checks">> {
   const ctx = makeCtx(item);
   const { text } = sanitizeStudentMessage(item.prompt);
@@ -92,6 +115,7 @@ async function runAgentItem(item: EvalItem): Promise<Omit<EvalItemResult, "accur
       ...toolNamesFrom(result.toolCalls),
     ]),
   ];
+  const evaluationToolCalls = filterEvalToolCalls(item, toolCalls);
   return {
     itemId: item.id,
     suiteId: item.suiteId,
@@ -100,7 +124,7 @@ async function runAgentItem(item: EvalItem): Promise<Omit<EvalItemResult, "accur
     prompt: item.prompt,
     goldReply: item.scaffold.goldReply,
     actualText: result.text ?? "",
-    toolCalls,
+    toolCalls: evaluationToolCalls,
     latencyMs: Date.now() - started,
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
