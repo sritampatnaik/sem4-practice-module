@@ -2,7 +2,7 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Folder:** `src/agents/testing/`  
-**Last updated:** 2026-10-01
+**Last updated:** 2026-10-02
 
 ## Purpose
 
@@ -83,6 +83,7 @@ Future chat sessions can read this file first to resume work quickly.
 - eval coverage / Promptfoo prep
   - Testing now has a dedicated adaptive-difficulty eval (`testing-adaptive-difficulty-regressing`)
   - the project-wide Promptfoo prep script now defaults to a smaller smoke subset for CI, while still keeping a full-suite path for local runs
+  - Promptfoo CI now also has a regression gate for the smoke subset, so accepted suite-level pass rates are checked against a committed baseline
 
 ## Proposal mapping
 
@@ -222,12 +223,46 @@ Related support work for reporting:
   - the Testing eval catalog now includes explicit adaptive-difficulty coverage for a regressing kinematics student
   - the Promptfoo pipeline now defaults to a smaller smoke subset in CI, while still preserving a full-suite generation path for broader local evaluation
 - **Blockers / remaining gaps:**
-  - the current adaptive path is still driven by note-style score context rather than the persisted Supabase sidebar summaries
   - live evidence is still needed to confirm the model reliably follows the easier/harder planning signal in realistic desk or harness runs
 - **Next:**
   - run at least one live or harness scenario that exercises `getTopicScoreContext` and confirms the resulting quiz actually simplifies when the topic is regressing
-  - decide whether the persisted score-history summaries should become the next source for adaptive follow-up planning
+  - decide whether adaptive lookups should later expand beyond persisted MCQ summaries into other Testing history signals
   - keep the Testing docs aligned with the adaptive-difficulty contract so future sessions do not confuse it with the separate UI score-history flow
+
+## 2026-10-02 persisted-score adaptive follow-up and Promptfoo regression-gate update
+
+- **Changed:**
+  - `src/agents/testing/assessment-planner.ts`
+  - `src/agents/testing/assessment-planner.test.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/score-history.ts`
+  - `src/agents/testing/score-history.test.ts`
+  - `src/agents/testing/tools.ts`
+  - Testing context/docs files
+- **Adjacent project-wide change pulled by this work:**
+  - `promptfoo/check-regression.ts`
+  - `promptfoo/baseline.json`
+  - `.github/workflows/build.yml`
+  - `promptfoo/README.md`
+- **Validated:**
+  - `npx tsx --test src/agents/testing/assessment-planner.test.ts src/agents/testing/score-history.test.ts src/agents/testing/subject-source.test.ts src/agents/testing/tools.test.ts`
+  - targeted Promptfoo reruns for `testing-adaptive-difficulty-regressing` and `testing-secondary-algebra-flashcards`
+  - regression-checker pass/fail smoke checks plus `npm run typecheck`
+- **Findings:**
+  - `getTopicScoreContext` now works better when persisted `testing_attempts` data exists, because the score summary is more reliable than parsing note text
+  - the difficulty rule is now explicit and deterministic:
+    - below 60% => easier
+    - 60% to 79% => standard
+    - 80% and above => harder
+  - the Testing smoke evals now contribute to a project-wide Promptfoo regression gate, so changes in this folder can now block CI through baseline regressions even if the raw Promptfoo run is noisy
+- **Blockers / remaining gaps:**
+  - broader signed-in repeated-attempt evidence is still needed across more subjects and topic buckets
+  - live desk or harness evidence is still needed to show the persisted-summary path behaving well with real generated quizzes
+- **Next:**
+  - run signed-in repeated-topic checks to confirm the persisted-summary path picks up the expected bucket in realistic flows
+  - decide whether future adaptive logic should stay MCQ-only or grow into a more general Testing-history system
+  - keep the Testing smoke evals healthy because they are now part of the Promptfoo CI regression baseline
 
 ## 2026-09-18 architecture update
 

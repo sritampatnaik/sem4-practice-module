@@ -69,6 +69,12 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
     - 60% to 79% → `standard`
     - 80% and above → `harder`
 
+## Adjacent project-wide eval support
+
+- Promptfoo CI now has a project-wide **regression gate** on the smoke subset.
+- This is not Testing-only infrastructure, but several Testing smoke evals are part of that accepted CI baseline.
+- If you change Testing prompts, tool contracts, or guardrails, re-check the smoke subset because CI now compares suite pass rates against the committed baseline rather than only uploading results.
+
 ## Current subject-sourcing direction
 
 - Testing still stays as **one public routed agent**.
@@ -97,7 +103,9 @@ The `execute` functions currently echo the structured input. That is enough for 
 - Ground Maths, Physics, and Chemistry assessments through `getMathAssessmentSource`, `getPhysicsAssessmentSource`, and `getChemistryAssessmentSource` instead of relying on unstated subject knowledge alone.
 - For MCQ-style quizzes with a clear subject/topic, use `getTopicScoreContext` before `planAssessment`.
 - Keep adaptive difficulty topic-scoped: a kinematics score summary must not affect a heat, bonding, or differentiation quiz.
-- If `planAssessment` returns `easier`, prefer simpler numbers and more direct single-step reasoning. If it returns `harder`, prefer richer application or multi-step items.
+- If `planAssessment` returns `easier`, prefer simpler numbers and more direct single-step reasoning.
+- If `planAssessment` returns `standard`, keep the set in the ordinary grade-band range without unnecessary stretch.
+- If `planAssessment` returns `harder`, prefer richer application or multi-step items.
 - `recordPerformance` is for assessment notes only and should not log outcome or score fields during ordinary assessment generation.
 - Keep one public Testing agent. If you need more modularity, add helper modules/tools inside `src/agents/testing/` rather than adding new top-level routed agents.
 - If a topic is not strongly supported by the matching source tool, fail explicitly and ask for a narrower topic instead of making content up.
