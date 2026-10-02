@@ -18,6 +18,8 @@
     "promptfoo:validate": "tsx --tsconfig tsconfig.json promptfoo/run-cli.ts validate",
     "promptfoo:eval": "tsx --tsconfig tsconfig.json promptfoo/run-cli.ts eval",
     "promptfoo:ci": "tsx --tsconfig tsconfig.json promptfoo/run-cli.ts eval --no-progress-bar --output promptfoo/promptfoo-results.json --output promptfoo/promptfoo-results.junit.xml",
+    "promptfoo:check-regression": "tsx --tsconfig tsconfig.json promptfoo/check-regression.ts",
+    "promptfoo:refresh-baseline": "tsx --tsconfig tsconfig.json promptfoo/check-regression.ts --write-baseline",
     "promptfoo:view": "promptfoo view"
   },
   "dependencies": {

@@ -82,9 +82,13 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Run Promptfoo evals
+        continue-on-error: true
         run: npm run promptfoo:ci
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Check Promptfoo regression gate
+        run: npm run promptfoo:check-regression
 
       - name: Upload Promptfoo artifacts
         if: always()

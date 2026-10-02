@@ -47,6 +47,7 @@ yarn-error.log*
 /logs
 /promptfoo/tests.generated.json
 /promptfoo/*.json
+!/promptfoo/baseline.json
 /promptfoo/*.html
 /promptfoo/*.csv
 /promptfoo/*.xml

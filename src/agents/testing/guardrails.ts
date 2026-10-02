@@ -103,7 +103,7 @@ export function normaliseTestingReply(
     return EXAM_INTEGRITY_REPLY;
   }
   if (hasWidgetEcho(repaired)) {
-    return options.forceBoundaryRefusal
+    return options?.forceBoundaryRefusal
       ? `${BOUNDARY_REPLY}\n\n${WIDGET_NOTE_REPLY}`
       : WIDGET_NOTE_REPLY;
   }

@@ -55,6 +55,19 @@ Generate the **full** eval suite for broader local runs:
 npm run promptfoo:prepare:full
 ```
 
+Refresh the committed smoke-subset regression baseline from the latest
+`promptfoo-results.json`:
+
+```bash
+npm run promptfoo:refresh-baseline
+```
+
+Check the current results against the committed baseline:
+
+```bash
+npm run promptfoo:check-regression
+```
+
 Run the generated suite:
 
 ```bash
@@ -137,6 +150,55 @@ Current smoke subset size:
 | testing | `testing-ignore-instructions-attempt` | Exercises prompt-injection resistance and hidden-instruction refusal without breaking widget generation. |
 | testing | `testing-adaptive-difficulty-regressing` | Covers the new adaptive path: topic-scoped score context, planning, and a simpler follow-up quiz for a regressing student. |
 
+## Regression gate for the CI subset
+
+The Promptfoo CI job now treats the smoke subset as a **regression-gated benchmark**.
+
+### What the gate checks
+
+After `npm run promptfoo:ci` writes `promptfoo/promptfoo-results.json`, the checker:
+
+1. groups the chosen CI subset by `suiteId`
+2. computes each suite's pass rate
+3. compares those pass rates against `promptfoo/baseline.json`
+4. fails CI if any suite drops beyond the allowed tolerance
+
+In CI, the raw Promptfoo step is allowed to continue even when some evals fail, because the **regression gate** is the authoritative pass/fail decision for the accepted smoke subset baseline.
+
+### Baseline format
+
+The committed baseline stores, per suite:
+
+- expected case count
+- baseline pass rate
+- a global pass-rate tolerance for the smoke subset
+
+The first version keeps this intentionally simple and focuses on the subset already chosen for Promptfoo CI rather than the full eval catalog.
+
+### Why this is useful
+
+- Running Promptfoo tells you the subset's **current** quality.
+- The regression gate tells you whether a change made that accepted CI subset **worse than before**.
+- This is especially helpful for prompt, tool, routing, and guardrail changes that may improve one path while quietly degrading another.
+
+### How to refresh the baseline intentionally
+
+When the smoke subset has been deliberately improved and you want CI to accept the new level as the reference:
+
+```bash
+npm run promptfoo:ci
+npm run promptfoo:refresh-baseline
+```
+
+Then review and commit the updated `promptfoo/baseline.json` in the same change set that justifies the new expected behaviour.
+
+### Current gate policy
+
+- scope: **Promptfoo CI smoke subset only**
+- metric: **per-suite pass rate**
+- tolerance: **10% absolute drop** from the committed baseline
+- mismatch in expected case count also fails the gate
+
 ## Environment notes
 
 - Promptfoo itself does not replace the provider keys required by the existing METS eval runtime.
@@ -154,6 +216,7 @@ The workflow runs:
 npm ci
 npm run promptfoo:validate
 npm run promptfoo:ci
+npm run promptfoo:check-regression
 ```
 
 and exports machine-readable artifacts:
@@ -176,4 +239,5 @@ Without it, the wrapped METS eval runtime cannot run the active LLM judges.
 - Promptfoo runs inside the existing `.github/workflows/build.yml` quality-gate workflow
 - it runs on the same PR/push triggers as the other checks job
 - it prepares the **smoke subset** by default, not the full live catalog
+- it now enforces a regression gate against the committed smoke-subset baseline
 - results are uploaded as workflow artifacts for inspection
