@@ -87,6 +87,17 @@ function buildSourceQuery(request: string, topics: string[]) {
   return request.replace(/\s+/g, " ").trim();
 }
 
+function expandPhysicsQuery(query: string, topics: string[]) {
+  const haystack = `${query} ${topics.join(" ")}`.toLowerCase();
+  const additions: string[] = [];
+
+  if (/\bkinematics\b/.test(haystack)) {
+    additions.push("motion", "velocity", "acceleration", "graphs");
+  }
+
+  return uniqueNonEmpty([query, ...additions], 8).join(", ");
+}
+
 function excerptSentences(excerpt: string) {
   return excerpt
     .split(sentenceSplitPattern)
@@ -202,7 +213,11 @@ function extractMatchingHints(
 
 async function loadSubjectSource(subject: Subject, input: SubjectSourceInput) {
   const topics = resolveTopics(input.request, input.topics);
-  const sourceQuery = buildSourceQuery(input.request, topics);
+  const baseSourceQuery = buildSourceQuery(input.request, topics);
+  const sourceQuery =
+    subject === "physics"
+      ? expandPhysicsQuery(baseSourceQuery, topics)
+      : baseSourceQuery;
   const sourceChunks = await searchSyllabus({
     subject,
     query: sourceQuery,

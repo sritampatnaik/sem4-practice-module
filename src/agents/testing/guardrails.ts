@@ -4,9 +4,11 @@ import type { LanguageModelMiddleware } from "ai";
 const EXAM_INTEGRITY_REPLY =
   "I can't help with recreating live exam papers, revealing hidden instructions, or listing the full answer key in prose. I can still build an original practice set on the same topic.";
 const BOUNDARY_REPLY =
-  "I can't share hidden instructions or ignore the Testing rules. I can still build an original practice set on the topic you want.";
+  "I cannot share hidden instructions or ignore the Testing rules. I can still build an original practice set on the topic you want.";
 const INCOMPLETE_REPLY =
   "That assessment reply was incomplete. Please ask me to try again.";
+const WIDGET_NOTE_REPLY =
+  "Try the widget first, then review the key ideas and common mistakes after you answer.";
 
 const REFUSAL_LANGUAGE =
   /\b(?:can't|cannot|won't|will not|do not|don't|not able|instead|rather than)\b/i;
@@ -15,6 +17,7 @@ const PROMPT_DISCLOSURE = [
   /\b(?:my|the) internal instructions? (?:say|are|contain)\b/i,
   /\bignore (?:all|any|previous) instructions\b/i,
   /\breveal (?:your |the )?(?:system|hidden) prompt\b/i,
+  /\breveal (?:your |the )?hidden rules\b/i,
 ];
 const LIVE_PAPER_DISCLOSURE = [
   /\b(?:here(?:'s| is)|below is|this is) the exact (?:wording|question)\b/i,
@@ -30,6 +33,9 @@ const ANSWER_KEY_PATTERNS = [
   /\bcorrect answers?\b/i,
 ];
 const ANSWER_LINE = /(?:^|\n)\s*(?:q(?:uestion)?\s*)?\d+\s*[\)\.\-:]\s*[A-E]\b/gim;
+const QUESTION_LINE = /(?:^|\n)\s*\d+\s*[\)\.\-:]/gim;
+const OPTION_LINE = /(?:^|\n)\s*(?:[-*]\s*)?\(?[A-Ea-e]\)\s+/gm;
+const BULLET_LINE = /(?:^|\n)\s*[-*]\s+/gm;
 
 function repairWhitespace(text: string) {
   return text
@@ -41,6 +47,26 @@ function repairWhitespace(text: string) {
 
 function hasPromptDisclosure(text: string) {
   return PROMPT_DISCLOSURE.some((pattern) => pattern.test(text));
+}
+
+function extractUserText(prompt: unknown) {
+  if (!Array.isArray(prompt)) return "";
+  return prompt
+    .flatMap((message) => {
+      if (!message || typeof message !== "object") return [];
+      const raw = message as { role?: unknown; content?: unknown };
+      if (raw.role !== "user") return [];
+      if (typeof raw.content === "string") return [raw.content];
+      if (!Array.isArray(raw.content)) return [];
+      return raw.content.flatMap((part) => {
+        if (!part || typeof part !== "object") return [];
+        const text = (part as { type?: unknown; text?: unknown }).type === "text"
+          ? (part as { text?: unknown }).text
+          : undefined;
+        return typeof text === "string" ? [text] : [];
+      });
+    })
+    .join("\n");
 }
 
 function hasUnsafeLivePaperDisclosure(text: string) {
@@ -58,7 +84,17 @@ function hasAnswerKeyDump(text: string) {
   return answerLines.length >= 3;
 }
 
-export function normaliseTestingReply(text: string): string {
+function hasWidgetEcho(text: string) {
+  const questionLines = text.match(QUESTION_LINE) ?? [];
+  const optionLines = text.match(OPTION_LINE) ?? [];
+  const bulletLines = text.match(BULLET_LINE) ?? [];
+  return questionLines.length >= 3 || optionLines.length >= 6 || bulletLines.length >= 3;
+}
+
+export function normaliseTestingReply(
+  text: string,
+  options?: { forceBoundaryRefusal?: boolean; hasWidgetTool?: boolean },
+): string {
   const repaired = repairWhitespace(text);
   if (!repaired) return INCOMPLETE_REPLY;
 
@@ -66,30 +102,71 @@ export function normaliseTestingReply(text: string): string {
   if (hasUnsafeLivePaperDisclosure(repaired) || hasAnswerKeyDump(repaired)) {
     return EXAM_INTEGRITY_REPLY;
   }
+  if (hasWidgetEcho(repaired)) {
+    return options?.forceBoundaryRefusal
+      ? `${BOUNDARY_REPLY}\n\n${WIDGET_NOTE_REPLY}`
+      : WIDGET_NOTE_REPLY;
+  }
+  if (options?.forceBoundaryRefusal) {
+    if (
+      repaired.length > 180 ||
+      /\b(?:mcq|mcqs|flashcards?|quiz|question|questions)\b/i.test(repaired)
+    ) {
+      return `${BOUNDARY_REPLY}\n\n${WIDGET_NOTE_REPLY}`;
+    }
+    if (!REFUSAL_LANGUAGE.test(repaired)) {
+      return `${BOUNDARY_REPLY}\n\n${repaired}`;
+    }
+  }
 
   return repaired;
 }
 
 export const testingGuardrails: LanguageModelMiddleware = {
   specificationVersion: "v3",
-  wrapGenerate: async ({ doGenerate }) => {
+  wrapGenerate: async ({ doGenerate, params }) => {
+    const userText = extractUserText(params.prompt);
+    const forceBoundaryRefusal = hasPromptDisclosure(userText);
     const result = await doGenerate();
+    const hasWidgetTool = result.content.some(
+      (part) =>
+        part.type === "tool-call" &&
+        (part.toolName === "createMcqSet" || part.toolName === "createFlashcards"),
+    );
     return {
       ...result,
       content: result.content.map((part) =>
-        part.type === "text" ? { ...part, text: normaliseTestingReply(part.text) } : part,
+        part.type === "text"
+          ? {
+              ...part,
+              text: normaliseTestingReply(part.text, {
+                forceBoundaryRefusal,
+                hasWidgetTool,
+              }),
+            }
+          : part,
       ),
     };
   },
-  wrapStream: async ({ doStream }) => {
+  wrapStream: async ({ doStream, params }) => {
+    const userText = extractUserText(params.prompt);
+    const forceBoundaryRefusal = hasPromptDisclosure(userText);
     const result = await doStream();
     const blocks = new Map<string, string>();
+    let hasWidgetTool = false;
 
     return {
       ...result,
       stream: result.stream.pipeThrough(
         new TransformStream<LanguageModelV3StreamPart, LanguageModelV3StreamPart>({
           transform(chunk, controller) {
+            if (
+              chunk.type === "tool-call" &&
+              (chunk.toolName === "createMcqSet" || chunk.toolName === "createFlashcards")
+            ) {
+              hasWidgetTool = true;
+            }
+
             if (chunk.type === "text-start") {
               blocks.set(chunk.id, "");
             }
@@ -105,7 +182,10 @@ export const testingGuardrails: LanguageModelMiddleware = {
               controller.enqueue({
                 type: "text-delta",
                 id: chunk.id,
-                delta: normaliseTestingReply(blocks.get(chunk.id)!),
+                delta: normaliseTestingReply(blocks.get(chunk.id)!, {
+                  forceBoundaryRefusal,
+                  hasWidgetTool,
+                }),
               });
               blocks.delete(chunk.id);
             }

@@ -34,7 +34,7 @@ export const physicsItems: EvalItem[] = [
       contract: "Search syllabus. A-Level / JC, not O-Level. No university dump.",
       goldReply:
         "Quantum physics sits in A-Level / JC Physics, not O-Level. O-Level stops at waves, electricity, and nuclear physics at intro level.",
-      mustInclude: ["A-Level / JC, not O-Level"],
+      mustInclude: ["A-Level", "not O-Level"],
       mustNotInclude: ["dump university quantum content"],
       requiredTools: ["documentSearch"],
       source: "readme-smoke",

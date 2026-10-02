@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: METS Promptfoo evaluation suite
+basePath: .
+
+prompts:
+  - id: mets-eval
+    raw: "{{prompt}}"
+
+providers:
+  - id: exec:node --import tsx promptfoo/run-eval.ts
+    label: mets-evals
+
+tests:
+  - file://promptfoo/tests.generated.json
+
+evaluateOptions:
+  maxConcurrency: 2
+
+sharing: false
+writeLatestResults: true

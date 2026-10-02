@@ -39,6 +39,11 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - blocks obvious live-paper wording leaks
   - blocks obvious full answer-key dumps in prose
   - preserves tool calls/results while filtering text blocks
+- Follow-up quizzes can now use **topic-scoped adaptive difficulty**:
+  - `getTopicScoreContext` now prefers persisted Supabase-backed topic summaries and falls back to profile-note hints only when persisted history is unavailable
+  - `planAssessment` derives `easier`, `standard`, or `harder` from explicit score bands
+  - below 60% -> `easier`, 60% to 79% -> `standard`, 80% and above -> `harder`
+  - a weak kinematics record should not affect an unrelated heat, bonding, or differentiation quiz
 - Physics MCQ generation has an extra validation guard for **numeric explanation vs correct-answer mismatches**
 - `recordPerformance` is now treated as a **note-only tool** during assessment generation and its tool schema is strict about extra fields
 - Signed-in students now also have **persistent MCQ score tracking** backed by Supabase:
@@ -83,7 +88,9 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
 The intended responsibility split is:
 
 - **subject-source tools** → gather subject-grounded content
-- **assessment planner** → infer mode, topics, and visual need
+- **score-context helper** → find topic-scoped score evidence before follow-up quizzes
+- **score-history summary helpers** → normalise persisted attempt buckets and expose stable topic-scoped lookups
+- **assessment planner** → infer mode, topics, visual need, and difficulty
 - **widget tools** → produce valid MCQ / flashcard payloads
 - **logging tools** → record compact Testing notes for follow-up
 - **score-history persistence** → save completed signed-in MCQ attempts and summarise improvement/regression
@@ -115,6 +122,7 @@ This separation matters for the professors' software-engineering emphasis.
 ### Internal helper tools
 
 - `planAssessment`
+- `getTopicScoreContext`
 - `getRecentPerformance`
 - `createMermaidDiagram`
 - `recordPerformance` (assessment note only; no outcome or score fields)
@@ -125,6 +133,8 @@ This separation matters for the professors' software-engineering emphasis.
 - **Maths**: Testing-owned source-tool path implemented and exercised through the harness
 - **Chemistry**: Testing-owned source-tool path implemented and exercised through the harness
 - **Score tracking**: signed-in MCQ attempt persistence and sidebar trend summary are implemented and now reaching the live Supabase table in initial testing
+- **Adaptive follow-up difficulty**: topic-scoped score lookup plus `easier` / `standard` / `harder` planning is implemented; persisted Supabase-backed score summaries are now the source of truth, with profile-note hints only as a fallback
+- **Promptfoo CI support**: the Testing smoke-subset evals now feed a project-wide Promptfoo regression baseline, so accepted CI coverage has a merge-blocking regression gate instead of being informational only
 
 All three now follow the same intended source-tool contract.
 
@@ -193,11 +203,16 @@ All three now follow the same intended source-tool contract.
    - it now behaves as a note-only tool in the successful reruns
    - invented outcome fields were removed from the later successful runs
 
-5. **Source-pack heuristics improved, but are still somewhat coarse**
+5. **Adaptive difficulty now has a safer contract**
+   - follow-up quizzes now inspect persisted topic summaries first, with note parsing only as a fallback
+   - deterministic bands now decide difficulty: below 60% -> easier, 60% to 79% -> standard, 80%+ -> harder
+   - the topic scope is preserved, so one weak topic should not leak into unrelated quiz requests
+
+6. **Source-pack heuristics improved, but are still somewhat coarse**
    - wave prompts now suggest a **wave diagram** instead of an irrelevant force diagram
    - source chunks, key concepts, and hints can still be broader than ideal because they come from syllabus excerpts
 
-6. **Remaining limitation**
+7. **Remaining limitation**
    - the contract exists for all three subjects, but source-pack quality and follow-up behaviour still need refinement
    - harness coverage should keep expanding for more mixed, follow-up, and unsupported-topic cases
 
@@ -216,6 +231,8 @@ All three now follow the same intended source-tool contract.
 - Validation for duplicate IDs and invalid `correctOptionId`
 - Physics MCQ validation for explanation-vs-answer numeric mismatches
 - Strict note-only `recordPerformance` input contract
+- Topic-scoped adaptive-difficulty contract via `getTopicScoreContext` + `planAssessment`
+- Persisted-score-summary lookup via `testing_attempts` / `score-history.ts` rather than relying only on free-text notes
 - Structured source-pack contract for Maths, Physics, and Chemistry
 - Deterministic unit tests for planner behaviour, Testing guardrails, and tool validation
 - Harness-based debugging surface for Testing in isolation
@@ -243,7 +260,7 @@ All three now follow the same intended source-tool contract.
 2. Do a more thorough signed-in score-tracking pass across multiple topics and repeated attempts
 3. Confirm live UI behaviour after the auth/login path, including sidebar score-history updates after MCQ submission
 4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, follow-up prompts, and any further guardrail edge cases
-5. Decide whether Testing follow-up logic should also consume the stored score summaries later
+5. Decide whether adaptive lookups should stay MCQ-only or later expand to other persisted Testing history signals such as future flashcard completion history
 6. Decide whether harness output should include even richer debugging metadata
 
 ## Suggested final-report framing
