@@ -19,23 +19,7 @@ import {
   recordPerformanceTool,
 } from "./tools";
 
-function hasTopicScopedScoreHint(request: string, notes: string[]) {
-  const topics = extractAssessmentTopics(request);
-  if (!topics.length) return false;
-
-  const topicWords = topics
-    .flatMap((topic) => topic.toLowerCase().split(/\s+/))
-    .filter((word) => word.length >= 3);
-
-  return notes.some((note) => {
-    const lower = note.toLowerCase();
-    if (!topicWords.some((word) => lower.includes(word))) return false;
-    return /\d+(?:\.\d+)?\s*%/.test(lower) && /trend[:\s]+(improving|regressing|stable|new)/i.test(lower);
-  });
-}
-
 function requiredFirstStepTool(
-  ctx: AgentRuntimeContext,
   messages: Array<{ role?: string; content?: unknown }>,
 ) {
   const latest = [...messages].reverse().find((message) => message.role === "user");
@@ -48,12 +32,21 @@ function requiredFirstStepTool(
     /\b(?:quiz|mcq|mcqs|flashcards?|revision cards?|study cards?|test me|practice questions?|assessment)\b/i.test(
       text,
     );
+  const looksLikeFlashcards =
+    /\b(?:flashcards?|revision cards?|study cards?)\b/i.test(text);
+  const sourceTool = selectAssessmentSourceTool(text);
+  const topics = extractAssessmentTopics(text);
 
-  if (looksLikeAssessmentRequest && hasTopicScopedScoreHint(text, ctx.profile.notes)) {
+  if (
+    looksLikeAssessmentRequest &&
+    !looksLikeFlashcards &&
+    sourceTool &&
+    topics.length > 0
+  ) {
     return "getTopicScoreContext";
   }
 
-  return selectAssessmentSourceTool(text);
+  return sourceTool;
 }
 
 export function createTestingAgent(ctx: AgentRuntimeContext) {
@@ -78,7 +71,7 @@ export function createTestingAgent(ctx: AgentRuntimeContext) {
     },
     prepareStep: ({ stepNumber, messages }) => {
       if (stepNumber !== 0) return {};
-      const toolName = requiredFirstStepTool(ctx, messages);
+      const toolName = requiredFirstStepTool(messages);
       return toolName ? { toolChoice: { type: "tool", toolName } } : {};
     },
     stopWhen: stepCountIs(10),

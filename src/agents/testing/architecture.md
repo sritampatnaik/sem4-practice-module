@@ -77,6 +77,6 @@ flowchart TD
 - **`recordPerformance` stays note-only**: score tracking does **not** overload the earlier Testing note log.
 - **Local guardrails stay narrow**: the Testing middleware blocks obvious hidden-prompt disclosures, live-paper wording leaks, and answer-key dumps in prose, but broader student-safety escalation still belongs to `src/agents/guardrail/`.
 - **Score history grouping**: repeated MCQ attempts are grouped by **subject + topic/family + mode** so the UI can show improvement, regression, or stability.
-- **Current adaptive boundary**: follow-up difficulty is topic-scoped and note-driven today; persisted Supabase score summaries are visible in the UI but are not yet fed back into agent planning automatically.
+- **Current adaptive boundary**: follow-up difficulty is topic-scoped and now prefers persisted Supabase score summaries; profile-note hints are only a fallback when persisted history is unavailable.
 - **Deployment boundary**: the score-history flow depends on the migration-defined `public.testing_attempts` schema; once that table exists, the same API/UI path works without code changes.
 - **Validation-first design**: strict note-only logging, tool schemas, guardrail tests, planner tests, and score/source regressions support software-engineering grading points such as modularity, explicit contracts, and testability.

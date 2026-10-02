@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import type { AgentRuntimeContext } from "../_shared/types";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   buildAssessmentPlan,
   buildMermaidDiagram,
@@ -9,7 +10,13 @@ import {
   VISUAL_FORMATS,
   type ScoreContext,
 } from "./assessment-planner";
-import type { TestingTrend } from "./score-history";
+import {
+  findTestingAttemptSummary,
+  summariseTestingAttempts,
+  toPersistedTopicScoreContext,
+  type TestingAttemptRecord,
+  type TestingTrend,
+} from "./score-history";
 import {
   appendAssessmentPerformanceEntry,
   readRecentAssessmentPerformance,
@@ -27,6 +34,21 @@ const visualFormatSchema = z.enum(VISUAL_FORMATS);
 const difficultyLevelSchema = z.enum(DIFFICULTY_LEVELS);
 const trendSchema = z.enum(["new", "improving", "regressing", "stable"] as const satisfies readonly [TestingTrend, ...TestingTrend[]]);
 const nonEmptyText = z.string().trim().min(1);
+
+type TestingAttemptRow = {
+  id: string;
+  user_id: string;
+  conversation_id: string;
+  subject: z.infer<typeof subjectSchema>;
+  mode: z.infer<typeof testingModeSchema>;
+  topic_key: string;
+  topic_label: string;
+  title: string;
+  score: number;
+  total_questions: number;
+  topics: unknown;
+  completed_at: string;
+};
 
 function findDuplicateIds(values: { id: string }[]) {
   const seen = new Set<string>();
@@ -180,10 +202,8 @@ export const planAssessmentTool = tool({
 });
 
 /**
- * Extract topic-scoped score context from profile notes or performance text.
- * Searches notes for a line that mentions one of the given topics and contains
- * both a percentage and a trend label. Returns null if no matching note is found.
- * Topic-scoped: a kinematics note will not match a heat query.
+ * Extract fallback topic-scoped score context from profile notes.
+ * This is used only when persisted score summaries are unavailable.
  */
 function extractTopicScoreFromNotes(
   notes: string[],
@@ -211,22 +231,109 @@ function extractTopicScoreFromNotes(
   return null;
 }
 
+function mapAttemptRow(row: TestingAttemptRow): TestingAttemptRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    conversationId: row.conversation_id,
+    subject: row.subject,
+    mode: row.mode,
+    topicKey: row.topic_key,
+    topicLabel: row.topic_label,
+    title: row.title,
+    score: row.score,
+    totalQuestions: row.total_questions,
+    completedAt: row.completed_at,
+    topics: Array.isArray(row.topics)
+      ? row.topics.filter((topic): topic is string => typeof topic === "string")
+      : [],
+  };
+}
+
+async function readPersistedTopicScoreContext(
+  ctx: AgentRuntimeContext,
+  subject: z.infer<typeof subjectSchema>,
+  topics: string[],
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const conversation = await supabase
+    .from("conversations")
+    .select("user_id")
+    .eq("id", ctx.sessionId)
+    .maybeSingle();
+
+  const conversationUserId =
+    !conversation.error && typeof conversation.data?.user_id === "string"
+      ? conversation.data.user_id
+      : null;
+
+  let attemptsQuery = supabase
+    .from("testing_attempts")
+    .select(
+      "id, user_id, conversation_id, subject, mode, topic_key, topic_label, title, score, total_questions, topics, completed_at",
+    )
+    .eq("subject", subject)
+    .eq("mode", "mcq")
+    .order("completed_at", { ascending: false })
+    .limit(80);
+
+  attemptsQuery = conversationUserId
+    ? attemptsQuery.eq("user_id", conversationUserId)
+    : attemptsQuery.eq("conversation_id", ctx.sessionId);
+
+  const { data, error } = await attemptsQuery;
+  if (error || !data?.length) return null;
+
+  const summaries = summariseTestingAttempts(
+    (data as TestingAttemptRow[]).map(mapAttemptRow),
+  );
+  const summary = findTestingAttemptSummary(summaries, {
+    subject,
+    mode: "mcq",
+    topics,
+    title: topics.join(" "),
+  });
+  if (!summary) return null;
+
+  return toPersistedTopicScoreContext(summary);
+}
+
 export function getTopicScoreContextTool(ctx: AgentRuntimeContext) {
   return tool({
     description:
       "Look up topic-scoped score history for the student before calling planAssessment. " +
-      "Searches the student's profile notes and recent performance notes for a score entry matching the given subject and topics. " +
-      "Returns trend and latestPercentage only for the matching topic — a kinematics score will never affect a heat quiz. " +
-      "Returns null if no matching score history is found (guest user or first attempt on this topic).",
+      "Prefer persisted testing attempt summaries as the source of truth, matched by subject + topic bucket + mcq mode. " +
+      "Fall back to profile-note score hints only when persisted history is unavailable. " +
+      "Returns topic-scoped trend and percentages only for the matching topic — a kinematics score will never affect a heat quiz.",
     inputSchema: z.object({
       subject: subjectSchema,
       topics: z.array(nonEmptyText).min(1).max(4),
     }),
-    execute: async ({ topics }) => {
+    execute: async ({ subject, topics }) => {
+      const persisted = await readPersistedTopicScoreContext(ctx, subject, topics);
+      if (persisted) {
+        return {
+          available: true as const,
+          source: "persisted-score-history" as const,
+          ...persisted,
+        };
+      }
+
       const allNotes = ctx.profile.notes;
       const result = extractTopicScoreFromNotes(allNotes, topics);
       if (!result) return { available: false as const };
-      return { available: true as const, ...result };
+      return {
+        available: true as const,
+        source: "profile-notes" as const,
+        previousPercentage: null,
+        bestPercentage: result.latestPercentage,
+        attemptsCount: 1,
+        topicKey: topics.join("--").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        topicLabel: topics.join(" / "),
+        ...result,
+      };
     },
   });
 }

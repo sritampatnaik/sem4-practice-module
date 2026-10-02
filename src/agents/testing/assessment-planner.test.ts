@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildAssessmentPlan, buildMermaidDiagram, deriveDifficulty, extractAssessmentTopics } from "./assessment-planner";
+import {
+  buildAssessmentPlan,
+  buildMermaidDiagram,
+  deriveDifficulty,
+  EASIER_MAX_PERCENTAGE,
+  extractAssessmentTopics,
+  HARDER_MIN_PERCENTAGE,
+} from "./assessment-planner";
 
 test("planner defaults to mcq, detects flashcards, and marks visual requests", () => {
   const mcqPlan = buildAssessmentPlan({
@@ -34,8 +41,9 @@ test("deriveDifficulty returns standard with no score context", () => {
   assert.equal(deriveDifficulty(undefined), "standard");
 });
 
-test("deriveDifficulty returns easier when trend is regressing", () => {
-  assert.equal(deriveDifficulty({ trend: "regressing", latestPercentage: 55 }), "easier");
+test("deriveDifficulty returns easier below the lower threshold", () => {
+  assert.equal(deriveDifficulty({ trend: "regressing", latestPercentage: EASIER_MAX_PERCENTAGE }), "easier");
+  assert.equal(deriveDifficulty({ trend: "improving", latestPercentage: 20 }), "easier");
 });
 
 test("deriveDifficulty returns easier when percentage is below 60 regardless of trend", () => {
@@ -43,13 +51,16 @@ test("deriveDifficulty returns easier when percentage is below 60 regardless of 
   assert.equal(deriveDifficulty({ trend: "new", latestPercentage: 50 }), "easier");
 });
 
-test("deriveDifficulty returns harder when improving and percentage is 80 or above", () => {
+test("deriveDifficulty returns harder at or above the upper threshold", () => {
   assert.equal(deriveDifficulty({ trend: "improving", latestPercentage: 85 }), "harder");
-  assert.equal(deriveDifficulty({ trend: "improving", latestPercentage: 80 }), "harder");
+  assert.equal(deriveDifficulty({ trend: "stable", latestPercentage: HARDER_MIN_PERCENTAGE }), "harder");
+  assert.equal(deriveDifficulty({ trend: "regressing", latestPercentage: 92 }), "harder");
 });
 
-test("deriveDifficulty returns standard when improving but percentage is below 80", () => {
+test("deriveDifficulty returns standard between 60 and 79 regardless of trend", () => {
   assert.equal(deriveDifficulty({ trend: "improving", latestPercentage: 65 }), "standard");
+  assert.equal(deriveDifficulty({ trend: "regressing", latestPercentage: 60 }), "standard");
+  assert.equal(deriveDifficulty({ trend: "stable", latestPercentage: 79 }), "standard");
 });
 
 test("deriveDifficulty returns standard for stable mid-range score", () => {
@@ -75,6 +86,7 @@ test("buildAssessmentPlan includes difficulty standard when no score context", (
   });
 
   assert.equal(plan.difficulty, "standard");
+  assert.match(plan.rationale, /No score context is available/i);
 });
 
 test("mermaid builder escapes labels and emits a small graph", () => {

@@ -131,7 +131,7 @@ This separation matters for the professors' software-engineering emphasis.
 - **Maths**: Testing-owned source-tool path implemented and exercised through the harness
 - **Chemistry**: Testing-owned source-tool path implemented and exercised through the harness
 - **Score tracking**: signed-in MCQ attempt persistence and sidebar trend summary are implemented and now reaching the live Supabase table in initial testing
-- **Adaptive follow-up difficulty**: topic-scoped score-note lookup plus `easier` / `standard` / `harder` planning is implemented; the current source is profile-note context rather than the persisted Supabase summaries
+- **Adaptive follow-up difficulty**: topic-scoped score lookup plus `easier` / `standard` / `harder` planning is implemented; persisted Supabase-backed score summaries are now the source of truth, with profile-note hints only as a fallback
 
 All three now follow the same intended source-tool contract.
 
@@ -203,7 +203,7 @@ All three now follow the same intended source-tool contract.
 5. **Adaptive difficulty now has a safer contract**
    - follow-up quizzes can inspect topic-scoped score notes before planning
    - regressing or low-score topics can be made easier without leaking that adjustment across unrelated topics
-   - the current adaptive path still needs fuller live evidence and does not yet consume the persisted sidebar score summaries directly
+   - the adaptive path now consumes persisted topic summaries first, but still needs fuller live evidence across more topics and repeated attempts
 
 6. **Source-pack heuristics improved, but are still somewhat coarse**
    - wave prompts now suggest a **wave diagram** instead of an irrelevant force diagram
@@ -256,7 +256,7 @@ All three now follow the same intended source-tool contract.
 2. Do a more thorough signed-in score-tracking pass across multiple topics and repeated attempts
 3. Confirm live UI behaviour after the auth/login path, including sidebar score-history updates after MCQ submission
 4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, follow-up prompts, and any further guardrail edge cases
-5. Decide whether Testing follow-up logic should also consume the stored score summaries later, because the current adaptive path is still note-driven
+5. Decide whether adaptive lookups should stay MCQ-only or later expand to other persisted Testing history signals
 6. Decide whether harness output should include even richer debugging metadata
 
 ## Suggested final-report framing

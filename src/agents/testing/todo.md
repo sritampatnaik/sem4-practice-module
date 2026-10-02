@@ -64,7 +64,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - live Testing-flow generation still depends on `OPENAI_API_KEY`
 - richer evidence is still needed for repeated-attempt trend behaviour beyond the first successful manual score-history checks
 - live model evidence is still needed for the new guardrails because the current session only validated deterministic local tests, type-checking, and eval-catalog wiring
-- the current adaptive-difficulty path is still note-driven; persisted Supabase score summaries are visible in the UI but not yet reused by the agent
+- adaptive difficulty now prefers persisted topic summaries, but broader repeated-attempt evidence is still needed across more subjects and topic buckets
 
 ## First tasks for next session
 

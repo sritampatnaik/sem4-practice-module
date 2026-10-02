@@ -45,7 +45,7 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 ## Internal helper tools now available
 
 - `planAssessment` — internal planning aid for MCQ vs flashcard, topic extraction, and whether a Mermaid diagram may help
-- `getTopicScoreContext` — looks for topic-scoped score notes before a follow-up quiz so only the matching topic affects adaptive difficulty
+- `getTopicScoreContext` — looks up topic-scoped score history before a quiz; persisted score summaries are the source of truth and profile-note score hints are only a fallback
 - `getRecentPerformance` — reads the latest Testing notes for the current session from `logs/testing-performance/`
 - `createMermaidDiagram` — builds Mermaid text for simple labelled visuals; the current UI does **not** render Mermaid yet
 - `recordPerformance` — stores a compact Testing note for later follow-up; this tool is note-only, so do not include outcome or score fields
@@ -63,9 +63,11 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
 - The first UI surface is the student sidebar, which shows latest, previous, and best saved MCQ results so improvement or regression is visible over time.
 - Initial live testing now confirms the score-history flow can save into the Supabase table and render back into the sidebar.
 - Follow-up quiz planning now also supports **topic-scoped adaptive difficulty**:
-  - `getTopicScoreContext` checks score notes for the same topic only
-  - `planAssessment` can derive `easier`, `standard`, or `harder`
-  - current adaptive lookups are still note-driven; the persisted Supabase score summaries are **not** yet fed back into agent planning automatically
+  - `getTopicScoreContext` now prefers persisted Supabase-backed score summaries for the same topic bucket and only falls back to profile-note hints when persisted history is unavailable
+  - `planAssessment` now derives `easier`, `standard`, or `harder` with deterministic score bands:
+    - below 60% → `easier`
+    - 60% to 79% → `standard`
+    - 80% and above → `harder`
 
 ## Current subject-sourcing direction
 
@@ -93,8 +95,8 @@ The `execute` functions currently echo the structured input. That is enough for 
 - If the subject is ambiguous, pick one and say so, or ask one clarifying question.
 - Treat Math / Physics / Chemistry as black-box specialists. Testing should use its own tools and shared syllabus search rather than calling subject agents.
 - Ground Maths, Physics, and Chemistry assessments through `getMathAssessmentSource`, `getPhysicsAssessmentSource`, and `getChemistryAssessmentSource` instead of relying on unstated subject knowledge alone.
-- For follow-up quizzes, use `getTopicScoreContext` before `planAssessment` when topic-scoped score notes may exist.
-- Keep adaptive difficulty topic-scoped: a kinematics score note must not affect a heat, bonding, or differentiation quiz.
+- For MCQ-style quizzes with a clear subject/topic, use `getTopicScoreContext` before `planAssessment`.
+- Keep adaptive difficulty topic-scoped: a kinematics score summary must not affect a heat, bonding, or differentiation quiz.
 - If `planAssessment` returns `easier`, prefer simpler numbers and more direct single-step reasoning. If it returns `harder`, prefer richer application or multi-step items.
 - `recordPerformance` is for assessment notes only and should not log outcome or score fields during ordinary assessment generation.
 - Keep one public Testing agent. If you need more modularity, add helper modules/tools inside `src/agents/testing/` rather than adding new top-level routed agents.

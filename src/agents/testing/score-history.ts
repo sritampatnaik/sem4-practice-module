@@ -38,6 +38,16 @@ export type TestingAttemptSnapshot = {
 
 export type TestingTrend = "new" | "improving" | "regressing" | "stable";
 
+export type PersistedTopicScoreContext = {
+  latestPercentage: number;
+  previousPercentage: number | null;
+  bestPercentage: number;
+  trend: TestingTrend;
+  attemptsCount: number;
+  topicKey: string;
+  topicLabel: string;
+};
+
 function cleanText(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -90,6 +100,27 @@ export function buildTestingTopicLabel(input: { topics: string[]; title: string 
   const topics = normaliseAttemptTopics(input.topics);
   if (topics.length > 0) return topics.join(" / ");
   return cleanText(input.title) || "General practice";
+}
+
+export function buildTestingTopicLookupKeys(input: { topics: string[]; title?: string }) {
+  const topics = normaliseAttemptTopics(input.topics);
+  const fallbackTitle = cleanText(input.title ?? topics.join(" "));
+  const keys = new Set<string>();
+
+  if (topics.length > 0) {
+    keys.add(buildTestingTopicKey({ topics, title: fallbackTitle }));
+
+    for (const topic of topics) {
+      keys.add(buildTestingTopicKey({ topics: [topic], title: topic }));
+    }
+  }
+
+  if (fallbackTitle) {
+    keys.add(buildTestingTopicKey({ topics: [], title: fallbackTitle }));
+  }
+
+  keys.delete("general");
+  return [...keys];
 }
 
 function toPercentage(score: number, totalQuestions: number) {
@@ -161,4 +192,37 @@ export function summariseTestingAttempts(attempts: TestingAttemptRecord[]) {
   return summaries.sort(
     (left, right) => Date.parse(right.latest.completedAt) - Date.parse(left.latest.completedAt),
   );
+}
+
+export function findTestingAttemptSummary(
+  summaries: TestingAttemptSummary[],
+  options: {
+    subject: Subject;
+    mode: TestingMode;
+    topics: string[];
+    title?: string;
+  },
+): TestingAttemptSummary | null {
+  const candidateKeys = new Set(
+    buildTestingTopicLookupKeys({ topics: options.topics, title: options.title }),
+  );
+
+  for (const summary of summaries) {
+    if (summary.subject !== options.subject || summary.mode !== options.mode) continue;
+    if (candidateKeys.has(summary.topicKey)) return summary;
+  }
+
+  return null;
+}
+
+export function toPersistedTopicScoreContext(summary: TestingAttemptSummary): PersistedTopicScoreContext {
+  return {
+    latestPercentage: summary.latest.percentage,
+    previousPercentage: summary.previous?.percentage ?? null,
+    bestPercentage: summary.best.percentage,
+    trend: summary.trend,
+    attemptsCount: summary.attemptsCount,
+    topicKey: summary.topicKey,
+    topicLabel: summary.topicLabel,
+  };
 }

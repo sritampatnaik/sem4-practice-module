@@ -15,6 +15,9 @@ export type ScoreContext = {
   latestPercentage: number;
 };
 
+export const EASIER_MAX_PERCENTAGE = 59;
+export const HARDER_MIN_PERCENTAGE = 80;
+
 type AssessmentPlanInput = {
   request: string;
   subject?: Subject;
@@ -143,9 +146,9 @@ function inferVisualFormat(request: string): VisualFormat {
 
 export function deriveDifficulty(scoreContext?: ScoreContext): DifficultyLevel {
   if (!scoreContext) return "standard";
-  const { trend, latestPercentage } = scoreContext;
-  if (trend === "regressing" || latestPercentage < 60) return "easier";
-  if (trend === "improving" && latestPercentage >= 80) return "harder";
+  const { latestPercentage } = scoreContext;
+  if (latestPercentage <= EASIER_MAX_PERCENTAGE) return "easier";
+  if (latestPercentage >= HARDER_MIN_PERCENTAGE) return "harder";
   return "standard";
 }
 
@@ -157,10 +160,12 @@ export function buildAssessmentPlan(input: AssessmentPlanInput): AssessmentPlan 
 
   const difficultyRationale =
     difficulty === "easier"
-      ? `Score context shows trend="${input.scoreContext?.trend}", latest=${input.scoreContext?.latestPercentage}% — generating easier items.`
+      ? `Score context shows trend="${input.scoreContext?.trend}", latest=${input.scoreContext?.latestPercentage}% — latest score is below 60%, so generate easier items.`
       : difficulty === "harder"
-        ? `Score context shows trend="${input.scoreContext?.trend}", latest=${input.scoreContext?.latestPercentage}% — generating harder items.`
-        : "No score context or score is mid-range — using standard difficulty.";
+        ? `Score context shows trend="${input.scoreContext?.trend}", latest=${input.scoreContext?.latestPercentage}% — latest score is 80% or above, so generate harder items.`
+        : input.scoreContext
+          ? `Score context shows trend="${input.scoreContext.trend}", latest=${input.scoreContext.latestPercentage}% — latest score is between 60% and 79%, so use standard difficulty.`
+          : "No score context is available — using standard difficulty.";
 
   const rationaleParts = [
     mode === "flashcards"

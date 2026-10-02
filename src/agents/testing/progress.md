@@ -56,7 +56,7 @@ Future chat sessions can read this file first to resume work quickly.
   - flashcard schema: 3-8 cards
   - current `execute` functions echo structured input for the UI
   - `recordPerformance` now uses a strict note-only input contract
-  - `getTopicScoreContext` now exposes topic-scoped score-note lookups for follow-up quiz adaptation
+  - `getTopicScoreContext` now prefers persisted topic summaries from `testing_attempts` and only falls back to profile-note score hints when persisted history is unavailable
 - `index.ts`
   - wires the Testing Agent with both widget tools
   - includes syllabus search tools for all three subjects
@@ -65,7 +65,8 @@ Future chat sessions can read this file first to resume work quickly.
   - now exposes `getTopicScoreContext` so follow-up planning can stay topic-scoped
   - uses `ToolLoopAgent` and `stepCountIs(10)`
 - `assessment-planner.ts`
-  - now derives `easier`, `standard`, or `harder` difficulty from topic-scoped score context
+  - now derives `easier`, `standard`, or `harder` difficulty from explicit score bands
+  - below 60% => `easier`, 60% to 79% => `standard`, 80% and above => `harder`
   - keeps the default path at `standard` when there is no matching score evidence
 - `guardrails.ts`
   - blocks obvious hidden-prompt disclosures, live-paper wording leaks, and full answer-key dumps in prose
