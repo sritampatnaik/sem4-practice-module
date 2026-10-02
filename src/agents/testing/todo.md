@@ -2,11 +2,11 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Date started:** 2026-08-17  
-**Last updated:** 2026-09-26
+**Last updated:** 2026-10-01
 
 ## Session wrap-up
 
-Testing now has a first Testing-local guardrail layer plus stronger deterministic unit coverage, while the earlier score-tracking slice remains wired and passing its initial signed-in live checks.
+Testing now has a first Testing-local guardrail layer plus stronger deterministic unit coverage, while the earlier score-tracking slice remains wired and passing its initial signed-in live checks. Follow-up quiz planning now also has a topic-scoped adaptive-difficulty path, but it still needs fuller live evidence.
 
 ## Completed recently
 
@@ -35,6 +35,9 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
   - [x] `tools.ts` validation paths
 - [x] Tighten `recordPerformance` with a strict note-only input contract.
 - [x] Add a Testing eval item for ignore-instructions / hidden-rules resistance.
+- [x] Add `getTopicScoreContext` so follow-up quizzes can look up topic-scoped score notes before planning.
+- [x] Extend `assessment-planner.ts` with `easier` / `standard` / `harder` difficulty planning.
+- [x] Add a Testing adaptive-difficulty eval for a regressing kinematics student.
 
 ## In progress now
 
@@ -49,6 +52,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
   - [ ] check another subject/topic case
 - [ ] Decide whether Testing follow-up logic should later read the persistent score summaries as well as note-only performance logs.
 - [ ] Run live harness or desk checks for the new Testing-local guardrails once `OPENAI_API_KEY` is available.
+- [ ] Run at least one live or harness follow-up quiz that proves the adaptive-difficulty signal actually changes the generated question style.
 
 ## Blocked / dependent work
 
@@ -60,6 +64,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - live Testing-flow generation still depends on `OPENAI_API_KEY`
 - richer evidence is still needed for repeated-attempt trend behaviour beyond the first successful manual score-history checks
 - live model evidence is still needed for the new guardrails because the current session only validated deterministic local tests, type-checking, and eval-catalog wiring
+- the current adaptive-difficulty path is still note-driven; persisted Supabase score summaries are visible in the UI but not yet reused by the agent
 
 ## First tasks for next session
 
@@ -72,8 +77,9 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 3. Repeat the same topic with different questions and confirm the history bucket shows improvement/regression correctly.
 4. Test at least one second subject/topic so the progress feature is not only verified on one path.
 5. Run one prompt-injection or answer-key-dump harness scenario and confirm the new guardrail prose fallback appears while tool calls remain intact.
-6. Record the live results and any blockers in `progress.md`.
-7. If score tracking keeps working, decide whether the next slice is:
+6. Run one adaptive follow-up scenario and confirm a regressing topic produces an easier quiz plan without affecting unrelated topics.
+7. Record the live results and any blockers in `progress.md`.
+8. If score tracking keeps working, decide whether the next slice is:
    - agent-side use of stored score summaries
    - richer filtering/history UI
    - or more harness/eval coverage
@@ -92,6 +98,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - [ ] Check whether the short study note after widget creation is consistently concise and useful.
 - [ ] Add direct tool-contract checks for the Testing harness and logging flow.
 - [ ] Decide whether persistent score summaries should inform future Testing-agent adaptation.
+- [ ] Decide whether `getTopicScoreContext` should stay note-only or be upgraded to read the persisted score-history summaries.
 - [ ] Decide whether a combined verifier / marker module should be added next.
 - [ ] Decide whether richer SVG / HTML / CSS visual generation is still needed once Mermaid-first behaviour is tested.
 - [ ] Decide whether Testing needs any additional guardrail-specific harness fixtures beyond the new eval and unit-test coverage.

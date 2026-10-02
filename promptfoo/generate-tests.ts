@@ -4,8 +4,9 @@ import { allEvalItems, refreshEvalCatalog } from "../src/evals/live-catalog";
 import { loadPromptfooEnv } from "./load-env";
 
 /**
- * Smoke subset — 23 of 248 evals (~9%) for CI.
- * Covers: one happy-path per grade band, one tool-use, one boundary/refusal per agent.
+ * Smoke subset — 24 evals (~10%) for CI.
+ * Covers representative happy paths, tool-use checks, and ambiguity / refusal /
+ * integrity boundaries across routing, concierge, specialist, and Testing flows.
  * Run full suite locally: PROMPTFOO_FULL_SUITE=1 npm run promptfoo:prepare
  */
 const SMOKE_IDS = new Set([

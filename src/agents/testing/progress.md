@@ -2,7 +2,7 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Folder:** `src/agents/testing/`  
-**Last updated:** 2026-09-26
+**Last updated:** 2026-10-01
 
 ## Purpose
 
@@ -42,6 +42,7 @@ Future chat sessions can read this file first to resume work quickly.
   - Testing-local guardrails for prompt-disclosure resistance, live-paper wording refusal, and answer-key-dump blocking in prose
   - Testing-owned Maths / Physics / Chemistry source-tool paths for grounding assessments before widget generation
   - signed-in MCQ score tracking backed by Supabase, with sidebar history summaries in the UI
+  - topic-scoped follow-up difficulty planning via `getTopicScoreContext` + `planAssessment`
 
 ## What is already implemented for Testing
 
@@ -55,12 +56,17 @@ Future chat sessions can read this file first to resume work quickly.
   - flashcard schema: 3-8 cards
   - current `execute` functions echo structured input for the UI
   - `recordPerformance` now uses a strict note-only input contract
+  - `getTopicScoreContext` now exposes topic-scoped score-note lookups for follow-up quiz adaptation
 - `index.ts`
   - wires the Testing Agent with both widget tools
   - includes syllabus search tools for all three subjects
   - now forces a subject-matched sourcing step for clear Maths / Physics / Chemistry requests
   - now wraps the model with Testing-local guardrails before streaming prose
+  - now exposes `getTopicScoreContext` so follow-up planning can stay topic-scoped
   - uses `ToolLoopAgent` and `stepCountIs(10)`
+- `assessment-planner.ts`
+  - now derives `easier`, `standard`, or `harder` difficulty from topic-scoped score context
+  - keeps the default path at `standard` when there is no matching score evidence
 - `guardrails.ts`
   - blocks obvious hidden-prompt disclosures, live-paper wording leaks, and full answer-key dumps in prose
   - preserves tool calls/results and replaces interrupted streamed text with a short fallback
@@ -73,6 +79,9 @@ Future chat sessions can read this file first to resume work quickly.
   - normalise repeated MCQ attempts into subject + topic/family + mode history buckets
   - summarise latest / previous / best attempts with improving / regressing / stable trend states
   - persist signed-in MCQ attempts into Supabase and surface them in the student sidebar
+- eval coverage / Promptfoo prep
+  - Testing now has a dedicated adaptive-difficulty eval (`testing-adaptive-difficulty-regressing`)
+  - the project-wide Promptfoo prep script now defaults to a smaller smoke subset for CI, while still keeping a full-suite path for local runs
 
 ## Proposal mapping
 
@@ -192,6 +201,32 @@ Related support work for reporting:
   - run at least one live Testing harness or desk scenario that tries to reveal hidden instructions
   - run one live answer-key-dump attempt and confirm the prose fallback appears without breaking the widget flow
   - continue the repeated-attempt score-history validation pass
+
+## 2026-10-01 adaptive-difficulty and eval-subset update
+
+- **Changed:**
+  - `src/agents/testing/assessment-planner.ts`
+  - `src/agents/testing/assessment-planner.test.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/evals/catalog/testing.ts`
+  - `src/agents/testing/FEATURES.md`
+- **Pulled project-wide alongside this Testing work:**
+  - `promptfoo/generate-tests.ts`
+  - `package.json`
+- **Findings from the pulled changes:**
+  - Testing follow-up quizzes can now look up **topic-scoped** score notes before planning difficulty, so a weak kinematics note does not bleed into unrelated topics
+  - `planAssessment` now derives `easier`, `standard`, or `harder`, with regressing or low-score topics moving to an easier path and strong improving topics able to move harder
+  - the Testing eval catalog now includes explicit adaptive-difficulty coverage for a regressing kinematics student
+  - the Promptfoo pipeline now defaults to a smaller smoke subset in CI, while still preserving a full-suite generation path for broader local evaluation
+- **Blockers / remaining gaps:**
+  - the current adaptive path is still driven by note-style score context rather than the persisted Supabase sidebar summaries
+  - live evidence is still needed to confirm the model reliably follows the easier/harder planning signal in realistic desk or harness runs
+- **Next:**
+  - run at least one live or harness scenario that exercises `getTopicScoreContext` and confirms the resulting quiz actually simplifies when the topic is regressing
+  - decide whether the persisted score-history summaries should become the next source for adaptive follow-up planning
+  - keep the Testing docs aligned with the adaptive-difficulty contract so future sessions do not confuse it with the separate UI score-history flow
 
 ## 2026-09-18 architecture update
 

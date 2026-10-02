@@ -43,7 +43,19 @@ This means Promptfoo is reporting on the same project-defined contracts instead 
 
 ## Commands
 
-Run all suites:
+Generate the default **CI smoke subset**:
+
+```bash
+npm run promptfoo:prepare
+```
+
+Generate the **full** eval suite for broader local runs:
+
+```bash
+npm run promptfoo:prepare:full
+```
+
+Run the generated suite:
 
 ```bash
 npm run promptfoo:eval
@@ -76,6 +88,54 @@ Replace `testing` with one of:
 - `physics`
 - `chemistry`
 - `testing`
+
+## Smoke suite versus full suite
+
+`promptfoo/generate-tests.ts` now supports two generation modes:
+
+- **Smoke mode** (`npm run promptfoo:prepare`) is the default used by CI.
+- **Full mode** (`npm run promptfoo:prepare:full`) sets `PROMPTFOO_FULL_SUITE=1` and emits the entire eval catalog.
+
+The smoke subset is intentionally small so the pipeline still covers the most failure-prone routing, teaching, refusal, and Testing-tool paths without paying the cost of the whole catalog on every push.
+
+Current smoke subset size:
+
+- **24 evals** selected from the larger live catalog
+- representative rather than exhaustive
+- biased toward:
+  - one or more clear happy paths per suite
+  - at least one tool-using path for specialist agents
+  - at least one boundary / refusal / ambiguity case
+  - at least one Testing-specific integrity / adaptation case
+
+## Current smoke subset contents
+
+| Suite | Eval ID | Why this eval is in the smoke subset |
+| --- | --- | --- |
+| routing | `routing-greeting` | Confirms the desk keeps generic capability questions on orchestration instead of over-routing to a subject agent. |
+| routing | `routing-kinematics-trap` | Covers a common ambiguity trap where a numeric word problem must still route to Physics rather than Math. |
+| routing | `routing-quiz-waves` | Verifies that quiz language beats subject language and sends the request to Testing. |
+| routing | `routing-unclear-science` | Checks that unclear science requests stay on the desk for clarification instead of guessing Physics or Chemistry. |
+| concierge | `concierge-who` | Covers the basic identity/capability response for the desk without drifting into specialist teaching. |
+| concierge | `concierge-english` | Exercises an out-of-scope refusal so the desk stays within Math / Physics / Chemistry / Testing. |
+| concierge | `concierge-stuck` | Checks the lightweight coaching path where the desk should ask one diagnostic question instead of dumping a solution. |
+| math | `math-three-quarters` | Primary happy path with tool use (`equationSolver`) for a simple arithmetic explanation. |
+| math | `math-product-rule` | JC happy path with a named H2 calculus method and tool-backed symbolic work. |
+| math | `math-topology-refuse` | Ensures Math refuses out-of-band university content and redirects back to syllabus-safe material. |
+| physics | `physics-fma` | O-Level calculation happy path using `formulaLookup`, representing the most common structured Physics teaching flow. |
+| physics | `physics-quantum` | Grade-band boundary check: the agent must place quantum at A-Level / JC, not O-Level. |
+| physics | `physics-primary-forces` | Primary-level conceptual explanation ensures the Physics agent can downshift its language and avoid over-teaching. |
+| physics | `physics-units-trap` | Captures a Singapore exam-style correctness trap where missing units should be called out explicitly. |
+| physics | `physics-energy` | JC numerical happy path that complements `physics-fma` with a second grade band and another formula-use case. |
+| chemistry | `chem-balance` | Tool-using happy path through `reactionBalancer`, which is a core structured Chemistry capability. |
+| chemistry | `chem-moles` | Straightforward O-Level mole calculation to keep a bread-and-butter quantitative Chemistry path in CI. |
+| chemistry | `chem-safety` | Safety boundary case: the agent must avoid giving a reckless lab procedure and emphasise flammability. |
+| testing | `testing-secondary-kinematics-mcq` | Baseline Testing happy path: standard O-Level Physics MCQ generation. |
+| testing | `testing-secondary-algebra-flashcards` | Confirms the alternative Testing widget path by exercising flashcard generation instead of MCQs. |
+| testing | `testing-refuse-live-paper` | Covers Testing’s live-paper integrity boundary while still expecting an original replacement assessment. |
+| testing | `testing-six-kinematics-mcqs` | Checks that Testing honours an explicit item-count request rather than always using the default range. |
+| testing | `testing-ignore-instructions-attempt` | Exercises prompt-injection resistance and hidden-instruction refusal without breaking widget generation. |
+| testing | `testing-adaptive-difficulty-regressing` | Covers the new adaptive path: topic-scoped score context, planning, and a simpler follow-up quiz for a regressing student. |
 
 ## Environment notes
 
@@ -115,4 +175,5 @@ Without it, the wrapped METS eval runtime cannot run the active LLM judges.
 
 - Promptfoo runs inside the existing `.github/workflows/build.yml` quality-gate workflow
 - it runs on the same PR/push triggers as the other checks job
+- it prepares the **smoke subset** by default, not the full live catalog
 - results are uploaded as workflow artifacts for inspection
