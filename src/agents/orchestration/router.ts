@@ -25,6 +25,16 @@ function lastUserText(messages: Array<{ role: string; parts?: Array<{ type: stri
     .join("\n");
 }
 
+function normalizeOrchestrationTurn<T extends {
+  agent: string;
+  intent: "teaching" | "testing" | "general";
+  subject: "math" | "physics" | "chemistry" | "none";
+}>(routing: T): T {
+  return routing.agent === "orchestration"
+    ? { ...routing, intent: "general" as const, subject: "none" as const }
+    : routing;
+}
+
 export type RoutingTurnResult = RoutingDecision & {
   usage?: { inputTokens?: number; outputTokens?: number };
 };
@@ -52,10 +62,7 @@ export async function routeStudentTurn(options: {
     if (!routed) {
       return { ...heuristicRoute(query, options.ctx.profile.gradeLevel), usage };
     }
-    const normalised =
-      routed.agent === "orchestration"
-        ? { ...routed, intent: "general" as const, subject: "none" as const }
-        : routed;
+    const normalised = normalizeOrchestrationTurn(routed);
     return {
       ...normalised,
       gradeLevel: normalised.gradeLevel || options.ctx.profile.gradeLevel,
@@ -84,7 +91,7 @@ function heuristicRoute(query: string, gradeLevel: RoutingDecision["gradeLevel"]
           ? "chemistry"
           : "orchestration";
 
-  return {
+  return normalizeOrchestrationTurn({
     intent: testing ? "testing" : agent === "orchestration" ? "general" : "teaching",
     subject: agent === "math" || agent === "physics" || agent === "chemistry" ? agent : "none",
     agent,
@@ -92,5 +99,5 @@ function heuristicRoute(query: string, gradeLevel: RoutingDecision["gradeLevel"]
     rationale: "Fallback keyword route after structured classification failed.",
     confidence: 0.35,
     promptVersion: ROUTING_PROMPT_VERSION,
-  };
+  });
 }
