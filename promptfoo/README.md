@@ -113,7 +113,7 @@ The smoke subset is intentionally small so the pipeline still covers the most fa
 
 Current smoke subset size:
 
-- **25 evals** selected from the larger live catalog
+- **24 evals** selected from the larger live catalog
 - representative rather than exhaustive
 - biased toward:
   - one or more clear happy paths per suite
@@ -135,7 +135,6 @@ Current smoke subset size:
 | concierge | `concierge-student-privacy` | Covers the minimum data-ethics / privacy refusal path: the desk must not disclose another student's scores or learning records. |
 | math | `math-three-quarters` | Primary happy path with tool use (`equationSolver`) for a simple arithmetic explanation. |
 | math | `math-product-rule` | JC happy path with a named H2 calculus method and tool-backed symbolic work. |
-| math | `math-topology-refuse` | Ensures Math refuses out-of-band university content and redirects back to syllabus-safe material. |
 | physics | `physics-fma` | O-Level calculation happy path using `formulaLookup`, representing the most common structured Physics teaching flow. |
 | physics | `physics-quantum` | Grade-band boundary check: the agent must place quantum at A-Level / JC, not O-Level. |
 | physics | `physics-primary-forces` | Primary-level conceptual explanation ensures the Physics agent can downshift its language and avoid over-teaching. |
