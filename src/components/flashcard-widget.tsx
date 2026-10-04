@@ -30,16 +30,49 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
   );
 
   if (done) {
+    const percentage = Math.round((known / deck.cards.length) * 100);
+    const isExcellent = percentage >= 90;
+    const isGood = percentage >= 70;
+    
     return (
-      <div className="flex flex-wrap items-center gap-3" style={{ animation: "pop-in 260ms cubic-bezier(0.23,1,0.32,1) both" }}>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-tint py-1 pr-2.5 pl-1 text-[12.5px] font-medium text-green">
-          <span className="flex size-4.5 items-center justify-center rounded-full bg-green text-white">
-            <Icon icon="flashcards" size={12} strokeWidth={2} />
-          </span>
-          {known} / {deck.cards.length} known
-        </span>
-        <p className="text-[12.5px] text-ink-2">{deck.title}</p>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setDone(false)}>
+      <div className="rounded-xl border border-line/50 bg-gradient-to-br from-accent-tint to-surface p-6 shadow-card" style={{ animation: "pop-in 260ms cubic-bezier(0.23,1,0.32,1) both" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-accent text-white shadow-md">
+            <Icon icon="flashcards" size={20} strokeWidth={2} />
+          </div>
+          <div>
+            <h4 className="text-lg font-bold text-ink">{deck.title}</h4>
+            <p className="text-sm text-ink-2">Flashcard Review</p>
+          </div>
+        </div>
+        
+        <div className="mb-4 rounded-lg border border-accent/20 bg-white/50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-2xl font-bold text-accent">
+              {known} / {deck.cards.length}
+            </span>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+              isExcellent ? 'bg-green text-white' : isGood ? 'bg-accent-tint text-accent' : 'bg-orange-tint text-orange'
+            }`}>
+              {isExcellent ? '🌟 Excellent!' : isGood ? '✓ Well done!' : '📖 Keep reviewing'}
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-ink-3/20">
+            <div 
+              className="h-full rounded-full bg-accent transition-all duration-500"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-ink-3">{deck.cards.length - known} cards still learning</p>
+        </div>
+        
+        <Button 
+          type="button" 
+          variant="secondary" 
+          size="sm" 
+          onClick={() => setDone(false)}
+          className="w-full"
+        >
           Review again
         </Button>
       </div>
@@ -47,11 +80,16 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
   }
 
   return (
-    <div>
-      <p className="ui-label mb-2 inline-flex items-center gap-1">
-        <Icon icon="flashcards" size={12} />
-        Flashcards
-      </p>
+    <div className="rounded-xl border border-line/50 bg-surface/50 p-5 shadow-sm backdrop-blur-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-accent/10">
+          <Icon icon="flashcards" size={16} className="text-accent" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-3">Flashcard Deck</p>
+          <h4 className="text-sm font-bold text-ink">{deck.title}</h4>
+        </div>
+      </div>
       <ApprovalCard
         key={deck.title}
         className="max-w-full"
@@ -71,12 +109,14 @@ export function FlashcardWidget({ deck }: { deck: FlashcardSet }) {
           const card = deck.cards[index];
           if (!card || selected.length === 0) return null;
           return (
-            <div className="mt-3 rounded-control bg-field px-2.5 py-2 text-[12.5px] leading-5 text-ink-2">
-              <p className="inline-flex items-center gap-1 font-medium text-ink">
-                <Icon icon="flip" size={13} />
+            <div className="mt-4 rounded-lg border border-accent/20 bg-accent-tint p-4">
+              <p className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-accent">
+                <span className="flex size-5 items-center justify-center rounded-full bg-accent text-white">
+                  <Icon icon="flip" size={12} strokeWidth={2.5} />
+                </span>
                 Answer
               </p>
-              <MarkdownBody text={card.back} className="mt-1" />
+              <MarkdownBody text={card.back} className="text-sm" />
             </div>
           );
         }}
