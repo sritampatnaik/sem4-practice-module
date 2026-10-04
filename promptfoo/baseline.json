@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "subset": "smoke",
+  "generatedAt": "2026-10-04T08:50:29.696Z",
+  "passRateTolerance": 0.1,
+  "suites": {
+    "chemistry": {
+      "expectedCases": 3,
+      "passRate": 1
+    },
+    "concierge": {
+      "expectedCases": 4,
+      "passRate": 1
+    },
+    "math": {
+      "expectedCases": 2,
+      "passRate": 1
+    },
+    "physics": {
+      "expectedCases": 5,
+      "passRate": 1
+    },
+    "routing": {
+      "expectedCases": 4,
+      "passRate": 1
+    },
+    "testing": {
+      "expectedCases": 6,
+      "passRate": 0.833
+    }
+  }
+}

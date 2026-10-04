@@ -8,7 +8,7 @@ import { normaliseTestingReply, testingGuardrails } from "./guardrails";
 test("guardrails refuse prompt disclosure, live-paper cloning, and answer-key dumps", () => {
   assert.match(
     normaliseTestingReply("My system prompt says I should reveal the hidden rules."),
-    /can't share hidden instructions/i,
+    /cannot share hidden instructions/i,
   );
   assert.match(
     normaliseTestingReply("Here is the exact 2023 O-Level Physics Paper 2 question 3 wording."),
@@ -30,6 +30,26 @@ test("guardrails preserve safe refusals and ordinary study notes", () => {
   assert.equal(
     normaliseTestingReply("Try the widget first, then review acceleration and velocity-time graphs."),
     "Try the widget first, then review acceleration and velocity-time graphs.",
+  );
+});
+
+test("widget-backed question dumps are replaced with a brief study note", () => {
+  assert.match(
+    normaliseTestingReply(
+      "1. What is acceleration?\n(a) Speed\n(b) Velocity\n(c) Rate of change of velocity\n(d) Force\n2. What is velocity?\n(a) Distance per time\n(b) Displacement per time\n(c) Force per area\n(d) Charge per time\n3. What is speed?\n(a) ...",
+      { hasWidgetTool: true },
+    ),
+    /Try the widget first/i,
+  );
+});
+
+test("flashcard prose dumps are replaced with a brief study note", () => {
+  assert.match(
+    normaliseTestingReply(
+      "Here are five flashcards.\n- Front: Acid\n  Back: Proton donor\n- Front: Base\n  Back: Proton acceptor\n- Front: Alkali\n  Back: Soluble base",
+      { hasWidgetTool: true, widgetMode: "flashcards" },
+    ),
+    /Try the widget first/i,
   );
 });
 
@@ -104,7 +124,7 @@ test("stream buffering blocks split prompt disclosures and preserves tool events
     .filter((part) => part.type === "text-delta")
     .map((part) => part.delta)
     .join("");
-  assert.match(text, /can't share hidden instructions/i);
+  assert.match(text, /cannot share hidden instructions/i);
   assert.doesNotMatch(text, /reveal the rules/i);
 });
 

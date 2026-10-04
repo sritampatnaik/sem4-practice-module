@@ -39,6 +39,11 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - blocks obvious live-paper wording leaks
   - blocks obvious full answer-key dumps in prose
   - preserves tool calls/results while filtering text blocks
+- Follow-up quizzes can now use **topic-scoped adaptive difficulty**:
+  - `getTopicScoreContext` now prefers persisted Supabase-backed topic summaries and falls back to profile-note hints only when persisted history is unavailable
+  - `planAssessment` derives `easier`, `standard`, or `harder` from explicit score bands
+  - below 60% -> `easier`, 60% to 79% -> `standard`, 80% and above -> `harder`
+  - a weak kinematics record should not affect an unrelated heat, bonding, or differentiation quiz
 - Physics MCQ generation has an extra validation guard for **numeric explanation vs correct-answer mismatches**
 - `recordPerformance` is now treated as a **note-only tool** during assessment generation and its tool schema is strict about extra fields
 - Signed-in students now also have **persistent MCQ score tracking** backed by Supabase:
@@ -47,6 +52,19 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - surfaced in the sidebar as latest / previous / best with a simple trend state
   - this is separate from `recordPerformance`
   - initial live testing now looks good after the table was created in Supabase
+- Testing now also has a lightweight **observability** improvement:
+  - assessment logs in `logs/testing-performance/` can now carry `inputTokens`, `outputTokens`, and `costUsd`
+  - this is for engineering visibility and reporting, not a student-facing feature
+- Testing now also has a **bare-minimum explicit level-banding gate**:
+  - explicit requested school levels are checked against the student's profile year
+  - same-level or lower requests are allowed
+  - higher-level explicit requests are blocked before widget generation
+  - lower-band requests are allowed as revision
+  - this is intentionally not a full topic-by-topic curriculum engine yet
+- There is now also a minimum **data-ethics / student-privacy** slice in the student-facing path:
+  - obvious requests for another student's NRIC, personal details, or learning records are refused before ordinary specialist handling
+  - this is project-wide rather than Testing-only
+  - one such refusal case is now part of the Promptfoo smoke subset
 
 ## Scope
 
@@ -83,10 +101,15 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
 The intended responsibility split is:
 
 - **subject-source tools** → gather subject-grounded content
-- **assessment planner** → infer mode, topics, and visual need
+- **score-context helper** → find topic-scoped score evidence before follow-up quizzes
+- **score-history summary helpers** → normalise persisted attempt buckets and expose stable topic-scoped lookups
+- **assessment planner** → infer mode, topics, visual need, and difficulty
 - **widget tools** → produce valid MCQ / flashcard payloads
 - **logging tools** → record compact Testing notes for follow-up
 - **score-history persistence** → save completed signed-in MCQ attempts and summarise improvement/regression
+- **project-wide privacy guardrails** → refuse obvious requests for another student's identifying data or learning records before specialist generation
+- **performance observability** → log token usage and estimated cost per completed assessment
+- **level-gating helper** → enforce same-or-lower explicit school-level requests before widget generation
 
 This separation matters for the professors' software-engineering emphasis.
 
@@ -115,6 +138,7 @@ This separation matters for the professors' software-engineering emphasis.
 ### Internal helper tools
 
 - `planAssessment`
+- `getTopicScoreContext`
 - `getRecentPerformance`
 - `createMermaidDiagram`
 - `recordPerformance` (assessment note only; no outcome or score fields)
@@ -125,6 +149,11 @@ This separation matters for the professors' software-engineering emphasis.
 - **Maths**: Testing-owned source-tool path implemented and exercised through the harness
 - **Chemistry**: Testing-owned source-tool path implemented and exercised through the harness
 - **Score tracking**: signed-in MCQ attempt persistence and sidebar trend summary are implemented and now reaching the live Supabase table in initial testing
+- **Adaptive follow-up difficulty**: topic-scoped score lookup plus `easier` / `standard` / `harder` planning is implemented; persisted Supabase-backed score summaries are now the source of truth, with profile-note hints only as a fallback
+- **Promptfoo CI support**: the Testing smoke-subset evals now feed a project-wide Promptfoo regression baseline, so accepted CI coverage has a merge-blocking regression gate instead of being informational only
+- **Data-ethics support**: the student-facing path now has a minimum privacy refusal for another student's identifying details or learning records, and that behaviour is covered by a Promptfoo smoke eval
+- **Token / cost logging**: Testing performance entries can now include input tokens, output tokens, and estimated cost so assessment generation has a lightweight observability trail
+- **Level-banding support**: explicit requested levels such as PSLE, O-Level, or H2 are now checked against the student's exact school year, so out-of-band requests can be blocked deterministically
 
 All three now follow the same intended source-tool contract.
 
@@ -193,11 +222,32 @@ All three now follow the same intended source-tool contract.
    - it now behaves as a note-only tool in the successful reruns
    - invented outcome fields were removed from the later successful runs
 
-5. **Source-pack heuristics improved, but are still somewhat coarse**
+5. **Adaptive difficulty now has a safer contract**
+   - follow-up quizzes now inspect persisted topic summaries first, with note parsing only as a fallback
+   - deterministic bands now decide difficulty: below 60% -> easier, 60% to 79% -> standard, 80%+ -> harder
+   - the topic scope is preserved, so one weak topic should not leak into unrelated quiz requests
+
+6. **Minimum data-ethics coverage now exists**
+   - obvious requests for another student's NRIC, personal data, or learning records are refused in the student-facing path
+   - this is small but useful evidence that privacy was considered, not only assessment integrity
+   - the concierge smoke subset now includes a student-privacy refusal case, so this behaviour is part of CI coverage
+
+7. **Assessment observability improved**
+   - Testing performance logs can now include per-assessment token usage and estimated cost
+   - this gives Harun a concrete LLMOps / observability point in the final report without changing the student-facing UX
+   - the design stays file-based and local to the Testing slice instead of adding another persistence system
+
+8. **Level-banding support now has a deterministic minimum**
+   - explicit requested levels are compared against the student's structured profile year
+   - higher-level requests can now fail closed before widget generation
+   - lower-band requests can be allowed as revision
+   - however, subject/topic difficulty is still not modelled with full year-by-year curriculum precision
+
+9. **Source-pack heuristics improved, but are still somewhat coarse**
    - wave prompts now suggest a **wave diagram** instead of an irrelevant force diagram
    - source chunks, key concepts, and hints can still be broader than ideal because they come from syllabus excerpts
 
-6. **Remaining limitation**
+10. **Remaining limitation**
    - the contract exists for all three subjects, but source-pack quality and follow-up behaviour still need refinement
    - harness coverage should keep expanding for more mixed, follow-up, and unsupported-topic cases
 
@@ -216,6 +266,8 @@ All three now follow the same intended source-tool contract.
 - Validation for duplicate IDs and invalid `correctOptionId`
 - Physics MCQ validation for explanation-vs-answer numeric mismatches
 - Strict note-only `recordPerformance` input contract
+- Topic-scoped adaptive-difficulty contract via `getTopicScoreContext` + `planAssessment`
+- Persisted-score-summary lookup via `testing_attempts` / `score-history.ts` rather than relying only on free-text notes
 - Structured source-pack contract for Maths, Physics, and Chemistry
 - Deterministic unit tests for planner behaviour, Testing guardrails, and tool validation
 - Harness-based debugging surface for Testing in isolation
@@ -226,6 +278,9 @@ All three now follow the same intended source-tool contract.
 - Input still passes through existing guardrails
 - Live-paper cloning remains disallowed
 - Testing now adds a narrow local middleware backstop for prompt-disclosure resistance and obvious answer-key/live-paper prose leaks
+- The chat route now also has a narrow privacy refusal path for obvious requests about another student's private data or learning records
+- Token/cost logging is observational only and should never leak cost details back to students
+- Explicit requested levels now have a deterministic ceiling/floor check, but topic difficulty without a named level still depends on source support rather than exact curriculum metadata
 - `recordPerformance` is note-only during assessment generation, so invented outcome fields are disallowed
 - Physics source-tool failures should surface explicitly rather than silently invent content
 
@@ -243,8 +298,11 @@ All three now follow the same intended source-tool contract.
 2. Do a more thorough signed-in score-tracking pass across multiple topics and repeated attempts
 3. Confirm live UI behaviour after the auth/login path, including sidebar score-history updates after MCQ submission
 4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, follow-up prompts, and any further guardrail edge cases
-5. Decide whether Testing follow-up logic should also consume the stored score summaries later
-6. Decide whether harness output should include even richer debugging metadata
+5. Decide whether adaptive lookups should stay MCQ-only or later expand to other persisted Testing history signals such as future flashcard completion history
+6. Decide whether the current minimum privacy/data-ethics slice should stay narrow or later expand into fuller PII-specific policy coverage
+7. Decide whether token/cost logging should stay file-based or later feed a richer engineering dashboard
+8. Decide whether exact level-banding should later expand into fuller topic-by-topic curriculum gating rather than only explicit requested-level checks
+9. Decide whether harness output should include even richer debugging metadata
 
 ## Suggested final-report framing
 

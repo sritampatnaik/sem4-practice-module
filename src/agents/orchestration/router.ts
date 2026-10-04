@@ -245,9 +245,13 @@ async function classifyWithLlm(options: {
   if (!routed) {
     return { ...heuristicRoute(options.query, options.ctx.profile.gradeLevel), usage };
   }
+  const normalised =
+    routed.agent === "orchestration"
+      ? { ...routed, intent: "general" as const, subject: "none" as const }
+      : routed;
   return {
-    ...routed,
-    gradeLevel: routed.gradeLevel || options.ctx.profile.gradeLevel,
+    ...normalised,
+    gradeLevel: normalised.gradeLevel || options.ctx.profile.gradeLevel,
     promptVersion: ROUTING_PROMPT_VERSION,
     usage,
   };
@@ -270,7 +274,11 @@ export async function routeStudentTurn(options: {
       questions: ROUTING_QUESTIONS,
     });
     const routed = jev ? routingFromJevResponse(jev, gradeLevel) : null;
-    if (routed) return routed;
+    if (routed) {
+      return routed.agent === "orchestration"
+        ? { ...routed, intent: "general", subject: "none" }
+        : routed;
+    }
   } catch {
     // Fall through to the LLM classifier, then keywords.
   }

@@ -6,7 +6,10 @@ import {
 import { createAgent } from "@/agents";
 import { monitorStudentTurn } from "@/agents/guardrail";
 import { routeStudentTurn } from "@/agents/orchestration/router";
-import { ROUTING_PROMPT_ID } from "@/agents/orchestration/prompts";
+import {
+  ROUTING_PROMPT_ID,
+  ROUTING_PROMPT_VERSION,
+} from "@/agents/orchestration/prompts";
 import {
   DEFAULT_PROFILE,
   type AgentId,
@@ -70,7 +73,7 @@ export async function POST(req: Request) {
   const accessToken = await getAccessToken();
   const sessionId = body.sessionId ?? user?.id ?? "anon";
   const query = lastUserText(messages);
-  const { text, flagged } = sanitizeStudentMessage(query);
+  const { text, flagged, privacyFlagged } = sanitizeStudentMessage(query);
   const retrievedContext = user
     ? await retrieveChatContext({
         userId: user.id,
@@ -87,7 +90,18 @@ export async function POST(req: Request) {
   };
 
   const routedAt = Date.now();
-  const routing = await routeStudentTurn({ ctx, messages });
+  const routing = privacyFlagged
+    ? {
+        agent: "orchestration" as const,
+        intent: "general" as const,
+        subject: "none" as const,
+        gradeLevel: ctx.profile.gradeLevel,
+        rationale:
+          "The latest message asks for another student's private or identifying information, so the request must be refused by the concierge.",
+        confidence: 1,
+        promptVersion: ROUTING_PROMPT_VERSION,
+      }
+    : await routeStudentTurn({ ctx, messages });
   recordRouting(sessionId, routing);
 
   await logAgentTurn({
@@ -143,6 +157,15 @@ export async function POST(req: Request) {
           data: {
             ...routing,
             rationale: `${routing.rationale} Input was flagged by the prompt-injection guardrail.`,
+          },
+        });
+      }
+      if (privacyFlagged) {
+        writer.write({
+          type: "data-routing",
+          data: {
+            ...routing,
+            rationale: `${routing.rationale} Input was flagged by the student-privacy guardrail.`,
           },
         });
       }

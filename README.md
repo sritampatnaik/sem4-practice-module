@@ -53,6 +53,20 @@ npm run evals -- --suite=routing
 
 Optional Langfuse sync: `npm run langfuse:seed-evals`. See [langfuse/evals/README.md](./langfuse/evals/README.md). Chat is not traced to Langfuse yet.
 
+## Promptfoo
+
+Promptfoo is configured as a **supplementary eval interface** over the same METS eval catalog and runner. It does not replace the existing `/evals` desk or `npm run evals`.
+
+```bash
+npm run promptfoo:validate
+npm run promptfoo:eval
+npm run promptfoo:prepare
+npx promptfoo eval -c promptfooconfig.yaml --filter-metadata suiteId=testing
+npm run promptfoo:ci
+```
+
+See [promptfoo/README.md](./promptfoo/README.md).
+
 ## Langflow
 
 Optional prompt-log console. See [langflow/README.md](./langflow/README.md).
