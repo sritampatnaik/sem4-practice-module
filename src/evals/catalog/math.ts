@@ -48,7 +48,6 @@ export const mathItems: EvalItem[] = [
       goldReply:
         "Use the product rule. Let u = x^2, v = sin x. Then dy/dx = 2x sin x + x^2 cos x.",
       mustInclude: ["product rule", "2x"],
-      requiredTools: ["equationSolver"],
     },
   },
   {

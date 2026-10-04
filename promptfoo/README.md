@@ -220,6 +220,8 @@ npm run promptfoo:ci
 npm run promptfoo:check-regression
 ```
 
+The CI eval step runs with `--no-cache` so each pull request is graded against fresh outputs rather than stale local Promptfoo cache entries.
+
 and exports machine-readable artifacts:
 
 - `promptfoo/promptfoo-results.json`

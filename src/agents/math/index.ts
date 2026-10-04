@@ -5,6 +5,34 @@ import type { AgentRuntimeContext } from "../_shared/types";
 import { buildMathInstructions, MATH_PROMPT_VERSION } from "./prompts";
 import { equationSolverTool } from "./tools";
 
+function requiredFirstStepTool(
+  messages: Array<{ role?: string; content?: unknown }>,
+) {
+  const latest = [...messages].reverse().find((message) => message.role === "user");
+  const text =
+    typeof latest?.content === "string"
+      ? latest.content
+      : JSON.stringify(latest?.content ?? "");
+
+  if (
+    /\b(?:what is|solve|differentiat|integrat|show working|simplif|factor|probability|triangle|equation)\b/i.test(
+      text,
+    )
+  ) {
+    return "equationSolver";
+  }
+
+  if (
+    /\b(?:is .* in|syllabus|o-?level|a-?level|h1|h2|primary|university|topology|homology|maclaurin)\b/i.test(
+      text,
+    )
+  ) {
+    return "documentSearch";
+  }
+
+  return undefined;
+}
+
 export function createMathAgent(ctx: AgentRuntimeContext) {
   return new ToolLoopAgent({
     id: "math",
@@ -14,6 +42,11 @@ export function createMathAgent(ctx: AgentRuntimeContext) {
       equationSolver: equationSolverTool,
       documentSearch: documentSearchTool("math"),
       webSearch: webSearchTool,
+    },
+    prepareStep: ({ stepNumber, messages }) => {
+      if (stepNumber !== 0) return {};
+      const toolName = requiredFirstStepTool(messages);
+      return toolName ? { toolChoice: { type: "tool", toolName } } : {};
     },
     stopWhen: stepCountIs(8),
     temperature: 0.2,

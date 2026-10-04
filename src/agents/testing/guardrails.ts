@@ -18,6 +18,8 @@ const INCOMPLETE_REPLY =
   "That assessment reply was incomplete. Please ask me to try again.";
 const WIDGET_NOTE_REPLY =
   "Try the widget first, then review the key ideas and common mistakes after you answer.";
+const WIDGET_ERROR_LANGUAGE =
+  /\b(?:unable to generate|technical issue|encountering an issue|cannot generate right now|provide .* soon)\b/i;
 
 const REFUSAL_LANGUAGE =
   /\b(?:can't|cannot|won't|will not|do not|don't|not able|instead|rather than)\b/i;
@@ -255,6 +257,9 @@ export function normaliseTestingReply(
       /(?:^|\n)\s*(?:front|back)\s*:/im.test(repaired)
     )
   ) {
+    return WIDGET_NOTE_REPLY;
+  }
+  if (options?.hasWidgetTool && WIDGET_ERROR_LANGUAGE.test(repaired)) {
     return WIDGET_NOTE_REPLY;
   }
   if (options?.hasWidgetTool && hasWidgetEcho(repaired)) {
