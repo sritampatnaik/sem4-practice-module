@@ -1,5 +1,14 @@
 import type { LanguageModelV3StreamPart } from "@ai-sdk/provider";
 import type { LanguageModelMiddleware } from "ai";
+import type { AgentRuntimeContext, Subject } from "../_shared/types";
+import type { TestingMode, VisualFormat } from "./assessment-planner";
+import { estimateCostUsd } from "@/evals/pricing";
+import { getModelId } from "@/lib/llm";
+import {
+  appendAssessmentPerformanceEntry,
+  consumeStagedAssessmentPerformanceEntry,
+  previewAssessmentNote,
+} from "./performance-log";
 
 const EXAM_INTEGRITY_REPLY =
   "I can't help with recreating live exam papers, revealing hidden instructions, or listing the full answer key in prose. I can still build an original practice set on the same topic.";
@@ -36,6 +45,136 @@ const ANSWER_LINE = /(?:^|\n)\s*(?:q(?:uestion)?\s*)?\d+\s*[\)\.\-:]\s*[A-E]\b/g
 const QUESTION_LINE = /(?:^|\n)\s*\d+\s*[\)\.\-:]/gim;
 const OPTION_LINE = /(?:^|\n)\s*(?:[-*]\s*)?\(?[A-Ea-e]\)\s+/gm;
 const BULLET_LINE = /(?:^|\n)\s*[-*]\s+/gm;
+
+type WidgetAssessmentMetadata = {
+  subject: Subject;
+  mode: TestingMode;
+  title: string;
+  topics: string[];
+  visualFormat: VisualFormat;
+};
+
+function parseToolInput(input: unknown) {
+  if (typeof input === "string") {
+    try {
+      return JSON.parse(input) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  return input;
+}
+
+function uniqueTopics(topics: string[]) {
+  const seen = new Set<string>();
+  const results: string[] = [];
+
+  for (const topic of topics) {
+    const cleaned = topic.replace(/\s+/g, " ").trim();
+    const normalised = cleaned.toLowerCase();
+    if (!cleaned || seen.has(normalised)) continue;
+    seen.add(normalised);
+    results.push(cleaned);
+  }
+
+  return results;
+}
+
+function widgetAssessmentMetadata(toolName: string, input: unknown): WidgetAssessmentMetadata | null {
+  const payload = parseToolInput(input);
+  if (!payload || typeof payload !== "object") return null;
+  const raw = payload as Record<string, unknown>;
+  const subject = raw.subject;
+  const title = raw.title;
+  if (
+    (toolName !== "createMcqSet" && toolName !== "createFlashcards") ||
+    (subject !== "math" && subject !== "physics" && subject !== "chemistry") ||
+    typeof title !== "string"
+  ) {
+    return null;
+  }
+
+  const topics =
+    toolName === "createMcqSet"
+      ? Array.isArray(raw.items)
+        ? uniqueTopics(
+            raw.items.flatMap((item) => {
+              if (!item || typeof item !== "object") return [];
+              const topic = (item as { topic?: unknown }).topic;
+              return typeof topic === "string" ? [topic] : [];
+            }),
+          )
+        : []
+      : Array.isArray(raw.cards)
+        ? uniqueTopics(
+            raw.cards.flatMap((card) => {
+              if (!card || typeof card !== "object") return [];
+              const topic = (card as { topic?: unknown }).topic;
+              return typeof topic === "string" ? [topic] : [];
+            }),
+          )
+        : [];
+
+  return {
+    subject,
+    mode: toolName === "createMcqSet" ? "mcq" : "flashcards",
+    title,
+    topics,
+    visualFormat: "none",
+  };
+}
+
+function usageTotals(
+  usage:
+    | {
+        inputTokens?: { total?: number };
+        outputTokens?: { total?: number };
+      }
+    | undefined,
+) {
+  return {
+    inputTokens: usage?.inputTokens?.total ?? 0,
+    outputTokens: usage?.outputTokens?.total ?? 0,
+  };
+}
+
+async function logAssessmentTelemetry(options: {
+  ctx?: AgentRuntimeContext;
+  widgetMeta: WidgetAssessmentMetadata | null;
+  note: string;
+  inputTokens: number;
+  outputTokens: number;
+}) {
+  if (!options.ctx || !options.widgetMeta) return;
+
+  const staged = consumeStagedAssessmentPerformanceEntry(options.ctx.sessionId);
+  const subject = staged?.subject ?? options.widgetMeta.subject;
+  const mode = staged?.mode ?? options.widgetMeta.mode;
+  const title = staged?.title ?? options.widgetMeta.title;
+  const topics = staged?.topics?.length ? staged.topics : options.widgetMeta.topics;
+  const visualFormat = staged?.visualFormat ?? options.widgetMeta.visualFormat;
+  const note = staged?.note ?? previewAssessmentNote(options.note);
+
+  await appendAssessmentPerformanceEntry({
+    sessionId: options.ctx.sessionId,
+    studentName: options.ctx.profile.name,
+    gradeLevel: options.ctx.profile.gradeLevel,
+    subject,
+    mode,
+    title,
+    topics,
+    visualFormat,
+    note,
+    inputTokens: options.inputTokens,
+    outputTokens: options.outputTokens,
+    costUsd: estimateCostUsd({
+      model: getModelId(),
+      inputTokens: options.inputTokens,
+      outputTokens: options.outputTokens,
+    }),
+    at: new Date().toISOString(),
+  });
+}
 
 function repairWhitespace(text: string) {
   return text
@@ -122,9 +261,12 @@ export function normaliseTestingReply(
   return repaired;
 }
 
-export const testingGuardrails: LanguageModelMiddleware = {
-  specificationVersion: "v3",
-  wrapGenerate: async ({ doGenerate, params }) => {
+export function createTestingGuardrails(
+  ctx?: AgentRuntimeContext,
+): LanguageModelMiddleware {
+  return {
+    specificationVersion: "v3",
+    wrapGenerate: async ({ doGenerate, params }) => {
     const userText = extractUserText(params.prompt);
     const forceBoundaryRefusal = hasPromptDisclosure(userText);
     const result = await doGenerate();
@@ -133,6 +275,32 @@ export const testingGuardrails: LanguageModelMiddleware = {
         part.type === "tool-call" &&
         (part.toolName === "createMcqSet" || part.toolName === "createFlashcards"),
     );
+    const widgetTool = result.content.find(
+      (part) =>
+        part.type === "tool-call" &&
+        (part.toolName === "createMcqSet" || part.toolName === "createFlashcards"),
+    );
+    const usage = usageTotals(result.usage);
+    const normalisedText = result.content
+      .filter((part) => part.type === "text")
+      .map((part) =>
+        normaliseTestingReply(part.text, {
+          forceBoundaryRefusal,
+          hasWidgetTool,
+        }),
+      )
+      .join("\n")
+      .trim();
+    await logAssessmentTelemetry({
+      ctx,
+      widgetMeta:
+        widgetTool && widgetTool.type === "tool-call"
+          ? widgetAssessmentMetadata(widgetTool.toolName, widgetTool.input)
+          : null,
+      note: normalisedText,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+    });
     return {
       ...result,
       content: result.content.map((part) =>
@@ -147,13 +315,14 @@ export const testingGuardrails: LanguageModelMiddleware = {
           : part,
       ),
     };
-  },
-  wrapStream: async ({ doStream, params }) => {
+    },
+    wrapStream: async ({ doStream, params }) => {
     const userText = extractUserText(params.prompt);
     const forceBoundaryRefusal = hasPromptDisclosure(userText);
     const result = await doStream();
     const blocks = new Map<string, string>();
     let hasWidgetTool = false;
+    let widgetMeta: WidgetAssessmentMetadata | null = null;
 
     return {
       ...result,
@@ -165,6 +334,7 @@ export const testingGuardrails: LanguageModelMiddleware = {
               (chunk.toolName === "createMcqSet" || chunk.toolName === "createFlashcards")
             ) {
               hasWidgetTool = true;
+              widgetMeta ??= widgetAssessmentMetadata(chunk.toolName, chunk.input);
             }
 
             if (chunk.type === "text-start") {
@@ -191,6 +361,25 @@ export const testingGuardrails: LanguageModelMiddleware = {
             }
 
             if (chunk.type === "finish" || chunk.type === "error") {
+              if (chunk.type === "finish") {
+                const note = [...blocks.values()]
+                  .map((text) =>
+                    normaliseTestingReply(text, {
+                      forceBoundaryRefusal,
+                      hasWidgetTool,
+                    }),
+                  )
+                  .join("\n")
+                  .trim();
+                const usage = usageTotals(chunk.usage);
+                void logAssessmentTelemetry({
+                  ctx,
+                  widgetMeta,
+                  note,
+                  inputTokens: usage.inputTokens,
+                  outputTokens: usage.outputTokens,
+                });
+              }
               for (const id of blocks.keys()) {
                 controller.enqueue({ type: "text-delta", id, delta: INCOMPLETE_REPLY });
                 controller.enqueue({ type: "text-end", id });
@@ -209,5 +398,8 @@ export const testingGuardrails: LanguageModelMiddleware = {
         }),
       ),
     };
-  },
-};
+    },
+  };
+}
+
+export const testingGuardrails = createTestingGuardrails();

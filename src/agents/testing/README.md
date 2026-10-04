@@ -84,6 +84,15 @@ If the quiz **widget UI** is broken, that is `src/components/quiz-widget.tsx` / 
   - MCQ / quiz / results / progress history
 - This is enforced project-wide before ordinary specialist handling, and at least one student-privacy refusal case is now part of the Promptfoo smoke subset.
 
+## Performance observability
+
+- `logs/testing-performance/` now also supports per-assessment **token / cost logging**.
+- When the Testing agent completes an assessment, the performance log can now capture:
+  - `inputTokens`
+  - `outputTokens`
+  - `costUsd`
+- This is intended for engineering observability and final-report evidence, not for the student UI.
+
 ## Current subject-sourcing direction
 
 - Testing still stays as **one public routed agent**.
@@ -118,6 +127,7 @@ The `execute` functions currently echo the structured input. That is enough for 
 - If `planAssessment` returns `harder`, prefer richer application or multi-step items.
 - If the student asks for another student's private data or learning records, refuse briefly and redirect to the current student's own learning or fresh practice instead.
 - `recordPerformance` is for assessment notes only and should not log outcome or score fields during ordinary assessment generation.
+- Assessment telemetry may now also attach token and cost fields to the Testing performance log after generation completes.
 - Keep one public Testing agent. If you need more modularity, add helper modules/tools inside `src/agents/testing/` rather than adding new top-level routed agents.
 - If a topic is not strongly supported by the matching source tool, fail explicitly and ask for a narrower topic instead of making content up.
 - Local Testing guardrails now block obvious hidden-prompt disclosures, live-paper wording leaks, and full answer-key dumps in prose while leaving widget tool calls intact.

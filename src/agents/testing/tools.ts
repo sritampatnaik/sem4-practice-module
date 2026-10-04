@@ -19,6 +19,7 @@ import {
 } from "./score-history";
 import {
   appendAssessmentPerformanceEntry,
+  stageAssessmentPerformanceEntry,
   readRecentAssessmentPerformance,
 } from "./performance-log";
 import {
@@ -489,12 +490,11 @@ export function recordPerformanceTool(ctx: AgentRuntimeContext) {
       "Persist a compact Testing note for this session after a meaningful assessment. This tool is for assessment notes only and must not include outcome or score fields.",
     inputSchema: recordPerformanceInputSchema,
     execute: async (input) => {
-      const savedPaths = await appendAssessmentPerformanceEntry({
+      stageAssessmentPerformanceEntry({
         sessionId: ctx.sessionId,
         studentName: ctx.profile.name,
         gradeLevel: ctx.profile.gradeLevel,
         ...input,
-        at: new Date().toISOString(),
       });
 
       return {
@@ -503,7 +503,6 @@ export function recordPerformanceTool(ctx: AgentRuntimeContext) {
         studentName: ctx.profile.name,
         gradeLevel: ctx.profile.gradeLevel,
         ...input,
-        ...savedPaths,
       };
     },
   });

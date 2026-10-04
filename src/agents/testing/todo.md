@@ -49,6 +49,10 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
   - [x] narrow student-privacy detector in `src/lib/guardrails.ts`
   - [x] chat-route refusal path for obvious requests about another student's private data or learning records
   - [x] Promptfoo-covered privacy refusal eval in the smoke subset
+- [x] Add token / cost logging per assessment:
+  - [x] extend the existing Testing performance log schema
+  - [x] capture `inputTokens`, `outputTokens`, and `costUsd`
+  - [x] keep the implementation local to the Testing slice
 
 ## In progress now
 
@@ -65,6 +69,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - [ ] Run live harness or desk checks for the new Testing-local guardrails once `OPENAI_API_KEY` is available.
 - [ ] Run at least one live or harness follow-up quiz that proves the adaptive-difficulty signal actually changes the generated question style.
 - [ ] Run signed-in repeated-topic checks to confirm persisted summaries are actually picked up by adaptive follow-up generation in realistic flows.
+- [ ] Run one live Testing generation and confirm the saved `logs/testing-performance/` entry now includes token/cost fields.
 
 ## Blocked / dependent work
 
@@ -79,6 +84,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - adaptive difficulty now prefers persisted topic summaries, but broader repeated-attempt evidence is still needed across more subjects and topic buckets
 - project-wide Promptfoo regression gating now means Testing smoke regressions can block CI, so prompt/guardrail changes need extra care even when the feature work is local
 - the new privacy/data-ethics slice is intentionally minimal and still only covers obvious requests for another student's data
+- token/cost logging is implemented, but still needs a real generated assessment log inspected as evidence
 
 ## First tasks for next session
 
@@ -93,8 +99,9 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 5. Run one prompt-injection or answer-key-dump harness scenario and confirm the new guardrail prose fallback appears while tool calls remain intact.
 6. Run one adaptive follow-up scenario and confirm a regressing topic produces an easier quiz plan without affecting unrelated topics.
 7. Run a signed-in repeated-topic scenario and confirm the persisted summary path, not just note fallback, is what drives the next quiz.
-8. Record the live results and any blockers in `progress.md`.
-9. If score tracking keeps working, decide whether the next slice is:
+8. Run one live generation and inspect `logs/testing-performance/` for token/cost fields.
+9. Record the live results and any blockers in `progress.md`.
+10. If score tracking keeps working, decide whether the next slice is:
    - agent-side use of stored score summaries
    - richer filtering/history UI
    - or more harness/eval coverage
@@ -115,6 +122,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - [ ] Decide whether persistent score summaries should inform future Testing-agent adaptation.
 - [ ] Decide whether adaptive lookups should later include non-MCQ persisted history signals rather than only MCQ summaries.
 - [ ] Decide whether the minimum privacy/data-ethics slice should later expand to cover more PII patterns and policy wording.
+- [ ] Decide whether token/cost logging should stay file-based or later feed a richer engineering dashboard.
 - [ ] Decide whether a combined verifier / marker module should be added next.
 - [ ] Decide whether richer SVG / HTML / CSS visual generation is still needed once Mermaid-first behaviour is tested.
 - [ ] Decide whether Testing needs any additional guardrail-specific harness fixtures beyond the new eval and unit-test coverage.

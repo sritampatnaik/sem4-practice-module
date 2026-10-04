@@ -2,7 +2,7 @@ import { ToolLoopAgent, stepCountIs, wrapLanguageModel } from "ai";
 import { getModel } from "@/lib/llm";
 import { documentSearchTool } from "../_shared/tools";
 import type { AgentRuntimeContext } from "../_shared/types";
-import { testingGuardrails } from "./guardrails";
+import { createTestingGuardrails } from "./guardrails";
 import { buildTestingInstructions, TESTING_PROMPT_VERSION } from "./prompts";
 import { extractAssessmentTopics } from "./assessment-planner";
 import { selectAssessmentSourceTool } from "./subject-source";
@@ -52,7 +52,7 @@ function requiredFirstStepTool(
 export function createTestingAgent(ctx: AgentRuntimeContext) {
   return new ToolLoopAgent({
     id: "testing",
-    model: wrapLanguageModel({ model: getModel(), middleware: testingGuardrails }),
+    model: wrapLanguageModel({ model: getModel(), middleware: createTestingGuardrails(ctx) }),
     instructions: buildTestingInstructions(ctx),
     tools: {
       planAssessment: planAssessmentTool,

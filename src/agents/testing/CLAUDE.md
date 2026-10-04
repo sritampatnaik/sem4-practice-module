@@ -52,6 +52,9 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - surfaced in the sidebar as latest / previous / best with a simple trend state
   - this is separate from `recordPerformance`
   - initial live testing now looks good after the table was created in Supabase
+- Testing now also has a lightweight **observability** improvement:
+  - assessment logs in `logs/testing-performance/` can now carry `inputTokens`, `outputTokens`, and `costUsd`
+  - this is for engineering visibility and reporting, not a student-facing feature
 - There is now also a minimum **data-ethics / student-privacy** slice in the student-facing path:
   - obvious requests for another student's NRIC, personal details, or learning records are refused before ordinary specialist handling
   - this is project-wide rather than Testing-only
@@ -99,6 +102,7 @@ The intended responsibility split is:
 - **logging tools** → record compact Testing notes for follow-up
 - **score-history persistence** → save completed signed-in MCQ attempts and summarise improvement/regression
 - **project-wide privacy guardrails** → refuse obvious requests for another student's identifying data or learning records before specialist generation
+- **performance observability** → log token usage and estimated cost per completed assessment
 
 This separation matters for the professors' software-engineering emphasis.
 
@@ -141,6 +145,7 @@ This separation matters for the professors' software-engineering emphasis.
 - **Adaptive follow-up difficulty**: topic-scoped score lookup plus `easier` / `standard` / `harder` planning is implemented; persisted Supabase-backed score summaries are now the source of truth, with profile-note hints only as a fallback
 - **Promptfoo CI support**: the Testing smoke-subset evals now feed a project-wide Promptfoo regression baseline, so accepted CI coverage has a merge-blocking regression gate instead of being informational only
 - **Data-ethics support**: the student-facing path now has a minimum privacy refusal for another student's identifying details or learning records, and that behaviour is covered by a Promptfoo smoke eval
+- **Token / cost logging**: Testing performance entries can now include input tokens, output tokens, and estimated cost so assessment generation has a lightweight observability trail
 
 All three now follow the same intended source-tool contract.
 
@@ -219,11 +224,16 @@ All three now follow the same intended source-tool contract.
    - this is small but useful evidence that privacy was considered, not only assessment integrity
    - the concierge smoke subset now includes a student-privacy refusal case, so this behaviour is part of CI coverage
 
-7. **Source-pack heuristics improved, but are still somewhat coarse**
+7. **Assessment observability improved**
+   - Testing performance logs can now include per-assessment token usage and estimated cost
+   - this gives Harun a concrete LLMOps / observability point in the final report without changing the student-facing UX
+   - the design stays file-based and local to the Testing slice instead of adding another persistence system
+
+8. **Source-pack heuristics improved, but are still somewhat coarse**
    - wave prompts now suggest a **wave diagram** instead of an irrelevant force diagram
    - source chunks, key concepts, and hints can still be broader than ideal because they come from syllabus excerpts
 
-8. **Remaining limitation**
+9. **Remaining limitation**
    - the contract exists for all three subjects, but source-pack quality and follow-up behaviour still need refinement
    - harness coverage should keep expanding for more mixed, follow-up, and unsupported-topic cases
 
@@ -255,6 +265,7 @@ All three now follow the same intended source-tool contract.
 - Live-paper cloning remains disallowed
 - Testing now adds a narrow local middleware backstop for prompt-disclosure resistance and obvious answer-key/live-paper prose leaks
 - The chat route now also has a narrow privacy refusal path for obvious requests about another student's private data or learning records
+- Token/cost logging is observational only and should never leak cost details back to students
 - `recordPerformance` is note-only during assessment generation, so invented outcome fields are disallowed
 - Physics source-tool failures should surface explicitly rather than silently invent content
 
@@ -274,7 +285,8 @@ All three now follow the same intended source-tool contract.
 4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, follow-up prompts, and any further guardrail edge cases
 5. Decide whether adaptive lookups should stay MCQ-only or later expand to other persisted Testing history signals such as future flashcard completion history
 6. Decide whether the current minimum privacy/data-ethics slice should stay narrow or later expand into fuller PII-specific policy coverage
-7. Decide whether harness output should include even richer debugging metadata
+7. Decide whether token/cost logging should stay file-based or later feed a richer engineering dashboard
+8. Decide whether harness output should include even richer debugging metadata
 
 ## Suggested final-report framing
 

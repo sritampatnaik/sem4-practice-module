@@ -80,6 +80,9 @@ Future chat sessions can read this file first to resume work quickly.
   - normalise repeated MCQ attempts into subject + topic/family + mode history buckets
   - summarise latest / previous / best attempts with improving / regressing / stable trend states
   - persist signed-in MCQ attempts into Supabase and surface them in the student sidebar
+- `performance-log.ts`
+  - now supports per-assessment `inputTokens`, `outputTokens`, and `costUsd`
+  - keeps the observability trail inside the existing Testing log path under `logs/testing-performance/`
 - eval coverage / Promptfoo prep
   - Testing now has a dedicated adaptive-difficulty eval (`testing-adaptive-difficulty-regressing`)
   - the project-wide Promptfoo prep script now defaults to a smaller smoke subset for CI, while still keeping a full-suite path for local runs
@@ -294,6 +297,28 @@ Related support work for reporting:
 - **Next:**
   - decide whether to keep the privacy guardrail narrow or expand it into a fuller personal-data policy later
   - keep the privacy refusal eval healthy in the smoke subset because it is now part of the accepted CI baseline
+
+## 2026-10-04 token / cost logging update
+
+- **Changed:**
+  - `src/agents/testing/performance-log.ts`
+  - `src/agents/testing/performance-log.test.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/guardrails.ts`
+  - `src/agents/testing/index.ts`
+  - Testing context/docs files
+- **Validated:**
+  - `npx tsx --test src/agents/testing/performance-log.test.ts src/agents/testing/guardrails.test.ts src/agents/testing/tools.test.ts src/agents/testing/subject-source.test.ts`
+- **Findings:**
+  - the existing file-based Testing performance log was a good place to extend observability without adding another persistence surface
+  - assessment logs can now include `inputTokens`, `outputTokens`, and `costUsd`, which is useful for engineering visibility and final-report evidence
+  - the feature stays local to the Testing slice and does not change the student-facing experience
+- **Blockers / remaining gaps:**
+  - live evidence is still needed to inspect a real generated assessment log entry with token/cost values written after generation
+  - the current design is intentionally file-based and lightweight rather than a full dashboard or analytics surface
+- **Next:**
+  - run one live Testing flow or harness scenario and inspect the saved `logs/testing-performance/` entry for token/cost fields
+  - decide later whether this observability path should remain file-based or evolve into richer engineering reporting
 
 ## 2026-09-18 architecture update
 

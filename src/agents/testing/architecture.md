@@ -76,6 +76,7 @@ flowchart TD
   - widget tools render structured MCQ or flashcard payloads
   - score tracking is a separate persistence flow from note logging
 - **`recordPerformance` stays note-only**: score tracking does **not** overload the earlier Testing note log.
+- **Performance logging remains file-based**: Testing can now append token usage and estimated cost to the same local assessment log path without adding a new database surface.
 - **Local guardrails stay narrow**: the Testing middleware blocks obvious hidden-prompt disclosures, live-paper wording leaks, and answer-key dumps in prose, but broader student-safety escalation still belongs to `src/agents/guardrail/`.
 - **Privacy path stays narrow**: obvious requests for another student's private data or learning records are refused in the shared chat path before specialist generation; this is minimum data-ethics coverage, not a full PII platform.
 - **Score history grouping**: repeated MCQ attempts are grouped by **subject + topic/family + mode** so the UI can show improvement, regression, or stability.

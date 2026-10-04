@@ -5,6 +5,7 @@ import type { TestingMode, VisualFormat } from "./assessment-planner";
 
 const LOG_DIR = path.join(process.cwd(), "logs", "testing-performance");
 const JSONL_FILE = path.join(LOG_DIR, "entries.jsonl");
+const stagedEntries = new Map<string, Omit<AssessmentPerformanceEntry, "at">>();
 
 export type AssessmentPerformanceEntry = {
   sessionId: string;
@@ -17,6 +18,9 @@ export type AssessmentPerformanceEntry = {
   visualFormat: VisualFormat;
   note: string;
   outcome?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUsd?: number;
   at: string;
 };
 
@@ -45,9 +49,37 @@ function formatMarkdown(entry: AssessmentPerformanceEntry) {
   if (entry.outcome) {
     lines.push(`- Outcome: ${entry.outcome}`);
   }
+  if (typeof entry.inputTokens === "number") {
+    lines.push(`- Input tokens: ${entry.inputTokens}`);
+  }
+  if (typeof entry.outputTokens === "number") {
+    lines.push(`- Output tokens: ${entry.outputTokens}`);
+  }
+  if (typeof entry.costUsd === "number") {
+    lines.push(`- Estimated cost (USD): ${entry.costUsd.toFixed(6)}`);
+  }
 
   lines.push("", "");
   return lines.join("\n");
+}
+
+export function stageAssessmentPerformanceEntry(entry: Omit<AssessmentPerformanceEntry, "at">) {
+  stagedEntries.set(entry.sessionId, entry);
+  return { staged: true as const };
+}
+
+export function consumeStagedAssessmentPerformanceEntry(sessionId: string) {
+  const entry = stagedEntries.get(sessionId);
+  if (!entry) return null;
+  stagedEntries.delete(sessionId);
+  return entry;
+}
+
+export function previewAssessmentNote(text: string, max = 220) {
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (!compact) return "Assessment generated.";
+  if (compact.length <= max) return compact;
+  return `${compact.slice(0, max - 1)}…`;
 }
 
 export async function appendAssessmentPerformanceEntry(entry: AssessmentPerformanceEntry) {
