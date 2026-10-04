@@ -55,7 +55,7 @@ test("in-memory alerts dedupe the same snippet", async () => {
     promptVersion: "1.0.0",
   });
   assert.equal(stored.studentName, "Aisha");
-  assert.match(stored.id, /^gr_/);
+  assert.match(stored.id, /^gr_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 
   const dup = await storeGuardrailAlert({
     sessionId: "sess-1",
@@ -69,6 +69,19 @@ test("in-memory alerts dedupe the same snippet", async () => {
     promptVersion: "1.0.0",
   });
   assert.equal(dup.id, stored.id);
+
+  const separate = await storeGuardrailAlert({
+    sessionId: "sess-1",
+    userId: null,
+    studentName: "Aisha",
+    studentEmail: null,
+    snippet: "I am worried about tomorrow's exam.",
+    reason: "Distress language.",
+    categories: ["distress"],
+    severity: "medium",
+    promptVersion: "1.0.0",
+  });
+  assert.notEqual(separate.id, stored.id);
 });
 
 function setEnv(name: string, value: string | undefined) {

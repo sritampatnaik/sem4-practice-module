@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import { GUARDRAIL_CATEGORIES, type GuardrailAlert, type GuardrailCategory } from "./types";
@@ -23,7 +24,7 @@ function asUuid(value: string | null | undefined) {
 }
 
 function newId() {
-  return `gr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return `gr_${randomUUID()}`;
 }
 
 function asCategories(value: string[] | null | undefined): GuardrailCategory[] {

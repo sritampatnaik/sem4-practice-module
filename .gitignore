@@ -42,6 +42,7 @@ yarn-error.log*
 /langfuse/evals/.tmp
 /langfuse/evals/seed-report.json
 /langfuse/evals/experiment-report.json
+/langfuse/evals/compare-routing-report.json
 
 # local prompt logs
 /logs

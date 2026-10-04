@@ -1,5 +1,5 @@
 export const GUARDRAIL_PROMPT_ID = "guardrail.system";
-export const GUARDRAIL_PROMPT_VERSION = "1.1.0";
+export const GUARDRAIL_PROMPT_VERSION = "1.2.0";
 
 export function buildGuardrailInstructions() {
   return `You are the METS Guardrail Agent, a silent safety monitor for a Singapore tutoring desk.

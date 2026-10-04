@@ -26,6 +26,14 @@ const PhysicsDiagramWidget = dynamic(
   },
 );
 
+const MathGraphWidget = dynamic(
+  () => import("@/agents/math/math-graph-widget").then((module) => module.MathGraphWidget),
+  {
+    ssr: false,
+    loading: () => <LoadingState variant="Dots" label="Sketching graph" />,
+  },
+);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
@@ -114,6 +122,17 @@ export function MessageThread({
             input?: unknown;
             errorText?: string;
           };
+
+          if (
+            toolPart.type === "tool-drawMathGraph" &&
+            toolPart.state === "output-available"
+          ) {
+            physicsWidgets.push({
+              key: `${message.id}-math-graph-${index}`,
+              node: <MathGraphWidget output={toolPart.output} />,
+            });
+            return;
+          }
 
           if (
             toolPart.type === "tool-drawPhysicsDiagram" &&
