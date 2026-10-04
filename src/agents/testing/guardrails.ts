@@ -246,6 +246,7 @@ export function normaliseTestingReply(
     return EXAM_INTEGRITY_REPLY;
   }
   if (
+    options?.hasWidgetTool &&
     options?.widgetMode === "flashcards" &&
     (
       repaired.length > 180 ||
@@ -256,7 +257,7 @@ export function normaliseTestingReply(
   ) {
     return WIDGET_NOTE_REPLY;
   }
-  if (hasWidgetEcho(repaired)) {
+  if (options?.hasWidgetTool && hasWidgetEcho(repaired)) {
     return options?.forceBoundaryRefusal
       ? `${BOUNDARY_REPLY}\n\n${WIDGET_NOTE_REPLY}`
       : WIDGET_NOTE_REPLY;

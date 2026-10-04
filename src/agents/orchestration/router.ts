@@ -52,9 +52,13 @@ export async function routeStudentTurn(options: {
     if (!routed) {
       return { ...heuristicRoute(query, options.ctx.profile.gradeLevel), usage };
     }
+    const normalised =
+      routed.agent === "orchestration"
+        ? { ...routed, intent: "general" as const, subject: "none" as const }
+        : routed;
     return {
-      ...routed,
-      gradeLevel: routed.gradeLevel || options.ctx.profile.gradeLevel,
+      ...normalised,
+      gradeLevel: normalised.gradeLevel || options.ctx.profile.gradeLevel,
       promptVersion: ROUTING_PROMPT_VERSION,
       usage,
     };
