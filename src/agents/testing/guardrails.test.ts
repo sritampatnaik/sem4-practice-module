@@ -43,6 +43,16 @@ test("widget-backed question dumps are replaced with a brief study note", () => 
   );
 });
 
+test("flashcard prose dumps are replaced with a brief study note", () => {
+  assert.match(
+    normaliseTestingReply(
+      "Here are five flashcards.\n- Front: Acid\n  Back: Proton donor\n- Front: Base\n  Back: Proton acceptor\n- Front: Alkali\n  Back: Soluble base",
+      { hasWidgetTool: true, widgetMode: "flashcards" },
+    ),
+    /Try the widget first/i,
+  );
+});
+
 test("blank output becomes an incomplete fallback", () => {
   assert.match(normaliseTestingReply("  \n "), /incomplete/i);
 });

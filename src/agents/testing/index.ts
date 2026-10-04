@@ -4,15 +4,14 @@ import { documentSearchTool } from "../_shared/tools";
 import type { AgentRuntimeContext } from "../_shared/types";
 import { createTestingGuardrails } from "./guardrails";
 import { buildTestingInstructions, TESTING_PROMPT_VERSION } from "./prompts";
-import { extractAssessmentTopics } from "./assessment-planner";
 import { selectAssessmentSourceTool } from "./subject-source";
 import {
-  createFlashcardsTool,
-  createMcqSetTool,
+  buildCreateFlashcardsTool,
+  buildCreateMcqSetTool,
+  createChemistryAssessmentSourceTool,
+  createMathAssessmentSourceTool,
+  createPhysicsAssessmentSourceTool,
   createMermaidDiagramTool,
-  getChemistryAssessmentSourceTool,
-  getMathAssessmentSourceTool,
-  getPhysicsAssessmentSourceTool,
   getRecentPerformanceTool,
   getTopicScoreContextTool,
   planAssessmentTool,
@@ -32,18 +31,10 @@ function requiredFirstStepTool(
     /\b(?:quiz|mcq|mcqs|flashcards?|revision cards?|study cards?|test me|practice questions?|assessment)\b/i.test(
       text,
     );
-  const looksLikeFlashcards =
-    /\b(?:flashcards?|revision cards?|study cards?)\b/i.test(text);
   const sourceTool = selectAssessmentSourceTool(text);
-  const topics = extractAssessmentTopics(text);
 
-  if (
-    looksLikeAssessmentRequest &&
-    !looksLikeFlashcards &&
-    sourceTool &&
-    topics.length > 0
-  ) {
-    return "getTopicScoreContext";
+  if (looksLikeAssessmentRequest && sourceTool) {
+    return sourceTool;
   }
 
   return sourceTool;
@@ -58,11 +49,11 @@ export function createTestingAgent(ctx: AgentRuntimeContext) {
       planAssessment: planAssessmentTool,
       getTopicScoreContext: getTopicScoreContextTool(ctx),
       getRecentPerformance: getRecentPerformanceTool(ctx),
-      getPhysicsAssessmentSource: getPhysicsAssessmentSourceTool,
-      getMathAssessmentSource: getMathAssessmentSourceTool,
-      getChemistryAssessmentSource: getChemistryAssessmentSourceTool,
-      createMcqSet: createMcqSetTool,
-      createFlashcards: createFlashcardsTool,
+      getPhysicsAssessmentSource: createPhysicsAssessmentSourceTool(ctx),
+      getMathAssessmentSource: createMathAssessmentSourceTool(ctx),
+      getChemistryAssessmentSource: createChemistryAssessmentSourceTool(ctx),
+      createMcqSet: buildCreateMcqSetTool(ctx),
+      createFlashcards: buildCreateFlashcardsTool(ctx),
       createMermaidDiagram: createMermaidDiagramTool,
       recordPerformance: recordPerformanceTool(ctx),
       documentSearchMath: documentSearchTool("math"),

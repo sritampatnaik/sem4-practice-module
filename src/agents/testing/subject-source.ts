@@ -17,7 +17,7 @@ type SourceChunk = {
   score: number;
 };
 
-type AssessmentSourceBase = {
+export type AssessmentSourceBase = {
   gradeLevel: GradeLevel;
   request: string;
   sourceQuery: string;
@@ -25,6 +25,7 @@ type AssessmentSourceBase = {
   requestedCount?: number;
   supported: boolean;
   supportReason: string;
+  levelNote?: string;
   sourceChunks: SourceChunk[];
   learningOutcomes: string[];
   keyConcepts: string[];
@@ -554,6 +555,7 @@ function inferChemistryFormulaHints(query: string, concepts: string[], fromChunk
 function unsupportedPack(options: {
   subjectLabel: string;
   sourceChunks: SourceChunk[];
+  gradeLevel: GradeLevel;
 }) {
   return {
     learningOutcomes: [] as string[],
@@ -562,7 +564,7 @@ function unsupportedPack(options: {
     misconceptionSeeds: [] as string[],
     questionAngles: [] as string[],
     suggestedVisual: undefined,
-    supportReason: `No strong ${options.subjectLabel} syllabus match was found. Narrow the topic or ask the student to clarify before inventing content.`,
+    supportReason: `No strong ${options.subjectLabel} syllabus match was found for the student's ${options.gradeLevel} grade band. Narrow the topic, bring it back into band, or ask the student to clarify before inventing content.`,
     sourceChunks: options.sourceChunks,
   };
 }
@@ -584,6 +586,7 @@ export async function buildPhysicsAssessmentSource(
       ...unsupportedPack({
         subjectLabel: "Physics",
         sourceChunks: loaded.sourceChunks,
+        gradeLevel: input.gradeLevel,
       }),
     };
   }
@@ -637,6 +640,7 @@ export async function buildMathAssessmentSource(
       ...unsupportedPack({
         subjectLabel: "Maths",
         sourceChunks: loaded.sourceChunks,
+        gradeLevel: input.gradeLevel,
       }),
     };
   }
@@ -697,6 +701,7 @@ export async function buildChemistryAssessmentSource(
       ...unsupportedPack({
         subjectLabel: "Chemistry",
         sourceChunks: loaded.sourceChunks,
+        gradeLevel: input.gradeLevel,
       }),
     };
   }

@@ -83,6 +83,9 @@ Future chat sessions can read this file first to resume work quickly.
 - `performance-log.ts`
   - now supports per-assessment `inputTokens`, `outputTokens`, and `costUsd`
   - keeps the observability trail inside the existing Testing log path under `logs/testing-performance/`
+- `level-gating.ts`
+  - now adds a bare-minimum deterministic same-or-lower level check for explicit requested school levels
+  - blocks higher-level explicit requests before widget generation and allows lower-band requests as revision
 - eval coverage / Promptfoo prep
   - Testing now has a dedicated adaptive-difficulty eval (`testing-adaptive-difficulty-regressing`)
   - the project-wide Promptfoo prep script now defaults to a smaller smoke subset for CI, while still keeping a full-suite path for local runs
@@ -319,6 +322,32 @@ Related support work for reporting:
 - **Next:**
   - run one live Testing flow or harness scenario and inspect the saved `logs/testing-performance/` entry for token/cost fields
   - decide later whether this observability path should remain file-based or evolve into richer engineering reporting
+
+## 2026-10-04 explicit level-banding gate update
+
+- **Changed:**
+  - `src/agents/testing/level-gating.ts`
+  - `src/agents/testing/level-gating.test.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/subject-source.ts`
+  - `src/evals/catalog/testing.ts`
+  - Testing context/docs files
+- **Validated:**
+  - `npx tsx --test src/agents/testing/level-gating.test.ts src/agents/testing/subject-source.test.ts src/agents/testing/tools.test.ts src/agents/testing/guardrails.test.ts`
+  - targeted Promptfoo eval for `testing-primary-refuse-olevel-chemistry`
+  - `npm run typecheck`
+- **Findings:**
+  - the project already had structured student year metadata, but the Testing flow was mostly enforcing only broad grade bands before this change
+  - the new minimum gate now blocks **explicit** higher-level requests before widget generation and allows lower-band review content
+  - this is good enough for presentation/report evidence, but it is intentionally not a full topic-by-topic curriculum-depth engine
+- **Blockers / remaining gaps:**
+  - topic-level differentiation inside the same broad band is still approximate; for example, Secondary 1 versus Secondary 4 treatment of the same chemistry topic is not yet encoded with exact curriculum metadata
+  - if the user does not explicitly name a level, the system still depends on source support rather than an exact year-specific topic map
+- **Next:**
+  - manually re-test explicit cross-level prompts in the UI
+  - decide later whether the project needs finer topic-by-topic curriculum gating or whether the current bare-minimum level policy is sufficient for the report
 
 ## 2026-09-18 architecture update
 

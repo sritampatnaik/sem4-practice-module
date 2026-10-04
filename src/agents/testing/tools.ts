@@ -23,10 +23,15 @@ import {
   readRecentAssessmentPerformance,
 } from "./performance-log";
 import {
+  type AssessmentSourceBase,
   buildChemistryAssessmentSource,
   buildMathAssessmentSource,
   buildPhysicsAssessmentSource,
+  type ChemistryAssessmentSource,
+  type MathAssessmentSource,
+  type PhysicsAssessmentSource,
 } from "./subject-source";
+import { evaluateRequestedLevelAccess } from "./level-gating";
 
 const subjectSchema = z.enum(["math", "physics", "chemistry"]);
 const gradeLevelSchema = z.enum(["primary", "secondary", "jc"]);
@@ -50,6 +55,13 @@ type TestingAttemptRow = {
   topics: unknown;
   completed_at: string;
 };
+
+type StagedAssessmentSource =
+  | PhysicsAssessmentSource
+  | MathAssessmentSource
+  | ChemistryAssessmentSource;
+
+const stagedAssessmentSources = new Map<string, StagedAssessmentSource>();
 
 function findDuplicateIds(values: { id: string }[]) {
   const seen = new Set<string>();
@@ -251,6 +263,44 @@ function mapAttemptRow(row: TestingAttemptRow): TestingAttemptRecord {
   };
 }
 
+function stageAssessmentSource(sessionId: string, source: StagedAssessmentSource) {
+  stagedAssessmentSources.set(sessionId, source);
+}
+
+function peekAssessmentSource(sessionId: string) {
+  return stagedAssessmentSources.get(sessionId) ?? null;
+}
+
+function clearAssessmentSource(sessionId: string) {
+  stagedAssessmentSources.delete(sessionId);
+}
+
+function blockedLevelSource<TSubject extends "math" | "physics" | "chemistry">(options: {
+  subject: TSubject;
+  gradeLevel: z.infer<typeof gradeLevelSchema>;
+  request: string;
+  topics?: string[];
+  requestedCount?: number;
+  supportReason: string;
+}): AssessmentSourceBase & { subject: TSubject } {
+  return {
+    subject: options.subject,
+    gradeLevel: options.gradeLevel,
+    request: options.request,
+    sourceQuery: options.request,
+    topics: options.topics ?? [],
+    requestedCount: options.requestedCount,
+    supported: false,
+    supportReason: options.supportReason,
+    sourceChunks: [],
+    learningOutcomes: [],
+    keyConcepts: [],
+    formulaHints: [],
+    misconceptionSeeds: [],
+    questionAngles: [],
+  };
+}
+
 async function readPersistedTopicScoreContext(
   ctx: AgentRuntimeContext,
   subject: z.infer<typeof subjectSchema>,
@@ -346,26 +396,142 @@ const assessmentSourceInputSchema = z.object({
   requestedCount: z.number().int().min(1).max(8).optional(),
 });
 
-export const getPhysicsAssessmentSourceTool = tool({
-  description:
-    "Build structured Physics source material for the Testing agent before creating Physics MCQs or flashcards. Use this before generating a Physics widget.",
-  inputSchema: assessmentSourceInputSchema,
-  execute: async (input) => buildPhysicsAssessmentSource(input),
-});
+function buildSourceSupportError(source: StagedAssessmentSource) {
+  return `${source.supportReason} Do not create a widget for this request until the topic is narrowed or brought back into the student's grade band.`;
+}
 
-export const getMathAssessmentSourceTool = tool({
-  description:
-    "Build structured Maths source material for the Testing agent before creating Maths MCQs or flashcards. Use this before generating a Maths widget.",
-  inputSchema: assessmentSourceInputSchema,
-  execute: async (input) => buildMathAssessmentSource(input),
-});
+export function createPhysicsAssessmentSourceTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Build structured Physics source material for the Testing agent before creating Physics MCQs or flashcards. Use this before generating a Physics widget.",
+    inputSchema: assessmentSourceInputSchema,
+    execute: async (input) => {
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "blocked") {
+          const source = blockedLevelSource({
+            subject: "physics",
+            gradeLevel: input.gradeLevel,
+            request: input.request,
+            topics: input.topics,
+            requestedCount: input.requestedCount,
+            supportReason: levelAccess.reason,
+          });
+          stageAssessmentSource(ctx.sessionId, source);
+          return source;
+        }
+      }
 
-export const getChemistryAssessmentSourceTool = tool({
-  description:
-    "Build structured Chemistry source material for the Testing agent before creating Chemistry MCQs or flashcards. Use this before generating a Chemistry widget.",
-  inputSchema: assessmentSourceInputSchema,
-  execute: async (input) => buildChemistryAssessmentSource(input),
-});
+      const source = await buildPhysicsAssessmentSource(input);
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "allowed" && levelAccess.levelNote) {
+          source.levelNote = levelAccess.levelNote;
+        }
+      }
+      if (ctx) stageAssessmentSource(ctx.sessionId, source);
+      return source;
+    },
+  });
+}
+
+export function createMathAssessmentSourceTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Build structured Maths source material for the Testing agent before creating Maths MCQs or flashcards. Use this before generating a Maths widget.",
+    inputSchema: assessmentSourceInputSchema,
+    execute: async (input) => {
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "blocked") {
+          const source = blockedLevelSource({
+            subject: "math",
+            gradeLevel: input.gradeLevel,
+            request: input.request,
+            topics: input.topics,
+            requestedCount: input.requestedCount,
+            supportReason: levelAccess.reason,
+          });
+          stageAssessmentSource(ctx.sessionId, source);
+          return source;
+        }
+      }
+
+      const source = await buildMathAssessmentSource(input);
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "allowed" && levelAccess.levelNote) {
+          source.levelNote = levelAccess.levelNote;
+        }
+      }
+      if (ctx) stageAssessmentSource(ctx.sessionId, source);
+      return source;
+    },
+  });
+}
+
+export function createChemistryAssessmentSourceTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Build structured Chemistry source material for the Testing agent before creating Chemistry MCQs or flashcards. Use this before generating a Chemistry widget.",
+    inputSchema: assessmentSourceInputSchema,
+    execute: async (input) => {
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "blocked") {
+          const source = blockedLevelSource({
+            subject: "chemistry",
+            gradeLevel: input.gradeLevel,
+            request: input.request,
+            topics: input.topics,
+            requestedCount: input.requestedCount,
+            supportReason: levelAccess.reason,
+          });
+          stageAssessmentSource(ctx.sessionId, source);
+          return source;
+        }
+      }
+
+      const source = await buildChemistryAssessmentSource(input);
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "allowed" && levelAccess.levelNote) {
+          source.levelNote = levelAccess.levelNote;
+        }
+      }
+      if (ctx) stageAssessmentSource(ctx.sessionId, source);
+      return source;
+    },
+  });
+}
+
+export const getPhysicsAssessmentSourceTool = createPhysicsAssessmentSourceTool();
+export const getMathAssessmentSourceTool = createMathAssessmentSourceTool();
+export const getChemistryAssessmentSourceTool = createChemistryAssessmentSourceTool();
 
 export const createMermaidDiagramTool = tool({
   description:
@@ -422,22 +588,49 @@ export const mcqSetInputSchema = z
     }
   });
 
-export const createMcqSetTool = tool({
-  description: "Build an interactive multiple-choice quiz. The UI renders this as a quiz widget.",
-  inputSchema: mcqSetInputSchema,
-  execute: async (input) => {
-    if (input.subject === "physics") {
-      const issues = validatePhysicsMcqCorrectness(input.items);
-      if (issues.length) {
-        throw new Error(
-          `Physics MCQ validation failed: ${issues.join(" ")}`,
-        );
-      }
-    }
+function validateAssessmentSourceForWidget(
+  ctx: AgentRuntimeContext | undefined,
+  subject: z.infer<typeof subjectSchema>,
+) {
+  if (!ctx) return;
+  const staged = peekAssessmentSource(ctx.sessionId);
+  if (!staged) {
+    throw new Error(
+      "Testing source validation failed: call the matching assessment source tool before building a widget.",
+    );
+  }
+  if (staged.subject !== subject) {
+    throw new Error(
+      `Testing source validation failed: latest staged source is for ${staged.subject}, not ${subject}.`,
+    );
+  }
+  if (!staged.supported) {
+    throw new Error(`Testing source validation failed: ${buildSourceSupportError(staged)}`);
+  }
+  clearAssessmentSource(ctx.sessionId);
+}
 
-    return input;
-  },
-});
+export function buildCreateMcqSetTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description: "Build an interactive multiple-choice quiz. The UI renders this as a quiz widget.",
+    inputSchema: mcqSetInputSchema,
+    execute: async (input) => {
+      validateAssessmentSourceForWidget(ctx, input.subject);
+      if (input.subject === "physics") {
+        const issues = validatePhysicsMcqCorrectness(input.items);
+        if (issues.length) {
+          throw new Error(
+            `Physics MCQ validation failed: ${issues.join(" ")}`,
+          );
+        }
+      }
+
+      return input;
+    },
+  });
+}
+
+export const createMcqSetTool = buildCreateMcqSetTool();
 
 export const flashcardSetInputSchema = z
   .object({
@@ -456,11 +649,18 @@ export const flashcardSetInputSchema = z
     }
   });
 
-export const createFlashcardsTool = tool({
-  description: "Build an interactive flashcard deck. The UI renders this as a flip deck.",
-  inputSchema: flashcardSetInputSchema,
-  execute: async (input) => input,
-});
+export function buildCreateFlashcardsTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description: "Build an interactive flashcard deck. The UI renders this as a flip deck.",
+    inputSchema: flashcardSetInputSchema,
+    execute: async (input) => {
+      validateAssessmentSourceForWidget(ctx, input.subject);
+      return input;
+    },
+  });
+}
+
+export const createFlashcardsTool = buildCreateFlashcardsTool();
 
 export function getRecentPerformanceTool(ctx: AgentRuntimeContext) {
   return tool({

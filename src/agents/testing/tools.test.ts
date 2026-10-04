@@ -1,11 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildCreateMcqSetTool,
+  createChemistryAssessmentSourceTool,
   createMcqSetTool,
   flashcardSetInputSchema,
   mcqSetInputSchema,
   recordPerformanceInputSchema,
 } from "./tools";
+import type { AgentRuntimeContext } from "../_shared/types";
+
+const primaryCtx: AgentRuntimeContext = {
+  sessionId: "primary-testing",
+  profile: {
+    name: "Alya",
+    gradeLevel: "primary",
+    diagnostic: {},
+    notes: [],
+  },
+  recentChats: [],
+};
+
+function hasSupportedFlag(value: unknown): value is { supported: boolean } {
+  return value !== null && typeof value === "object" && "supported" in value;
+}
 
 test("mcq schema rejects duplicate option ids and invalid correctOptionId", () => {
   assert.throws(
@@ -102,5 +120,62 @@ test("recordPerformance is strict and rejects invented score fields", () => {
         outcome: "80%",
       }),
     /Unrecognized key/i,
+  );
+});
+
+test("mcq widget generation fails closed when the staged source is unsupported for the grade band", async () => {
+  const chemistrySourceTool = createChemistryAssessmentSourceTool(primaryCtx);
+  const mcqTool = buildCreateMcqSetTool(primaryCtx);
+
+  const source = await chemistrySourceTool.execute!(
+    {
+      request: "Give me five O-Level Chemistry MCQs on acids and bases.",
+      gradeLevel: "primary",
+      topics: ["acids and bases"],
+      requestedCount: 5,
+    },
+    { toolCallId: "source-1", messages: [] },
+  );
+
+  assert.ok(hasSupportedFlag(source));
+  assert.equal(source.supported, false);
+
+  await assert.rejects(
+    async () => {
+      await mcqTool.execute!(
+        {
+          title: "O-Level Chemistry MCQ",
+          subject: "chemistry",
+          items: [
+            {
+              id: "q1",
+              question: "What is an acid?",
+              options: [
+                { id: "a", label: "Proton donor" },
+                { id: "b", label: "Electron donor" },
+                { id: "c", label: "Metal" },
+              ],
+              correctOptionId: "a",
+              explanation: "An acid donates H+.",
+              topic: "acids and bases",
+            },
+            {
+              id: "q2",
+              question: "What is the pH of a neutral solution?",
+              options: [
+                { id: "a", label: "7" },
+                { id: "b", label: "1" },
+                { id: "c", label: "14" },
+              ],
+              correctOptionId: "a",
+              explanation: "Neutral solutions have pH 7.",
+              topic: "acids and bases",
+            },
+          ],
+        },
+        { toolCallId: "mcq-1", messages: [] },
+      );
+    },
+    /grade band|unsupported|do not create a widget/i,
   );
 });

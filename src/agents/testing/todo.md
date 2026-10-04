@@ -53,6 +53,10 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
   - [x] extend the existing Testing performance log schema
   - [x] capture `inputTokens`, `outputTokens`, and `costUsd`
   - [x] keep the implementation local to the Testing slice
+- [x] Add a bare-minimum deterministic level-banding gate:
+  - [x] explicit requested levels use the student's structured profile year as the ceiling
+  - [x] higher-level explicit requests are blocked before widget generation
+  - [x] lower-band requests are allowed as revision
 
 ## In progress now
 
@@ -85,6 +89,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - project-wide Promptfoo regression gating now means Testing smoke regressions can block CI, so prompt/guardrail changes need extra care even when the feature work is local
 - the new privacy/data-ethics slice is intentionally minimal and still only covers obvious requests for another student's data
 - token/cost logging is implemented, but still needs a real generated assessment log inspected as evidence
+- exact topic-by-topic curriculum depth is still not modelled; current level gating is strongest for explicit requested levels, not every topic in every year
 
 ## First tasks for next session
 
@@ -123,6 +128,7 @@ Testing now has a first Testing-local guardrail layer plus stronger deterministi
 - [ ] Decide whether adaptive lookups should later include non-MCQ persisted history signals rather than only MCQ summaries.
 - [ ] Decide whether the minimum privacy/data-ethics slice should later expand to cover more PII patterns and policy wording.
 - [ ] Decide whether token/cost logging should stay file-based or later feed a richer engineering dashboard.
+- [ ] Decide whether the bare-minimum explicit level gate should later expand into fuller topic-by-topic curriculum gating.
 - [ ] Decide whether a combined verifier / marker module should be added next.
 - [ ] Decide whether richer SVG / HTML / CSS visual generation is still needed once Mermaid-first behaviour is tested.
 - [ ] Decide whether Testing needs any additional guardrail-specific harness fixtures beyond the new eval and unit-test coverage.

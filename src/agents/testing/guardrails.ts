@@ -232,7 +232,11 @@ function hasWidgetEcho(text: string) {
 
 export function normaliseTestingReply(
   text: string,
-  options?: { forceBoundaryRefusal?: boolean; hasWidgetTool?: boolean },
+  options?: {
+    forceBoundaryRefusal?: boolean;
+    hasWidgetTool?: boolean;
+    widgetMode?: TestingMode;
+  },
 ): string {
   const repaired = repairWhitespace(text);
   if (!repaired) return INCOMPLETE_REPLY;
@@ -240,6 +244,17 @@ export function normaliseTestingReply(
   if (hasPromptDisclosure(repaired)) return BOUNDARY_REPLY;
   if (hasUnsafeLivePaperDisclosure(repaired) || hasAnswerKeyDump(repaired)) {
     return EXAM_INTEGRITY_REPLY;
+  }
+  if (
+    options?.widgetMode === "flashcards" &&
+    (
+      repaired.length > 180 ||
+      (repaired.match(BULLET_LINE) ?? []).length >= 2 ||
+      (repaired.match(QUESTION_LINE) ?? []).length >= 1 ||
+      /(?:^|\n)\s*(?:front|back)\s*:/im.test(repaired)
+    )
+  ) {
+    return WIDGET_NOTE_REPLY;
   }
   if (hasWidgetEcho(repaired)) {
     return options?.forceBoundaryRefusal
@@ -280,6 +295,10 @@ export function createTestingGuardrails(
         part.type === "tool-call" &&
         (part.toolName === "createMcqSet" || part.toolName === "createFlashcards"),
     );
+    const widgetMeta =
+      widgetTool && widgetTool.type === "tool-call"
+        ? widgetAssessmentMetadata(widgetTool.toolName, widgetTool.input)
+        : null;
     const usage = usageTotals(result.usage);
     const normalisedText = result.content
       .filter((part) => part.type === "text")
@@ -287,16 +306,14 @@ export function createTestingGuardrails(
         normaliseTestingReply(part.text, {
           forceBoundaryRefusal,
           hasWidgetTool,
+          widgetMode: widgetMeta?.mode,
         }),
       )
       .join("\n")
       .trim();
     await logAssessmentTelemetry({
       ctx,
-      widgetMeta:
-        widgetTool && widgetTool.type === "tool-call"
-          ? widgetAssessmentMetadata(widgetTool.toolName, widgetTool.input)
-          : null,
+      widgetMeta,
       note: normalisedText,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
@@ -355,6 +372,7 @@ export function createTestingGuardrails(
                 delta: normaliseTestingReply(blocks.get(chunk.id)!, {
                   forceBoundaryRefusal,
                   hasWidgetTool,
+                  widgetMode: widgetMeta?.mode,
                 }),
               });
               blocks.delete(chunk.id);
@@ -367,6 +385,7 @@ export function createTestingGuardrails(
                     normaliseTestingReply(text, {
                       forceBoundaryRefusal,
                       hasWidgetTool,
+                      widgetMode: widgetMeta?.mode,
                     }),
                   )
                   .join("\n")

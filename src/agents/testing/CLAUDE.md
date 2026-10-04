@@ -55,6 +55,12 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
 - Testing now also has a lightweight **observability** improvement:
   - assessment logs in `logs/testing-performance/` can now carry `inputTokens`, `outputTokens`, and `costUsd`
   - this is for engineering visibility and reporting, not a student-facing feature
+- Testing now also has a **bare-minimum explicit level-banding gate**:
+  - explicit requested school levels are checked against the student's profile year
+  - same-level or lower requests are allowed
+  - higher-level explicit requests are blocked before widget generation
+  - lower-band requests are allowed as revision
+  - this is intentionally not a full topic-by-topic curriculum engine yet
 - There is now also a minimum **data-ethics / student-privacy** slice in the student-facing path:
   - obvious requests for another student's NRIC, personal details, or learning records are refused before ordinary specialist handling
   - this is project-wide rather than Testing-only
@@ -103,6 +109,7 @@ The intended responsibility split is:
 - **score-history persistence** → save completed signed-in MCQ attempts and summarise improvement/regression
 - **project-wide privacy guardrails** → refuse obvious requests for another student's identifying data or learning records before specialist generation
 - **performance observability** → log token usage and estimated cost per completed assessment
+- **level-gating helper** → enforce same-or-lower explicit school-level requests before widget generation
 
 This separation matters for the professors' software-engineering emphasis.
 
@@ -146,6 +153,7 @@ This separation matters for the professors' software-engineering emphasis.
 - **Promptfoo CI support**: the Testing smoke-subset evals now feed a project-wide Promptfoo regression baseline, so accepted CI coverage has a merge-blocking regression gate instead of being informational only
 - **Data-ethics support**: the student-facing path now has a minimum privacy refusal for another student's identifying details or learning records, and that behaviour is covered by a Promptfoo smoke eval
 - **Token / cost logging**: Testing performance entries can now include input tokens, output tokens, and estimated cost so assessment generation has a lightweight observability trail
+- **Level-banding support**: explicit requested levels such as PSLE, O-Level, or H2 are now checked against the student's exact school year, so out-of-band requests can be blocked deterministically
 
 All three now follow the same intended source-tool contract.
 
@@ -229,11 +237,17 @@ All three now follow the same intended source-tool contract.
    - this gives Harun a concrete LLMOps / observability point in the final report without changing the student-facing UX
    - the design stays file-based and local to the Testing slice instead of adding another persistence system
 
-8. **Source-pack heuristics improved, but are still somewhat coarse**
+8. **Level-banding support now has a deterministic minimum**
+   - explicit requested levels are compared against the student's structured profile year
+   - higher-level requests can now fail closed before widget generation
+   - lower-band requests can be allowed as revision
+   - however, subject/topic difficulty is still not modelled with full year-by-year curriculum precision
+
+9. **Source-pack heuristics improved, but are still somewhat coarse**
    - wave prompts now suggest a **wave diagram** instead of an irrelevant force diagram
    - source chunks, key concepts, and hints can still be broader than ideal because they come from syllabus excerpts
 
-9. **Remaining limitation**
+10. **Remaining limitation**
    - the contract exists for all three subjects, but source-pack quality and follow-up behaviour still need refinement
    - harness coverage should keep expanding for more mixed, follow-up, and unsupported-topic cases
 
@@ -266,6 +280,7 @@ All three now follow the same intended source-tool contract.
 - Testing now adds a narrow local middleware backstop for prompt-disclosure resistance and obvious answer-key/live-paper prose leaks
 - The chat route now also has a narrow privacy refusal path for obvious requests about another student's private data or learning records
 - Token/cost logging is observational only and should never leak cost details back to students
+- Explicit requested levels now have a deterministic ceiling/floor check, but topic difficulty without a named level still depends on source support rather than exact curriculum metadata
 - `recordPerformance` is note-only during assessment generation, so invented outcome fields are disallowed
 - Physics source-tool failures should surface explicitly rather than silently invent content
 
@@ -286,7 +301,8 @@ All three now follow the same intended source-tool contract.
 5. Decide whether adaptive lookups should stay MCQ-only or later expand to other persisted Testing history signals such as future flashcard completion history
 6. Decide whether the current minimum privacy/data-ethics slice should stay narrow or later expand into fuller PII-specific policy coverage
 7. Decide whether token/cost logging should stay file-based or later feed a richer engineering dashboard
-8. Decide whether harness output should include even richer debugging metadata
+8. Decide whether exact level-banding should later expand into fuller topic-by-topic curriculum gating rather than only explicit requested-level checks
+9. Decide whether harness output should include even richer debugging metadata
 
 ## Suggested final-report framing
 
