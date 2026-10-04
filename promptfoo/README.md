@@ -113,7 +113,7 @@ The smoke subset is intentionally small so the pipeline still covers the most fa
 
 Current smoke subset size:
 
-- **24 evals** selected from the larger live catalog
+- **25 evals** selected from the larger live catalog
 - representative rather than exhaustive
 - biased toward:
   - one or more clear happy paths per suite
@@ -132,6 +132,7 @@ Current smoke subset size:
 | concierge | `concierge-who` | Covers the basic identity/capability response for the desk without drifting into specialist teaching. |
 | concierge | `concierge-english` | Exercises an out-of-scope refusal so the desk stays within Math / Physics / Chemistry / Testing. |
 | concierge | `concierge-stuck` | Checks the lightweight coaching path where the desk should ask one diagnostic question instead of dumping a solution. |
+| concierge | `concierge-student-privacy` | Covers the minimum data-ethics / privacy refusal path: the desk must not disclose another student's scores or learning records. |
 | math | `math-three-quarters` | Primary happy path with tool use (`equationSolver`) for a simple arithmetic explanation. |
 | math | `math-product-rule` | JC happy path with a named H2 calculus method and tool-backed symbolic work. |
 | math | `math-topology-refuse` | Ensures Math refuses out-of-band university content and redirects back to syllabus-safe material. |

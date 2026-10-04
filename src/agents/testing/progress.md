@@ -2,7 +2,7 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Folder:** `src/agents/testing/`  
-**Last updated:** 2026-10-02
+**Last updated:** 2026-10-04
 
 ## Purpose
 
@@ -84,6 +84,7 @@ Future chat sessions can read this file first to resume work quickly.
   - Testing now has a dedicated adaptive-difficulty eval (`testing-adaptive-difficulty-regressing`)
   - the project-wide Promptfoo prep script now defaults to a smaller smoke subset for CI, while still keeping a full-suite path for local runs
   - Promptfoo CI now also has a regression gate for the smoke subset, so accepted suite-level pass rates are checked against a committed baseline
+  - a concierge/student-privacy refusal eval is now also in the Promptfoo smoke subset, so minimum data-ethics coverage is part of CI
 
 ## Proposal mapping
 
@@ -263,6 +264,36 @@ Related support work for reporting:
   - run signed-in repeated-topic checks to confirm the persisted-summary path picks up the expected bucket in realistic flows
   - decide whether future adaptive logic should stay MCQ-only or grow into a more general Testing-history system
   - keep the Testing smoke evals healthy because they are now part of the Promptfoo CI regression baseline
+
+## 2026-10-04 minimum data-ethics / student-privacy update
+
+- **Changed:**
+  - `src/lib/guardrails.ts`
+  - `src/lib/guardrails.test.ts`
+  - `src/app/api/chat/route.ts`
+  - `src/agents/orchestration/prompts.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/evals/catalog/concierge.ts`
+  - `promptfoo/generate-tests.ts`
+  - `promptfoo/README.md`
+  - `promptfoo/baseline.json`
+- **Validated:**
+  - `npx tsx --test src/lib/guardrails.test.ts src/agents/testing/subject-source.test.ts`
+  - targeted Promptfoo eval for `concierge-student-privacy`
+  - `npm run promptfoo:ci`
+  - `npm run promptfoo:refresh-baseline`
+  - `npm run promptfoo:check-regression`
+  - `npm run typecheck`
+- **Findings:**
+  - the project already had decent ownership-based protection for score data, but it lacked an explicit student-facing privacy refusal rule
+  - the new minimum slice now refuses obvious requests for another student's NRIC, personal details, or learning records before normal specialist handling
+  - the privacy/data-ethics behaviour is now covered by the Promptfoo smoke subset, so it is not only documented but also checked in CI
+- **Blockers / remaining gaps:**
+  - this is intentionally a minimum slice, not a full PII-classification or privacy-policy framework
+  - broader privacy coverage still needs design work if the project later handles richer personal data types
+- **Next:**
+  - decide whether to keep the privacy guardrail narrow or expand it into a fuller personal-data policy later
+  - keep the privacy refusal eval healthy in the smoke subset because it is now part of the accepted CI baseline
 
 ## 2026-09-18 architecture update
 

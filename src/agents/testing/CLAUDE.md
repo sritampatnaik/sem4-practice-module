@@ -52,6 +52,10 @@ This file is for **Harun's Testing-agent context and decision log**. It can be c
   - surfaced in the sidebar as latest / previous / best with a simple trend state
   - this is separate from `recordPerformance`
   - initial live testing now looks good after the table was created in Supabase
+- There is now also a minimum **data-ethics / student-privacy** slice in the student-facing path:
+  - obvious requests for another student's NRIC, personal details, or learning records are refused before ordinary specialist handling
+  - this is project-wide rather than Testing-only
+  - one such refusal case is now part of the Promptfoo smoke subset
 
 ## Scope
 
@@ -94,6 +98,7 @@ The intended responsibility split is:
 - **widget tools** → produce valid MCQ / flashcard payloads
 - **logging tools** → record compact Testing notes for follow-up
 - **score-history persistence** → save completed signed-in MCQ attempts and summarise improvement/regression
+- **project-wide privacy guardrails** → refuse obvious requests for another student's identifying data or learning records before specialist generation
 
 This separation matters for the professors' software-engineering emphasis.
 
@@ -135,6 +140,7 @@ This separation matters for the professors' software-engineering emphasis.
 - **Score tracking**: signed-in MCQ attempt persistence and sidebar trend summary are implemented and now reaching the live Supabase table in initial testing
 - **Adaptive follow-up difficulty**: topic-scoped score lookup plus `easier` / `standard` / `harder` planning is implemented; persisted Supabase-backed score summaries are now the source of truth, with profile-note hints only as a fallback
 - **Promptfoo CI support**: the Testing smoke-subset evals now feed a project-wide Promptfoo regression baseline, so accepted CI coverage has a merge-blocking regression gate instead of being informational only
+- **Data-ethics support**: the student-facing path now has a minimum privacy refusal for another student's identifying details or learning records, and that behaviour is covered by a Promptfoo smoke eval
 
 All three now follow the same intended source-tool contract.
 
@@ -208,11 +214,16 @@ All three now follow the same intended source-tool contract.
    - deterministic bands now decide difficulty: below 60% -> easier, 60% to 79% -> standard, 80%+ -> harder
    - the topic scope is preserved, so one weak topic should not leak into unrelated quiz requests
 
-6. **Source-pack heuristics improved, but are still somewhat coarse**
+6. **Minimum data-ethics coverage now exists**
+   - obvious requests for another student's NRIC, personal data, or learning records are refused in the student-facing path
+   - this is small but useful evidence that privacy was considered, not only assessment integrity
+   - the concierge smoke subset now includes a student-privacy refusal case, so this behaviour is part of CI coverage
+
+7. **Source-pack heuristics improved, but are still somewhat coarse**
    - wave prompts now suggest a **wave diagram** instead of an irrelevant force diagram
    - source chunks, key concepts, and hints can still be broader than ideal because they come from syllabus excerpts
 
-7. **Remaining limitation**
+8. **Remaining limitation**
    - the contract exists for all three subjects, but source-pack quality and follow-up behaviour still need refinement
    - harness coverage should keep expanding for more mixed, follow-up, and unsupported-topic cases
 
@@ -243,6 +254,7 @@ All three now follow the same intended source-tool contract.
 - Input still passes through existing guardrails
 - Live-paper cloning remains disallowed
 - Testing now adds a narrow local middleware backstop for prompt-disclosure resistance and obvious answer-key/live-paper prose leaks
+- The chat route now also has a narrow privacy refusal path for obvious requests about another student's private data or learning records
 - `recordPerformance` is note-only during assessment generation, so invented outcome fields are disallowed
 - Physics source-tool failures should surface explicitly rather than silently invent content
 
@@ -261,7 +273,8 @@ All three now follow the same intended source-tool contract.
 3. Confirm live UI behaviour after the auth/login path, including sidebar score-history updates after MCQ submission
 4. Extend eval coverage for source-tool ordering, note-only logging, unsupported-topic failures, follow-up prompts, and any further guardrail edge cases
 5. Decide whether adaptive lookups should stay MCQ-only or later expand to other persisted Testing history signals such as future flashcard completion history
-6. Decide whether harness output should include even richer debugging metadata
+6. Decide whether the current minimum privacy/data-ethics slice should stay narrow or later expand into fuller PII-specific policy coverage
+7. Decide whether harness output should include even richer debugging metadata
 
 ## Suggested final-report framing
 

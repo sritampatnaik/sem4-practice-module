@@ -4,7 +4,7 @@ import { allEvalItems, refreshEvalCatalog } from "../src/evals/live-catalog";
 import { loadPromptfooEnv } from "./load-env";
 
 /**
- * Smoke subset — 24 evals (~10%) for CI.
+ * Smoke subset — 25 evals (~10%) for CI.
  * Covers representative happy paths, tool-use checks, and ambiguity / refusal /
  * integrity boundaries across routing, concierge, specialist, and Testing flows.
  * Run full suite locally: PROMPTFOO_FULL_SUITE=1 npm run promptfoo:prepare
@@ -15,10 +15,11 @@ const SMOKE_IDS = new Set([
   "routing-kinematics-trap",
   "routing-quiz-waves",
   "routing-unclear-science",
-  // concierge (3)
+  // concierge (4)
   "concierge-who",
   "concierge-english",
   "concierge-stuck",
+  "concierge-student-privacy",
   // math (3)
   "math-three-quarters",
   "math-product-rule",

@@ -48,6 +48,7 @@ flowchart TD
 
     C --> AC["rememberTurn / chat memory<br/>src/lib/memory.ts"]
     C --> AD["Guardrail monitor<br/>src/agents/guardrail"]
+    C --> AJ["student-privacy refusal path<br/>src/lib/guardrails.ts"]
 
     subgraph ValidationAndDocs["Validation and engineering support"]
         AE["guardrails.test.ts"]
@@ -76,8 +77,10 @@ flowchart TD
   - score tracking is a separate persistence flow from note logging
 - **`recordPerformance` stays note-only**: score tracking does **not** overload the earlier Testing note log.
 - **Local guardrails stay narrow**: the Testing middleware blocks obvious hidden-prompt disclosures, live-paper wording leaks, and answer-key dumps in prose, but broader student-safety escalation still belongs to `src/agents/guardrail/`.
+- **Privacy path stays narrow**: obvious requests for another student's private data or learning records are refused in the shared chat path before specialist generation; this is minimum data-ethics coverage, not a full PII platform.
 - **Score history grouping**: repeated MCQ attempts are grouped by **subject + topic/family + mode** so the UI can show improvement, regression, or stability.
 - **Current adaptive boundary**: follow-up difficulty is topic-scoped, prefers persisted Supabase score summaries, and currently uses deterministic MCQ-oriented score bands (<60 easier, 60-79 standard, >=80 harder).
 - **Deployment boundary**: the score-history flow depends on the migration-defined `public.testing_attempts` schema; once that table exists, the same API/UI path works without code changes.
 - **Validation-first design**: strict note-only logging, tool schemas, guardrail tests, planner tests, and score/source regressions support software-engineering grading points such as modularity, explicit contracts, and testability.
 - **Project-wide eval support**: the Testing smoke evals now sit inside a Promptfoo CI regression gate, so this slice contributes directly to a merge-blocking quality baseline.
+- **Project-wide privacy coverage**: a concierge smoke eval now checks refusal of another student's scores, so the minimum privacy/data-ethics rule is part of CI coverage too.
