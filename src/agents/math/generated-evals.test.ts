@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildComputedItems,
   buildConsistencyItems,
+  buildExamItems,
   buildExactItems,
   buildGeneratedMathItems,
   buildHintItems,
@@ -12,6 +13,7 @@ import {
   DEV_SEED,
   exactDecimal,
   isLiteralAnswer,
+  sig3,
   simplifySurd,
 } from "../../evals/catalog/math-generated";
 import type { EvalItem } from "../../evals/types";
@@ -24,6 +26,32 @@ const close = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 /** Recomputes a computed case from the numbers in its prompt, with plain arithmetic. */
 function recompute(item: EvalItem): number {
   const p = item.prompt;
+  // Exam-style templates first: their wording would otherwise match the simpler rules.
+  const trig = p.match(/angle BAC = (\d+)° and AB = (\d+) cm/);
+  if (trig) return Number(trig[2]) * Math.tan((Number(trig[1]) * Math.PI) / 180);
+  const logs = p.match(/log_2 x \+ log_2 \(x − (\d+)\) = (\d+)/);
+  if (logs) {
+    const [k, n2] = [Number(logs[1]), Number(logs[2])];
+    return (k + Math.sqrt(k * k + 4 * 2 ** n2)) / 2;
+  }
+  const change = p.match(/ratio (\d+) : (\d+)\. After .*? gave (\d+) marbles/);
+  if (change) {
+    const [a, b, given] = change.slice(1).map(Number);
+    return (a * 2 * given) / (b - a);
+  }
+  const spectacles = p.match(/is ([\d.]+)\. In a random sample of (\d+) students, find the probability that at most (\d+)/);
+  if (spectacles) {
+    const [prob, trials, k] = spectacles.slice(1).map(Number);
+    let total = 0;
+    for (let r = 0; r <= k; r += 1) total += choose(trials, r) * prob ** r * (1 - prob) ** (trials - r);
+    return total;
+  }
+  const row = p.match(/^(\d+) people, including Ali and Ben, sit in a row/);
+  if (row) {
+    const people = Number(row[1]);
+    const fact = (m: number): number => (m <= 1 ? 1 : m * fact(m - 1));
+    return /must not/.test(p) ? fact(people) - 2 * fact(people - 1) : 2 * fact(people - 1);
+  }
   const n = nums(p.replace(/log_|\^|X ~ B/g, " "));
   if (/tan θ/.test(p)) return (n[2] * n[0]) / n[1];
   if (/sin θ/.test(p)) return Math.sqrt(n[2] ** 2 - ((n[2] * n[0]) / n[1]) ** 2);
@@ -100,15 +128,21 @@ test("exact helpers", () => {
   assert.equal(simplifySurd(7).text, "√7");
   assert.equal(exactDecimal("3 * 0.4^2 * 0.6"), "0.288");
   assert.equal(exactDecimal("1/3"), undefined);
+  assert.equal(sig3(8.3913), "8.39");
+  assert.equal(sig3(0.38278), "0.383");
+  assert.equal(sig3(8.4012), undefined); // "8.40" could be written as 8.4
+  assert.equal(sig3(2.345), undefined); // too close to a rounding half
   assert.ok(isLiteralAnswer("12") && isLiteralAnswer("0.288") && isLiteralAnswer("23.5"));
   assert.ok(!isLiteralAnswer("7") && !isLiteralAnswer("0.3125") && !isLiteralAnswer("1275") && !isLiteralAnswer("-12"));
 });
 
-test("computed and held-out answers match an independent recomputation", () => {
+test("computed, exam-style and held-out answers match an independent recomputation", () => {
   for (const seed of [DEV_SEED, DEFAULT_HOLDOUT_SEED, 1, 42, 999]) {
-    for (const item of [...buildComputedItems(seed), ...buildHoldoutItems(seed)]) {
+    for (const item of [...buildComputedItems(seed), ...buildExamItems(seed), ...buildHoldoutItems(seed)]) {
       const answer = answerOf(item);
-      assert.ok(close(Number(answer), recompute(item)), `${item.id}: ${answer} vs ${recompute(item)}`);
+      const value = recompute(item);
+      const matches = /significant figures/.test(item.prompt) ? value.toPrecision(3) === answer : close(Number(answer), value);
+      assert.ok(matches, `${item.id}: ${answer} vs ${value}`);
     }
   }
 });
@@ -129,7 +163,9 @@ test("layer counts, prefixes and bands", () => {
   const items = buildGeneratedMathItems();
   const count = (prefix: string) => items.filter((item) => item.id.startsWith(prefix)).length;
   assert.equal(count("math-gen-computed-"), 10);
-  assert.equal(count("math-holdout-"), 10);
+  assert.equal(count("math-holdout-"), 15);
+  assert.equal(count("math-holdout-exam-"), 5);
+  assert.equal(count("math-gen-exam-"), 5);
   assert.equal(count("math-gen-exact-"), 4);
   assert.equal(count("math-gen-hint-"), 4);
   assert.equal(count("math-gen-planted-"), 4);

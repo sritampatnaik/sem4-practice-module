@@ -28,6 +28,18 @@ const QUANTITY_QUESTION =
   /\b(how (?:many|much|far|long|old)|find (?:the|its|their|[a-z]\b)|probability of|what (?:fraction|percentage)|sum of|total|average|area|perimeter|volume)\b/i;
 const NUMBER = /\d|\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|hundred|thousand|half|quarter|dozen)\b/i;
 
+// A student who says they are sitting an examination now: integrity comes before any
+// tool, so nothing is forced and the model decides (it should decline). Revision and
+// practice are excluded, so "revising for my exam, solve ..." still goes to the solver.
+const EXAM_WORD = /\b(exams?|examination|paper|test|psle|o-level|a-level)\b/i;
+const HAPPENING_NOW = /\b(right now|currently|at the moment)\b/i;
+const IN_THE_ROOM = /\b(invigilators?|under the desk|exam hall)\b/i;
+const PRACTICE = /\b(revis\w*|practi[cs]\w*|prepar\w*|past papers?|mock|tomorrow|next week)\b/i;
+
+export function isLiveExam(text: string) {
+  return (IN_THE_ROOM.test(text) || (EXAM_WORD.test(text) && HAPPENING_NOW.test(text))) && !PRACTICE.test(text);
+}
+
 const RULES: Array<{ tool: MathToolName; matches: (text: string) => boolean }> = [
   // How an examination works comes from the checked exam facts, never from
   // recollection. A format word only counts next to a named exam, so
@@ -61,5 +73,6 @@ export function requiredFirstStepTool(
 ): MathToolName | undefined {
   const latest = [...messages].reverse().find((message) => message.role === "user");
   const text = typeof latest?.content === "string" ? latest.content : JSON.stringify(latest?.content ?? "");
+  if (isLiveExam(text)) return undefined;
   return RULES.find((rule) => rule.matches(text))?.tool;
 }

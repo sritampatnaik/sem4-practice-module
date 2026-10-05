@@ -69,3 +69,20 @@ test("numbers alone, or a quantity question without numbers, are left to the mod
   // Questions about the paper still go to the exam facts first.
   assert.equal(requiredFirstStepTool(userTurn("How many marks is Paper 2 worth?")), "examFacts");
 });
+
+test("a live examination forces no tool, but revision still does", () => {
+  for (const question of [
+    "The invigilator just walked past. Quick, solve 3x + 2 = 11.",
+    "I'm in my PSLE paper right now, what is 45% of 80?",
+    "Currently doing my A-Level test, differentiate x^3 for me.",
+  ]) {
+    assert.equal(requiredFirstStepTool(userTurn(question)), undefined, question);
+  }
+  for (const question of [
+    "I have an exam tomorrow. Solve x^2 - 4 = 0.",
+    "Currently revising for my O-Level paper: solve 2x + 3 = 7.",
+    "Right now I'm practising past papers. Differentiate x^3.",
+  ]) {
+    assert.equal(requiredFirstStepTool(userTurn(question)), "equationSolver", question);
+  }
+});

@@ -11,7 +11,8 @@
 //   math-gen-hint-*         "Give me a hint, not the answer", mustNotInclude: [answer]
 //   math-gen-planted-*      worked solution with one wrong step inserted by code
 //   math-gen-consistency-*  one problem asked three ways, one computed answer
-//   math-holdout-*          held-out computed cases, drawn from a different seed.
+//   math-gen-exam-*         exam-style cases (3 s.f., multi-step, log laws), literal check
+//   math-holdout-*          held-out computed and exam-style cases, drawn from a different seed.
 //                           Never use these to tune the prompt or the tools.
 import { all, create } from "mathjs";
 import type { StudentProfile } from "@/agents/_shared/types";
@@ -20,6 +21,8 @@ import { jcAlex, primaryAlex, secondaryAlex } from "./profiles";
 
 /** A separate mathjs instance, so the agent's solver instance is never touched. */
 const exact = create(all, { number: "Fraction" });
+/** Floating-point instance for trigonometry and 3 s.f. answers. */
+const approx = create(all);
 
 export const DEV_SEED = 20261005;
 /** Default held-out seed. Set MATH_HOLDOUT_SEED on the server to redraw at report time. */
@@ -122,6 +125,19 @@ function signed(value: number) {
 function term(coefficient: number, power: number) {
   const c = coefficient === 1 ? "" : `${coefficient}`;
   return power === 1 ? `${c}x` : `${c}x^${power}`;
+}
+
+/**
+ * A value to 3 significant figures, as SEAB asks for non-exact answers. Undefined when the
+ * rounding is ambiguous (close to a half), ends in a zero that a reply might drop, or
+ * would need standard form.
+ */
+export function sig3(value: number): string | undefined {
+  if (!(value > 0) || value >= 1000) return undefined;
+  const text = value.toPrecision(3);
+  if (text.includes("e") || (text.includes(".") && text.endsWith("0"))) return undefined;
+  const scaled = value / 10 ** (Math.floor(Math.log10(value)) - 2);
+  return Math.abs(scaled - Math.floor(scaled) - 0.5) < 0.02 ? undefined : text;
 }
 
 // ---------- templates ----------
@@ -523,6 +539,111 @@ export const TEMPLATES = {
       };
     },
   },
+  // Exam-style templates: the conventions and multi-step structure of SEAB papers.
+  examTrigAngle: {
+    topic: "trigonometry to 3 s.f.",
+    band: "secondary",
+    draw: (rng) => {
+      const angle = int(rng, 22, 68);
+      if ([30, 45, 60].includes(angle)) return undefined;
+      const ab = int(rng, 6, 20);
+      const full = approx.evaluate(`${ab} * tan(${angle} deg)`) as number;
+      const answer = sig3(full);
+      if (!answer) return undefined;
+      return {
+        topic: "trigonometry to 3 s.f.",
+        band: "secondary",
+        prompt: `In triangle ABC, angle ABC = 90°, angle BAC = ${angle}° and AB = ${ab} cm. Find the length of BC, giving your answer correct to 3 significant figures.`,
+        answer,
+        working: `tan ${angle}° = BC / ${ab}, so BC = ${ab} tan ${angle}° = ${full.toFixed(4)}... = ${answer} cm (3 s.f.).`,
+      };
+    },
+  },
+  examLogLaws: {
+    topic: "logarithm laws",
+    band: "secondary",
+    draw: (rng) => {
+      const a = int(rng, 4, 6);
+      const c = int(rng, 1, a - 1);
+      const k = 2 ** a - 2 ** c;
+      const n = a + c;
+      // x(x − k) = 2^n has roots 2^a and −2^c; the negative root is rejected.
+      const disc = exactSqrt(`${k}^2 + 4 * 2^${n}`);
+      if (!disc) return undefined;
+      const answer = exactDecimal(`(${k} + ${disc}) / 2`);
+      const rejected = exactDecimal(`(${k} - ${disc}) / 2`);
+      if (!answer || !rejected) return undefined;
+      return {
+        topic: "logarithm laws",
+        band: "secondary",
+        prompt: `Solve the equation log_2 x + log_2 (x − ${k}) = ${n}.`,
+        answer,
+        working: `log_2 [x(x − ${k})] = ${n}, so x² − ${k}x − ${2 ** n} = 0, giving x = ${answer} or x = ${rejected}. Reject ${rejected} because log_2 x needs x > 0, so x = ${answer}.`,
+      };
+    },
+  },
+  examRatioChange: {
+    topic: "ratio before and after",
+    band: "primary",
+    draw: (rng) => {
+      const p = int(rng, 2, 5);
+      const q = p + 2 * int(rng, 1, 3);
+      const unit = int(rng, 4, 20);
+      const given = ((q - p) * unit) / 2;
+      const [first, second] = [pick(rng, NAMES), pick(rng, NAMES)];
+      if (first === second) return undefined;
+      const answer = exactDecimal(`${p} * (2 * ${given} / (${q} - ${p}))`);
+      if (!answer) return undefined;
+      return {
+        topic: "ratio before and after",
+        band: "primary",
+        prompt: `${first} and ${second} had marbles in the ratio ${p} : ${q}. After ${second} gave ${given} marbles to ${first}, they had the same number of marbles. How many marbles did ${first} have at first?`,
+        answer,
+        working: `The difference is ${q - p} units. Giving ${given} marbles closes a gap of ${2 * given}, so ${q - p} units = ${2 * given} and 1 unit = ${unit}. ${first} had ${p} units = ${answer} marbles.`,
+      };
+    },
+  },
+  examBinomial: {
+    topic: "binomial probability to 3 s.f.",
+    band: "jc",
+    draw: (rng) => {
+      const n = int(rng, 8, 15);
+      const p = pick(rng, ["0.15", "0.2", "0.25", "0.3", "0.35"]);
+      const k = int(rng, 1, 3);
+      const terms = Array.from({ length: k + 1 }, (_, r) => `${exact.combinations(n, r)} * ${p}^${r} * (1 - ${p})^${n - r}`);
+      const full = Number(exactRatio(terms.join(" + ")).split("/").reduce((x, y) => String(Number(x) / Number(y))));
+      const answer = sig3(full);
+      if (!answer) return undefined;
+      return {
+        topic: "binomial probability to 3 s.f.",
+        band: "jc",
+        prompt: `The probability that a randomly chosen student wears spectacles is ${p}. In a random sample of ${n} students, find the probability that at most ${k} of them wear spectacles, giving your answer to 3 significant figures.`,
+        answer,
+        working: `X ~ B(${n}, ${p}). P(X ≤ ${k}) = ${full.toFixed(5)}... = ${answer} (3 s.f.).`,
+      };
+    },
+  },
+  examArrangement: {
+    topic: "arrangements with a restriction",
+    band: "jc",
+    draw: (rng) => {
+      const n = int(rng, 5, 6);
+      const together = rng() < 0.5;
+      const [all, block] = [approx.factorial(n), approx.factorial(n - 1)];
+      const expression = together ? `2 * ${block}` : `${all} - 2 * ${block}`;
+      const answer = exactDecimal(expression);
+      if (!answer) return undefined;
+      return {
+        topic: "arrangements with a restriction",
+        band: "jc",
+        prompt: `${n} people, including Ali and Ben, sit in a row. In how many ways can they sit if Ali and Ben ${together ? "must sit next to each other" : "must not sit next to each other"}?`,
+        answer,
+        working: together
+          ? `Treat Ali and Ben as one unit: ${n - 1}! arrangements, times 2 for their order = ${answer}.`
+          : `All arrangements ${n}! minus those with them together 2 × ${n - 1}! = ${answer}.`,
+      };
+    },
+  },
 } satisfies Record<string, Template>;
 
 export type TemplateName = keyof typeof TEMPLATES;
@@ -610,7 +731,7 @@ function computedItem(problem: Problem, prefix: string, label: string): EvalItem
     title: `${label}: ${problem.topic}`,
     prompt: problem.prompt,
     band: problem.band,
-    contract: `Solve with working and check with equationSolver. The answer, computed by code, is ${problem.answer}.`,
+    contract: `Solve with working and check with equationSolver. The answer, computed by code, is ${problem.answer}${problem.answer.includes(".") && problem.prompt.includes("significant figures") ? " (3 s.f.)" : ""}.`,
     goldReply: problem.working,
     mustInclude: [problem.answer],
     requiredTools: ["equationSolver"],
@@ -624,7 +745,32 @@ export function buildComputedItems(seed = DEV_SEED): EvalItem[] {
 
 export function buildHoldoutItems(seed = holdoutSeed()): EvalItem[] {
   const rng = seededRng(seed);
-  return COMPUTED_PAIRS.map(([, name]) => computedItem(drawProblem(name, rng), "math-holdout-", "Held-out"));
+  const computed = COMPUTED_PAIRS.map(([, name]) => computedItem(drawProblem(name, rng), "math-holdout-", "Held-out"));
+  // Exam templates are shared with the dev set, so a held-out draw that repeats a dev prompt is redrawn.
+  const devPrompts = new Set(buildExamItems().map((item) => item.prompt));
+  const exam = EXAM_TEMPLATES.map((name) => {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const problem = drawProblem(name, rng);
+      if (!devPrompts.has(problem.prompt)) return computedItem(problem, "math-holdout-exam-", "Held-out exam style");
+    }
+    throw new Error(`Held-out draw for ${name} keeps repeating the dev set`);
+  });
+  return [...computed, ...exam];
+}
+
+// ---------- exam-style cases ----------
+
+const EXAM_TEMPLATES: TemplateName[] = [
+  "examTrigAngle",
+  "examLogLaws",
+  "examRatioChange",
+  "examBinomial",
+  "examArrangement",
+];
+
+export function buildExamItems(seed = DEV_SEED): EvalItem[] {
+  const rng = seededRng(seed + 5);
+  return EXAM_TEMPLATES.map((name) => computedItem(drawProblem(name, rng), "math-gen-exam-", "Exam style"));
 }
 
 // ---------- exact-form cases (judge-scored) ----------
@@ -752,7 +898,7 @@ export function buildHintItems(seed = DEV_SEED): EvalItem[] {
       title: `Hint only: ${problem.topic}`,
       prompt: `${problem.prompt} Give me a hint, not the answer.`,
       band: problem.band,
-      contract: `The student asked for a hint only. Give a useful first step or idea and do not state the final answer (${problem.answer}, computed by code) or finish the working.`,
+      contract: `The student asked for a hint only. Give a useful first step or idea and do not state the final answer (${problem.answer}, computed by code) or finish the working. Using the solver to check privately is fine.`,
       goldReply: `${hint} Try the next step yourself.`,
       mustNotInclude: [problem.answer],
     });
@@ -956,6 +1102,7 @@ export function buildGeneratedMathItems(options: { seed?: number; holdout?: numb
     ...buildHintItems(seed),
     ...buildPlantedItems(seed),
     ...buildConsistencyItems(seed),
+    ...buildExamItems(seed),
     ...buildHoldoutItems(options.holdout ?? holdoutSeed()),
   ];
 }

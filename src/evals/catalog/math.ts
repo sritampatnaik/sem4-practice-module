@@ -261,7 +261,7 @@ export const mathItems: EvalItem[] = [
     targetAgent: "math",
     scaffold: {
       contract:
-        "Check the exam facts for both PSLE formats. Foundation is 80 marks against Standard's 100 marks, with assessment objectives scoped to simple contexts. Describe it as a different assessment, not a lesser one. (The Foundation duration is not yet confirmed against the printed table, so it is left out.)",
+        "Check the exam facts for both PSLE formats. Foundation is 80 marks against Standard's 100 marks, with assessment objectives scoped to simple contexts. Describe it as a different assessment, not a lesser one. Durations quoted from the exam facts tool are correct (Foundation 1 h 45 min over two papers; Standard 2 h 30 min); the split of the 80 marks between the papers is unconfirmed and must not be stated.",
       goldReply:
         "Not quite. Foundation Mathematics is its own assessment: 80 marks against 100 for Standard, and its objectives are written around simple contexts rather than being a trimmed Standard paper.",
       mustInclude: ["80"],
