@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Monogram } from "@/components/atoms/EntityChip";
 import { Icon, type MetsIconName } from "@/components/icons";
 import { cn } from "@/lib/cn";
@@ -99,16 +99,80 @@ export function AppFrame({
   rail?: ReactNode;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      if (desktop.matches) setSidebarOpen(false);
+    };
+    desktop.addEventListener("change", onChange);
+    return () => desktop.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [sidebarOpen]);
+
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
       {sidebar ? (
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-hidden border-r border-line/60 bg-surface/95 px-5 py-6 backdrop-blur-sm lg:flex">
-          {sidebar}
-        </aside>
+        <>
+          {sidebarOpen ? (
+            <button
+              type="button"
+              className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px] lg:hidden"
+              aria-label="Close student menu"
+              onClick={() => setSidebarOpen(false)}
+            />
+          ) : null}
+          <aside
+            id="student-sidebar"
+            className={cn(
+              "flex-col overflow-y-auto border-r border-line/60 bg-surface/95 px-5 py-6 backdrop-blur-sm",
+              "lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0",
+              sidebarOpen ? "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw]" : "hidden",
+            )}
+          >
+            {sidebar}
+          </aside>
+        </>
+      ) : null}
+      {sidebar ? (
+        <button
+          type="button"
+          className="fixed top-3.5 left-4 z-[60] inline-flex size-9 items-center justify-center rounded-lg bg-surface/95 text-ink-2 shadow-hairline backdrop-blur-sm transition-colors hover:bg-hover hover:text-ink lg:hidden"
+          aria-label={sidebarOpen ? "Close student menu" : "Open student menu"}
+          aria-expanded={sidebarOpen}
+          aria-controls="student-sidebar"
+          onClick={() => setSidebarOpen((open) => !open)}
+        >
+          <Icon icon={sidebarOpen ? "cancel" : "menu"} size={18} />
+        </button>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line/60 bg-surface/95 px-6 py-3.5 backdrop-blur-sm sm:px-8">
-          <div className="flex items-center gap-6">
+        <header
+          className={cn(
+            "sticky top-0 z-50 flex items-center justify-between gap-4 border-b border-line/60 bg-surface/95 py-3.5 backdrop-blur-sm",
+            sidebar ? "pl-14 pr-6 sm:pl-16 sm:pr-8 lg:px-8" : "px-6 sm:px-8",
+          )}
+        >
+          <div className="flex items-center gap-3 sm:gap-6">
             <BrandMark />
             <nav className="flex items-center gap-2">{nav}</nav>
           </div>

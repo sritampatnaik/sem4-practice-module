@@ -39,18 +39,21 @@ test("onboarding shows all supported school bands and optional diagnostics", () 
 });
 
 test("app frame places optional navigation, sidebar, actions, and rail", () => {
-  const html = renderToStaticMarkup(AppFrame({
-    nav: "Tutor navigation",
-    sidebar: "Student profile",
-    actions: "Sign out",
-    rail: "Routing log",
-    children: "Lesson",
-  }));
+  const html = renderToStaticMarkup(
+    createElement(AppFrame, {
+      nav: "Tutor navigation",
+      sidebar: "Student profile",
+      actions: "Sign out",
+      rail: "Routing log",
+      children: "Lesson",
+    }),
+  );
   assert.match(html, /Tutor navigation/);
   assert.match(html, /Student profile/);
   assert.match(html, /Sign out/);
   assert.match(html, /Routing log/);
   assert.match(html, /Lesson/);
+  assert.match(html, /Open student menu/);
 });
 
 test("eval guide identifies each owner's suite and explains gold data isolation", () => {
