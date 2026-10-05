@@ -251,6 +251,14 @@ function solveEquation(expression: string) {
   };
 }
 
+/** School trigonometry is in degrees, but mathjs reads a bare number as radians. */
+const DEGREES = /(\d+(?:\.\d+)?|\b[a-z]\b)\s*(?:°|\bdeg(?:rees?)?\b)/gi;
+const TRIG_CALL = /\b(?:sin|cos|tan|sec|csc|cot)\s*\(/;
+
+export function degreesToRadians(expression: string) {
+  return expression.replace(DEGREES, "($1 * pi / 180)");
+}
+
 export const equationSolverTool = tool({
   description: [
     "Check and solve school mathematics. Modes:",
@@ -258,18 +266,19 @@ export const equationSolverTool = tool({
     "'simplify' collects like terms;",
     "'solve' finds real roots of a polynomial equation of degree 1-3 in one unknown;",
     "'derivative' differentiates, optionally at a point.",
+    "Angles: write degrees as '36 deg' (e.g. '7*tan(36 deg)'); a bare number is read as radians.",
     "It deliberately refuses what it cannot do reliably: equations with the unknown in a denominator, simultaneous equations, trigonometric/exponential/logarithmic equations, symbolic integration, and exact surds.",
     "A refusal means work it by hand and show the steps — never present a refusal as a verified answer.",
     "An 'exact' fraction appears only when the expression is exactly rational; its absence does not make the decimal exact.",
   ].join(" "),
   inputSchema: z.object({
-    expression: z.string().describe("e.g. '2x + 3x', 'sin(pi/2)', 'x^2 + 6x + 5 = 0', 'x^2 * sin(x)'"),
+    expression: z.string().describe("e.g. '2x + 3x', 'sin(30 deg)', 'x^2 + 6x + 5 = 0', 'x^2 * sin(x)'"),
     mode: z.enum(["evaluate", "simplify", "solve", "derivative"]).default("evaluate"),
     variable: z.string().default("x").describe("Variable to differentiate with respect to"),
     at: z.number().optional().describe("Point at which to evaluate the derivative"),
   }),
   execute: async ({
-    expression,
+    expression: written,
     mode,
     variable,
     at,
@@ -279,6 +288,7 @@ export const equationSolverTool = tool({
     variable: string;
     at?: number;
   }) => {
+    const expression = degreesToRadians(written);
     const guard = guardExpression(expression);
     if (guard) return { mode, expression, ...guard };
 
@@ -357,7 +367,11 @@ export const equationSolverTool = tool({
         result: value,
         approx: Number(value.toPrecision(10)),
         exact,
-        ...(exact ? { note: "Exact fraction available; prefer it where an exact answer is expected." } : {}),
+        ...(TRIG_CALL.test(written) && expression === written && !/\bpi\b/.test(written)
+          ? { note: "Angles were read as radians. For degrees write e.g. tan(36 deg)." }
+          : exact
+            ? { note: "Exact fraction available; prefer it where an exact answer is expected." }
+            : {}),
       };
     } catch (error) {
       return {

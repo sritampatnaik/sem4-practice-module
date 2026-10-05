@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { drawMathGraphTool, equationSolverTool, graphSummaryForModel } from "./tools";
+import { degreesToRadians, drawMathGraphTool, equationSolverTool, graphSummaryForModel } from "./tools";
 
 type ToolResult = Record<string, unknown>;
 
@@ -233,4 +233,15 @@ test("refuses graphs it cannot draw honestly", async () => {
     false,
     "nothing real to plot there",
   );
+});
+
+test("reads degrees written as deg or °, and flags a bare angle as radians", async () => {
+  const deg = await call({ expression: "7*tan(36 deg)" });
+  assert.equal(deg.ok, true);
+  assert.equal(Number((deg.result as number).toFixed(4)), 5.0858);
+  assert.equal(Number(((await call({ expression: "sin(30°)" })).result as number).toFixed(10)), 0.5);
+  assert.equal(degreesToRadians("cos(2x) + 3 degrees"), "cos(2x) + (3 * pi / 180)");
+  const bare = await call({ expression: "7*tan(36)" });
+  assert.match(String(bare.note), /radians/);
+  assert.equal((await call({ expression: "sin(pi/6)" })).note, undefined);
 });

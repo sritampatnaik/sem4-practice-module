@@ -26,20 +26,19 @@ const approx = create(all);
 
 export const DEV_SEED = 20261005;
 /** Default held-out seed. Set MATH_HOLDOUT_SEED on the server to redraw at report time. */
-export const DEFAULT_HOLDOUT_SEED = 77031;
+export const DEFAULT_HOLDOUT_SEED = 51127;
 
-export function holdoutSeed(): number {
+function holdoutSeed(): number {
   const raw = typeof process !== "undefined" ? process.env?.MATH_HOLDOUT_SEED : undefined;
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed !== DEV_SEED ? parsed : DEFAULT_HOLDOUT_SEED;
 }
 
-// ---------- seeded random numbers ----------
 
-export type Rng = () => number;
+type Rng = () => number;
 
 /** mulberry32: small, fast and deterministic for a given seed. */
-export function seededRng(seed: number): Rng {
+function seededRng(seed: number): Rng {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -68,7 +67,6 @@ function shortHash(text: string) {
   return hash.toString(16).padStart(8, "0").slice(0, 6);
 }
 
-// ---------- exact arithmetic helpers ----------
 
 /** Evaluates an expression exactly and returns its decimal string, or undefined if it recurs. */
 export function exactDecimal(expression: string): string | undefined {
@@ -78,12 +76,12 @@ export function exactDecimal(expression: string): string | undefined {
 }
 
 /** Evaluates an expression exactly and returns "a/b" (or "a" when whole). */
-export function exactRatio(expression: string): string {
+function exactRatio(expression: string): string {
   return exact.format(exact.evaluate(expression), { fraction: "ratio" }).replace(/\/1$/, "");
 }
 
 /** Exact square root of an expression whose value is a perfect square, else undefined. */
-export function exactSqrt(expression: string): string | undefined {
+function exactSqrt(expression: string): string | undefined {
   const value = Number(exactRatio(expression));
   const root = Math.round(Math.sqrt(value));
   return Number.isInteger(value) && root * root === value ? String(root) : undefined;
@@ -140,11 +138,10 @@ export function sig3(value: number): string | undefined {
   return Math.abs(scaled - Math.floor(scaled) - 0.5) < 0.02 ? undefined : text;
 }
 
-// ---------- templates ----------
 
-export type Band = "primary" | "secondary" | "jc";
+type Band = "primary" | "secondary" | "jc";
 
-export type Problem = {
+type Problem = {
   topic: string;
   band: Band;
   prompt: string;
@@ -154,7 +151,7 @@ export type Problem = {
   working: string;
 };
 
-type Template = { topic: string; band: Band; draw: (rng: Rng) => Problem | undefined };
+type Template = { topic: string; band: Band; draw: (rng: Rng) => Omit<Problem, "topic" | "band"> | undefined };
 
 const TRIPLES: ReadonlyArray<[number, number, number]> = [
   [3, 4, 5],
@@ -166,7 +163,7 @@ const TRIPLES: ReadonlyArray<[number, number, number]> = [
 
 const NAMES = ["Ali", "Mei Ling", "Ravi", "Siti", "Jun Wei", "Priya"] as const;
 
-export const TEMPLATES = {
+const TEMPLATES = {
   trigTan: {
     topic: "trigonometric ratio (tan)",
     band: "secondary",
@@ -177,8 +174,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${adjacent} * ${o} / ${a}`);
       if (!answer) return undefined;
       return {
-        topic: "trigonometric ratio (tan)",
-        band: "secondary",
         prompt: `In a right-angled triangle, tan θ = ${o}/${a}. The side adjacent to θ is ${adjacent} cm. Find the side opposite θ.`,
         answer,
         working: `tan θ = opposite / adjacent, so opposite = ${adjacent} × ${o}/${a} = ${answer} cm.`,
@@ -196,8 +191,6 @@ export const TEMPLATES = {
       const answer = exactSqrt(`${hyp}^2 - (${hyp} * ${o} / ${h})^2`);
       if (!opposite || !answer) return undefined;
       return {
-        topic: "trigonometric ratio (sin)",
-        band: "secondary",
         prompt: `In a right-angled triangle, sin θ = ${o}/${h} and the hypotenuse is ${hyp} cm. Find the side adjacent to θ.`,
         answer,
         working: `Opposite = ${hyp} × ${o}/${h} = ${opposite} cm. Adjacent = √(${hyp}² − ${opposite}²) = ${answer} cm (or cos θ = ${a}/${h}).`,
@@ -214,8 +207,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${base}^${power} + ${shift}`);
       if (!answer) return undefined;
       return {
-        topic: "logarithm equation",
-        band: "secondary",
         prompt: `Solve log_${base}(x − ${shift}) = ${power}.`,
         answer,
         working: `x − ${shift} = ${base}^${power}, so x = ${base}^${power} + ${shift} = ${answer}.`,
@@ -233,8 +224,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${power} + ${shift}`);
       if (!rhs || !answer) return undefined;
       return {
-        topic: "exponential equation",
-        band: "secondary",
         prompt: `Solve ${base}^(x − ${shift}) = ${rhs}.`,
         answer,
         working: `${rhs} = ${base}^${power}, so x − ${shift} = ${power} and x = ${answer}.`,
@@ -251,8 +240,6 @@ export const TEMPLATES = {
       const bound = exactRatio(`(${c} - ${b}) / ${a}`);
       const answer = String(Math.ceil((c - b) / a) - 1);
       return {
-        topic: "linear inequality",
-        band: "secondary",
         prompt: `Find the largest integer x that satisfies ${a}x + ${b} < ${c}.`,
         answer,
         working: `${a}x < ${c - b}, so x < ${bound}. The largest integer is ${answer}.`,
@@ -270,8 +257,6 @@ export const TEMPLATES = {
       const bound = exactRatio(`(${b1} + ${b2}) / (${a1} - ${a2})`);
       const answer = String(Math.floor((b1 + b2) / (a1 - a2)) + 1);
       return {
-        topic: "linear inequality",
-        band: "secondary",
         prompt: `Find the smallest integer x that satisfies ${a1}x − ${b1} > ${a2}x + ${b2}.`,
         answer,
         working: `${a1 - a2}x > ${b1 + b2}, so x > ${bound}. The smallest integer is ${answer}.`,
@@ -291,8 +276,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`(${y2} - (${y1})) / (${x2} - (${x1}))`);
       if (!answer) return undefined;
       return {
-        topic: "coordinate geometry (gradient)",
-        band: "secondary",
         prompt: `Find the gradient of the line through A(${x1}, ${y1}) and B(${x2}, ${y2}).`,
         answer,
         working: `Gradient = (${y2} − ${signed(y1)}) / (${x2} − ${signed(x1)}) = ${y2 - y1}/${run} = ${answer}.`,
@@ -312,8 +295,6 @@ export const TEMPLATES = {
       const answer = exactSqrt(`(${x2} - (${x1}))^2 + (${y2} - (${y1}))^2`);
       if (!answer) return undefined;
       return {
-        topic: "coordinate geometry (distance)",
-        band: "secondary",
         prompt: `Find the distance between P(${x1}, ${y1}) and Q(${x2}, ${y2}).`,
         answer,
         working: `PQ = √(${k * dx}² + ${k * dy}²) = √${(k * dx) ** 2 + (k * dy) ** 2} = ${answer} units.`,
@@ -333,8 +314,6 @@ export const TEMPLATES = {
       if (!answer) return undefined;
       const name = pick(rng, NAMES);
       return {
-        topic: "mean",
-        band: "primary",
         prompt: `${name} scored ${scores.join(", ")} marks in five spelling tests. What is the average score?`,
         answer,
         working: `Total = ${scores.join(" + ")} = ${5 * target}. Average = ${5 * target} ÷ 5 = ${answer}.`,
@@ -350,8 +329,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`(${sorted[2]} + ${sorted[3]}) / 2`);
       if (!answer || new Set(values).size !== values.length) return undefined;
       return {
-        topic: "median",
-        band: "secondary",
         prompt: `Find the median of the data set: ${values.join(", ")}.`,
         answer,
         working: `In order: ${sorted.join(", ")}. The median is (${sorted[2]} + ${sorted[3]}) ÷ 2 = ${answer}.`,
@@ -366,8 +343,6 @@ export const TEMPLATES = {
       const r = int(rng, 2, 4);
       const answer = String(exact.combinations(n, r));
       return {
-        topic: "combinations (nCr)",
-        band: "jc",
         prompt: `A committee of ${r} is chosen from ${n} students. In how many ways can the committee be chosen?`,
         answer,
         working: `Order does not matter: ${n}C${r} = ${answer}.`,
@@ -382,8 +357,6 @@ export const TEMPLATES = {
       const r = int(rng, 2, 3);
       const answer = String(exact.permutations(n, r));
       return {
-        topic: "permutations (nPr)",
-        band: "jc",
         prompt: `In how many ways can ${r} of ${n} different books be arranged in a row on a shelf?`,
         answer,
         working: `Order matters: ${n}P${r} = ${answer}.`,
@@ -399,8 +372,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${percent} / 100 * ${price}`);
       if (!answer) return undefined;
       return {
-        topic: "percentage",
-        band: "primary",
         prompt: `A bicycle costs $${price}. During a sale, its price is reduced by ${percent}%. How much money is taken off the price?`,
         answer,
         working: `${percent}% of $${price} = ${percent}/100 × ${price} = $${answer}.`,
@@ -419,8 +390,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${total} / (${a} + ${b}) * ${b}`);
       if (!answer) return undefined;
       return {
-        topic: "ratio",
-        band: "primary",
         prompt: `${first} and ${second} share ${total} stickers in the ratio ${a} : ${b}. How many stickers does ${second} get?`,
         answer,
         working: `${a + b} units = ${total}, so 1 unit = ${total / (a + b)}. ${second} gets ${b} units = ${answer}.`,
@@ -437,8 +406,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${n} / 2 * (2 * ${a} + (${n} - 1) * ${d})`);
       if (!answer) return undefined;
       return {
-        topic: "AP sum",
-        band: "jc",
         prompt: `Find the sum of the first ${n} terms of the arithmetic progression ${a}, ${a + d}, ${a + 2 * d}, ...`,
         answer,
         working: `S_${n} = ${n}/2 × (2(${a}) + ${n - 1}(${d})) = ${answer}.`,
@@ -455,8 +422,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${a} * (${r}^${n} - 1) / (${r} - 1)`);
       if (!answer) return undefined;
       return {
-        topic: "GP sum",
-        band: "jc",
         prompt: `Find the sum of the first ${n} terms of the geometric progression ${a}, ${a * r}, ${a * r * r}, ...`,
         answer,
         working: `S_${n} = ${a}(${r}^${n} − 1)/(${r} − 1) = ${answer}.`,
@@ -475,8 +440,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${F(upper)} - ${F(lower)}`);
       if (!answer) return undefined;
       return {
-        topic: "definite integral",
-        band: "jc",
         prompt: `Evaluate the definite integral of (${c2}x^2 + ${c1}x) dx from x = ${lower} to x = ${upper}.`,
         answer,
         working: `Antiderivative ${term(c2 / 3, 3)} + ${term(c1 / 2, 2)}. Value = ${F(upper)} − ${F(lower)} = ${answer}.`,
@@ -495,8 +458,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${F(upper)} - ${F(lower)}`);
       if (!answer) return undefined;
       return {
-        topic: "definite integral",
-        band: "jc",
         prompt: `Evaluate the definite integral of (${c3}x^3 + ${c0}) dx from x = ${lower} to x = ${upper}.`,
         answer,
         working: `Antiderivative ${term(c3 / 4, 4)} + ${term(c0, 1)}. Value = ${F(upper)} − ${F(lower)} = ${answer}.`,
@@ -513,8 +474,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${exact.combinations(n, k)} * ${p}^${k} * (1 - ${p})^${n - k}`);
       if (!answer) return undefined;
       return {
-        topic: "binomial probability",
-        band: "jc",
         prompt: `X ~ B(${n}, ${p}). Find P(X = ${k}) exactly, as a decimal.`,
         answer,
         working: `P(X = ${k}) = ${n}C${k} (${p})^${k} (${exactDecimal(`1 - ${p}`)})^${n - k} = ${answer}.`,
@@ -531,8 +490,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`(1 - ${p})^${n} + ${n} * ${p} * (1 - ${p})^${n - 1}`);
       if (!answer || !q) return undefined;
       return {
-        topic: "binomial probability",
-        band: "jc",
         prompt: `A player wins each round of a game with probability ${p}, independently of other rounds. In ${n} rounds, find the probability of at most one win, as an exact decimal.`,
         answer,
         working: `P(X ≤ 1) = (${q})^${n} + ${n}(${p})(${q})^${n - 1} = ${answer}.`,
@@ -551,8 +508,6 @@ export const TEMPLATES = {
       const answer = sig3(full);
       if (!answer) return undefined;
       return {
-        topic: "trigonometry to 3 s.f.",
-        band: "secondary",
         prompt: `In triangle ABC, angle ABC = 90°, angle BAC = ${angle}° and AB = ${ab} cm. Find the length of BC, giving your answer correct to 3 significant figures.`,
         answer,
         working: `tan ${angle}° = BC / ${ab}, so BC = ${ab} tan ${angle}° = ${full.toFixed(4)}... = ${answer} cm (3 s.f.).`,
@@ -574,8 +529,6 @@ export const TEMPLATES = {
       const rejected = exactDecimal(`(${k} - ${disc}) / 2`);
       if (!answer || !rejected) return undefined;
       return {
-        topic: "logarithm laws",
-        band: "secondary",
         prompt: `Solve the equation log_2 x + log_2 (x − ${k}) = ${n}.`,
         answer,
         working: `log_2 [x(x − ${k})] = ${n}, so x² − ${k}x − ${2 ** n} = 0, giving x = ${answer} or x = ${rejected}. Reject ${rejected} because log_2 x needs x > 0, so x = ${answer}.`,
@@ -595,8 +548,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(`${p} * (2 * ${given} / (${q} - ${p}))`);
       if (!answer) return undefined;
       return {
-        topic: "ratio before and after",
-        band: "primary",
         prompt: `${first} and ${second} had marbles in the ratio ${p} : ${q}. After ${second} gave ${given} marbles to ${first}, they had the same number of marbles. How many marbles did ${first} have at first?`,
         answer,
         working: `The difference is ${q - p} units. Giving ${given} marbles closes a gap of ${2 * given}, so ${q - p} units = ${2 * given} and 1 unit = ${unit}. ${first} had ${p} units = ${answer} marbles.`,
@@ -611,12 +562,10 @@ export const TEMPLATES = {
       const p = pick(rng, ["0.15", "0.2", "0.25", "0.3", "0.35"]);
       const k = int(rng, 1, 3);
       const terms = Array.from({ length: k + 1 }, (_, r) => `${exact.combinations(n, r)} * ${p}^${r} * (1 - ${p})^${n - r}`);
-      const full = Number(exactRatio(terms.join(" + ")).split("/").reduce((x, y) => String(Number(x) / Number(y))));
+      const full = approx.evaluate(terms.join(" + ")) as number;
       const answer = sig3(full);
       if (!answer) return undefined;
       return {
-        topic: "binomial probability to 3 s.f.",
-        band: "jc",
         prompt: `The probability that a randomly chosen student wears spectacles is ${p}. In a random sample of ${n} students, find the probability that at most ${k} of them wear spectacles, giving your answer to 3 significant figures.`,
         answer,
         working: `X ~ B(${n}, ${p}). P(X ≤ ${k}) = ${full.toFixed(5)}... = ${answer} (3 s.f.).`,
@@ -634,8 +583,6 @@ export const TEMPLATES = {
       const answer = exactDecimal(expression);
       if (!answer) return undefined;
       return {
-        topic: "arrangements with a restriction",
-        band: "jc",
         prompt: `${n} people, including Ali and Ben, sit in a row. In how many ways can they sit if Ali and Ben ${together ? "must sit next to each other" : "must not sit next to each other"}?`,
         answer,
         working: together
@@ -646,17 +593,18 @@ export const TEMPLATES = {
   },
 } satisfies Record<string, Template>;
 
-export type TemplateName = keyof typeof TEMPLATES;
+type TemplateName = keyof typeof TEMPLATES;
 
 /**
  * Draws a problem whose answer passes the literal-answer rules and does not appear in
  * the prompt. Rejected draws are redrawn from the same stream, so the result is still a
  * pure function of the seed.
  */
-export function drawProblem(name: TemplateName, rng: Rng): Problem {
+function drawProblem(name: TemplateName, rng: Rng): Problem {
   const template: Template = TEMPLATES[name];
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    const problem = template.draw(rng);
+    const drawn = template.draw(rng);
+    const problem = drawn && { topic: template.topic, band: template.band, ...drawn };
     if (problem && isLiteralAnswer(problem.answer) && !problem.prompt.includes(problem.answer)) {
       return problem;
     }
@@ -664,7 +612,6 @@ export function drawProblem(name: TemplateName, rng: Rng): Problem {
   throw new Error(`Template ${name} could not draw a valid problem`);
 }
 
-// ---------- specs and builder ----------
 
 const PROFILE: Record<Band, StudentProfile> = {
   primary: primaryAlex,
@@ -758,7 +705,6 @@ export function buildHoldoutItems(seed = holdoutSeed()): EvalItem[] {
   return [...computed, ...exam];
 }
 
-// ---------- exam-style cases ----------
 
 const EXAM_TEMPLATES: TemplateName[] = [
   "examTrigAngle",
@@ -773,7 +719,6 @@ export function buildExamItems(seed = DEV_SEED): EvalItem[] {
   return EXAM_TEMPLATES.map((name) => computedItem(drawProblem(name, rng), "math-gen-exam-", "Exam style"));
 }
 
-// ---------- exact-form cases (judge-scored) ----------
 
 export function buildExactItems(seed = DEV_SEED): EvalItem[] {
   const rng = seededRng(seed + 1);
@@ -880,7 +825,6 @@ export function buildExactItems(seed = DEV_SEED): EvalItem[] {
   return items;
 }
 
-// ---------- hint-only cases ----------
 
 const HINT_TEMPLATES: Array<[TemplateName, string]> = [
   ["ratio", "Hint: add the ratio parts to find how many units the total is, then work out one unit."],
@@ -905,7 +849,6 @@ export function buildHintItems(seed = DEV_SEED): EvalItem[] {
   });
 }
 
-// ---------- planted-error cases ----------
 
 type PlantedCase = {
   topic: string;
@@ -1026,7 +969,7 @@ function plantedPrompt(planted: PlantedCase) {
   return `Here is my working for this question: ${planted.question}\n\n${lines}\n\nMy answer doesn't match the answer key. Which step is wrong?`;
 }
 
-export function drawPlanted(builder: (rng: Rng) => PlantedCase | undefined, rng: Rng): PlantedCase {
+function drawPlanted(builder: (rng: Rng) => PlantedCase | undefined, rng: Rng): PlantedCase {
   for (let attempt = 0; attempt < 200; attempt += 1) {
     const planted = builder(rng);
     if (!planted) continue;
@@ -1053,7 +996,6 @@ export function buildPlantedItems(seed = DEV_SEED): EvalItem[] {
   });
 }
 
-// ---------- consistency: one problem asked three ways ----------
 
 export function buildConsistencyItems(seed = DEV_SEED): EvalItem[] {
   const rng = seededRng(seed + 4);
@@ -1092,7 +1034,6 @@ export function buildConsistencyItems(seed = DEV_SEED): EvalItem[] {
   );
 }
 
-// ---------- all generated items ----------
 
 export function buildGeneratedMathItems(options: { seed?: number; holdout?: number } = {}): EvalItem[] {
   const seed = options.seed ?? DEV_SEED;
@@ -1108,6 +1049,3 @@ export function buildGeneratedMathItems(options: { seed?: number; holdout?: numb
 }
 
 export const generatedMathItems: EvalItem[] = buildGeneratedMathItems();
-
-export const HOLDOUT_PREFIX = "math-holdout-";
-export const isHoldoutItem = (item: Pick<EvalItem, "id">) => item.id.startsWith(HOLDOUT_PREFIX);
