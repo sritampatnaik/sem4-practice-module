@@ -13,7 +13,7 @@
       "passRate": 1
     },
     "math": {
-      "expectedCases": 2,
+      "expectedCases": 5,
       "passRate": 1
     },
     "physics": {
