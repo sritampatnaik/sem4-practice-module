@@ -1,6 +1,6 @@
 # Math eval: security hardening, 5 October 2026
 
-The run used main at `14eb37c` (after PRs #30 and #31) plus the changes below, on gpt-4o (the runner records the alias, not a dated snapshot). The dev server ran on the previously installed dependencies (ai 6.0.255, next 16.3.5), the same for every run here, so the runs compare with each other. A check after `npm install` is still to do.
+The run used main at `14eb37c` (after PRs #30 and #31) plus the changes below, on gpt-4o (the runner records the alias, not a dated snapshot). Runs A to C used the previously installed dependencies (ai 6.0.255, next 16.3.5). A confirmation run after `npm install` on the versions main now pins gave the same result.
 
 ## Changes
 
@@ -25,6 +25,7 @@ The run used main at `14eb37c` (after PRs #30 and #31) plus the changes below, o
 | Hardened A | 25/26 | 5/6 | $0.346 |
 | Hardened B | 25/26 | 5/6 | $0.352 |
 | Hardened C | 24/26 | 6/6 | $0.346 |
+| Confirmation after `npm install` (ai 6.0.300, next 16.3.8) | 24/26 | 6/6 | $0.355 |
 
 **The regression gate holds:** at least 24/26 on every run, the same as the 29 September final runs. The failures are the two known limitations: topology over-detail, and "rates of change" offered to a Primary student. The baseline's 26/26 is one run, and it was missing the product-rule solver check, so it is not a stricter bar. Cost per run rose only because there are 32 cases instead of 26; cost per case is unchanged.
 
