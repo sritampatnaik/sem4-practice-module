@@ -108,10 +108,70 @@ function exactRationalOf(expression: string): string | null {
   }
 }
 
+/**
+ * Functions the tool will run. Anything else is refused: the expression comes
+ * from the model, which may be repeating a student's (or an attacker's) text,
+ * and mathjs can otherwise reach functions that change its own shared state
+ * (createUnit) or parse more expressions.
+ */
+const ALLOWED_FUNCTIONS = new Set([
+  "sin", "cos", "tan", "sec", "csc", "cot", "asin", "acos", "atan", "atan2", "asec", "acsc", "acot",
+  "sinh", "cosh", "tanh", "sqrt", "cbrt", "nthRoot", "abs", "exp", "log", "log10", "log2",
+  "floor", "ceil", "round", "sign", "factorial", "combinations", "permutations", "gcd", "lcm", "mod", "min", "max",
+]);
+
+/**
+ * Exact arithmetic is synchronous, so a short input such as (7/3)^(2^18) held
+ * the server for 55 seconds in testing. School work never needs a constant
+ * exponent this large.
+ */
+const MAX_EXPONENT = 1000;
+
+type ExpressionNode = {
+  type?: string;
+  op?: string;
+  fn?: { name?: string } | string;
+  args?: ExpressionNode[];
+  compile(): { evaluate(scope?: Record<string, number>): unknown };
+};
+
 function guardExpression(expression: string): Failure | null {
   if (expression.trim().length === 0) return fail("input", "Nothing to work with.");
   if (expression.length > MAX_EXPRESSION_LENGTH) {
     return fail("unsupported", `Expression is longer than ${MAX_EXPRESSION_LENGTH} characters. Break it into steps.`);
+  }
+
+  // Each side of an equation is checked on its own; unreadable input is left
+  // for the mode that runs to report in its own words.
+  for (const side of expression.split(/==?/)) {
+    let refusal: Failure | null = null;
+    try {
+      (parse(side) as unknown as { traverse(visit: (node: ExpressionNode) => void): void }).traverse((node) => {
+        if (refusal) return;
+        if (node.type === "FunctionNode") {
+          const name = typeof node.fn === "string" ? node.fn : node.fn?.name;
+          if (!name || !ALLOWED_FUNCTIONS.has(name)) {
+            refusal = fail("unsupported", `'${name ?? "that function"}' is not a function this tool runs. Work it through by hand.`);
+          }
+        }
+        if (node.type === "OperatorNode" && node.op === "^" && node.args?.[1]) {
+          // Only a constant exponent can be checked; one with an unknown in it throws here.
+          const exponent = (() => {
+            try {
+              return node.args![1].compile().evaluate({});
+            } catch {
+              return null;
+            }
+          })();
+          if (typeof exponent === "number" && Math.abs(exponent) > MAX_EXPONENT) {
+            refusal = fail("unsupported", `An exponent above ${MAX_EXPONENT} is too large to work with exactly. Use logarithms or standard form instead.`);
+          }
+        }
+      });
+    } catch {
+      continue;
+    }
+    if (refusal) return refusal;
   }
   return null;
 }

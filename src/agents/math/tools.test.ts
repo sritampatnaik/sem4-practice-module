@@ -140,6 +140,31 @@ test("simplifies, and is honest about surds and integration", async () => {
   assert.equal(integration.ok, false, "there is no symbolic integration");
 });
 
+test("refuses inputs that could stall the server or change the solver itself", async () => {
+  const started = Date.now();
+  // This 14-character input held the event loop for 55 seconds before the guard.
+  const stall = await call({ expression: "(7/3)^(2^18)" });
+  assert.equal(stall.ok, false);
+  assert.match(String(stall.error), /exponent/i);
+  assert.ok(Date.now() - started < 2000, "refused before any exact arithmetic runs");
+  assert.equal((await call({ expression: "2^2^2^2^2" })).ok, false, "a tower of powers is refused too");
+
+  // Functions outside school mathematics are refused, including ones that alter mathjs.
+  for (const expression of ['createUnit("zz")', 'evaluate("1 + 1")', 'f(x) = x^2']) {
+    const result = await call({ expression });
+    assert.equal(result.ok, false, expression);
+  }
+  assert.equal((await graph({ expression: 'createUnit("zz")' })).ok, false, "the graph tool applies the same guard");
+
+  // School functions and ordinary exponents still work.
+  const trig = await call({ expression: "sin(pi/6) + sqrt(16) + log(e)" });
+  assert.equal(trig.ok, true);
+  assert.ok(Math.abs(Number(trig.result) - 5.5) < 1e-9);
+  assert.equal((await call({ expression: "combinations(5, 2)" })).result, 10);
+  assert.equal((await call({ expression: "2^10" })).result, 1024);
+  assert.equal((await call({ expression: "x^2 - 5x + 6 = 0", mode: "solve" })).ok, true);
+});
+
 test("guards its inputs", async () => {
   const unknownValue = await call({ expression: "2x + 1" });
   assert.equal(unknownValue.ok, false, "cannot evaluate while x is unknown");
