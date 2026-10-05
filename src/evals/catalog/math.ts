@@ -9,7 +9,11 @@
 // (src/agents/math/runs/2026-09-29-gold-review.md). Where a correct reply can be written
 // several ways (1/2 or \frac{1}{2}), the literal check is dropped and the judge decides,
 // until the shared scorer can test mathematical equivalence.
+//
+// Eval v2 (5 October 2026) adds generated cases from math-generated.ts, whose answers are
+// computed by code. Ids starting math-holdout- are held out: never tune against them.
 import type { EvalItem } from "../types";
+import { generatedMathItems } from "./math-generated";
 import { jcAlex, primaryAlex, secondaryAlex } from "./profiles";
 
 export const mathItems: EvalItem[] = [
@@ -556,4 +560,5 @@ export const mathItems: EvalItem[] = [
       mustNotInclude: ["unit created", "created the unit"],
     },
   },
+  ...generatedMathItems,
 ];
