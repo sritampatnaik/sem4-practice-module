@@ -4,8 +4,8 @@
 **Folder:** `src/agents/math/`  
 **Syllabus corpus:** `data/syllabus/math.md`
 
-**Design and assessment plan:** [DESIGN.md](./DESIGN.md) — proposed user offering, teaching playbook, engineering requirements, team alignment, and evaluation criteria.
-**Build plan:** [BUILD-PLAN.md](./BUILD-PLAN.md) — concrete, file-level tasks moving the design from prototype to integration, with acceptance checks and status.
+**Results:** [runs/](./runs/) holds a record of every eval run, from the 29 September baseline onwards.  
+**History:** [archive/](./archive/) keeps the September design plan, build plan and review.
 
 Tell a coding agent: *You are working on the METS Math Agent only. Read this file fully. Do not edit other specialist folders. Do not build quizzes here.*
 
