@@ -4,17 +4,18 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMemoryItem, PromptLogEntry, RoutingDecision, StudentProfile } from "@/agents/_shared/types";
-import { schoolGradeLabel } from "@/agents/_shared/types";
-import { EntityChip } from "@/components/atoms/EntityChip";
 import { ValuePill } from "@/components/atoms/ValuePill";
-import { AppFrame, NavLink } from "@/components/app-frame";
+import { AppFrame, DeskNav } from "@/components/app-frame";
 import { ConversationRail, type ConversationItem } from "@/components/conversation-rail";
+import { StudentSidebar } from "@/components/student-sidebar";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import { PromptBar } from "@/components/ui/prompt-bar";
 import ThinkingState from "@/components/primitives/ThinkingState";
 import StreamingText from "@/components/primitives/StreamingText";
 import { AGENT_COPY } from "@/lib/agent-copy";
+import { isTestingWidgetToolType, shouldSuppressTestingBusyIndicator } from "@/lib/testing-turn";
 import type { MetsUIMessage } from "@/lib/ui-types";
 import { MessageThread } from "./message-thread";
 
@@ -29,10 +30,6 @@ const STARTERS = [
   "Convert 72 km/h to m/s and show the working.",
   "Balance Fe + O₂ → Fe₂O₃, then quiz me on redox.",
 ];
-
-function gradeLabel(profile: StudentProfile) {
-  return schoolGradeLabel(profile.grade, profile.gradeLevel);
-}
 
 function toUiMessages(items: ChatMemoryItem[]): MetsUIMessage[] {
   return items.map((item, index) => ({
@@ -142,58 +139,22 @@ export function StudioShell({
 
   return (
     <AppFrame
-      nav={
-        <>
-          <NavLink href="/">Tutor</NavLink>
-          <NavLink href="/evals">Evals</NavLink>
-        </>
-      }
+      nav={<DeskNav />}
       actions={
-        <Button type="button" variant="quiet" size="sm" onClick={onReset}>
+        <Button type="button" variant="quiet" size="sm" className="gap-1.5" onClick={onReset}>
+          <Icon icon={signedIn ? "signOut" : "guest"} size={14} />
           {signedIn ? "Sign out" : "Leave desk"}
         </Button>
       }
       sidebar={
-        <>
-          <div>
-            <p className="ui-label">Student</p>
-            <div className="mt-3">
-              <EntityChip
-                name={profile.name}
-                color={signedIn ? "#2f6fec" : "#64748b"}
-                monogram={profile.name.charAt(0).toUpperCase()}
-              />
-            </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight">{profile.name}</h1>
-            <p className="mt-1 text-sm text-ink-2">{gradeLabel(profile)}</p>
-            {email ? <p className="mt-1 truncate text-xs text-ink-3">{email}</p> : null}
-            {signedIn ? (
-              <ValuePill className="mt-3 ml-0" tone="accent">
-                Signed in
-              </ValuePill>
-            ) : (
-              <ValuePill className="mt-3 ml-0" tone="neutral">
-                Guest desk
-              </ValuePill>
-            )}
-            <dl className="mt-6 grid gap-3">
-              {(["math", "physics", "chemistry"] as const).map((subject) => (
-                <div key={subject}>
-                  <dt className="ui-label">{subject}</dt>
-                  <dd className="mt-1 text-sm capitalize">
-                    {profile.diagnostic[subject] ?? "unseen"}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+        <StudentSidebar profile={profile} email={email} signedIn={signedIn}>
           <ConversationRail
             items={conversations}
             activeId={activeId}
             onNew={() => void startNewChat()}
             onPick={(id) => setActiveId(id)}
           />
-        </>
+        </StudentSidebar>
       }
       rail={<RoutingRail sessionId={activeId} />}
     >
@@ -202,6 +163,7 @@ export function StudioShell({
           key={activeId}
           profile={profile}
           sessionId={activeId}
+          signedIn={signedIn}
           initialMessages={history}
           onFirstUserMessage={(text) => {
             setConversations((current) =>
@@ -225,11 +187,13 @@ export function StudioShell({
 function ChatPane({
   profile,
   sessionId,
+  signedIn,
   initialMessages,
   onFirstUserMessage,
 }: {
   profile: StudentProfile;
   sessionId: string;
+  signedIn?: boolean;
   initialMessages: MetsUIMessage[];
   onFirstUserMessage: (text: string) => void;
 }) {
@@ -262,6 +226,14 @@ function ChatPane({
   }, [messages, status]);
 
   const busy = status === "submitted" || status === "streaming";
+  const lastAssistant = [...messages].reverse().find((message) => message.role === "assistant");
+  const hideTestingBusy = shouldSuppressTestingBusyIndicator({
+    agent: routing?.agent,
+    status,
+    hasWidgetTool: Boolean(
+      lastAssistant?.parts.some((part) => isTestingWidgetToolType(part.type)),
+    ),
+  });
 
   function send(text: string) {
     const trimmed = text.trim();
@@ -271,54 +243,70 @@ function ChatPane({
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.4rem)] min-w-0 flex-col">
-      <header className="flex items-end justify-between gap-4 px-5 pt-5 pb-3 sm:px-8">
+    <div className="flex h-[calc(100vh-3.4rem)] min-w-0 flex-col bg-gradient-to-b from-canvas to-page">
+      <header className="flex items-end justify-between gap-4 border-b border-line/50 bg-surface/80 px-5 pt-6 pb-4 backdrop-blur-sm sm:px-8">
         <div>
-          <p className="text-2xl font-semibold tracking-tight">
+          <p className="text-2xl font-semibold tracking-tight text-ink">
             {profile.name}&rsquo;s desk
           </p>
-          <p className="mt-1 text-sm text-ink-2">
-            Ask, then pick up the same thread later.
+          <p className="mt-1.5 text-sm text-ink-2">
+            Ask questions, get expert help, and continue learning.
           </p>
         </div>
         {routing ? (
-          <ValuePill className="hidden sm:inline-flex" tone={routingTone(routing.agent)}>
-            {AGENT_COPY[routing.agent].label} · {routing.intent} ·{" "}
-            {Math.round(routing.confidence * 100)}%
+          <ValuePill className="hidden gap-1.5 sm:inline-flex" tone={routingTone(routing.agent)}>
+            <Icon icon={routing.agent} size={13} />
+            <span className="font-medium">{AGENT_COPY[routing.agent].label}</span>
+            <span className="text-ink-3">·</span>
+            <span className="text-xs">{routing.intent}</span>
+            <span className="text-ink-3">·</span>
+            <span className="text-xs font-semibold">{Math.round(routing.confidence * 100)}%</span>
           </ValuePill>
         ) : null}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 sm:px-8">
-        {messages.length === 0 ? (
-          <EmptyDesk name={profile.name} onPick={send} />
-        ) : (
-          <MessageThread messages={messages} routing={routing} />
-        )}
-        {busy ? (
-          <LoadingState
-            className="mt-5"
-            variant={status === "streaming" ? "Dots" : "Drive"}
-            label={status === "submitted" ? "Reading your question" : "Writing"}
-          />
-        ) : null}
-        {error ? (
-          <p className="mt-4 text-sm text-red">
-            {error.message ||
-              "The tutor could not complete that turn. Check the API key and try again."}
-          </p>
-        ) : null}
-        <div ref={bottomRef} />
+        <div className="mx-auto max-w-4xl">
+          {messages.length === 0 ? (
+            <EmptyDesk name={profile.name} onPick={send} />
+          ) : (
+            <MessageThread
+              messages={messages}
+              routing={routing}
+              streaming={status === "streaming"}
+              conversationId={sessionId}
+              signedIn={signedIn}
+            />
+          )}
+          {busy && !hideTestingBusy ? (
+            <LoadingState
+              className="mt-6"
+              variant={status === "streaming" ? "Dots" : "Drive"}
+              label={status === "submitted" ? "Reading your question" : "Writing"}
+            />
+          ) : null}
+          {error ? (
+            <div className="mt-4 rounded-lg border border-red/20 bg-red-tint p-4">
+              <p className="text-sm font-medium text-red">
+                {error.message ||
+                  "The tutor could not complete that turn. Check the API key and try again."}
+              </p>
+            </div>
+          ) : null}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
-      <div className="px-5 pb-5 sm:px-8">
-        <PromptBar
-          id="tutor-input"
-          onSubmit={send}
-          onStop={stop}
-          busy={busy}
-          placeholder="Explain chemical bonding for O-Level, or give me five kinematics MCQs."
-        />
+      <div className="border-t border-line/50 bg-surface/80 px-5 py-4 backdrop-blur-sm sm:px-8">
+        <div className="mx-auto max-w-4xl">
+          <PromptBar
+            id="tutor-input"
+            onSubmit={send}
+            onStop={stop}
+            busy={busy}
+            placeholder="Explain chemical bonding for O-Level, or give me five kinematics MCQs..."
+          />
+        </div>
       </div>
     </div>
   );
@@ -342,42 +330,51 @@ function RoutingRail({ sessionId }: { sessionId: string }) {
   const routing = traces?.routing ?? [];
 
   return (
-    <>
-      <p className="ui-label">Audit trail</p>
-      <h2 className="mt-2 text-lg font-semibold tracking-tight">Why this agent</h2>
-      <p className="mt-2 text-xs leading-5 text-ink-2">
-        {routing[0]
-          ? routing[0].rationale
-          : "After you send a question, this rail shows which specialist answered and why."}
-      </p>
-      <div className="mt-5 grid gap-4 overflow-y-auto">
+    <div className="flex h-full flex-col">
+      <div className="mb-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-3">Agent Routing</p>
+        <h2 className="text-xl font-bold tracking-tight text-ink">Why this agent?</h2>
+        <p className="mt-3 rounded-lg border border-line/50 bg-inset/30 p-3 text-xs leading-relaxed text-ink-2">
+          {routing[0]
+            ? routing[0].rationale
+            : "After you send a question, this panel shows which specialist answered and the reasoning behind the decision."}
+        </p>
+      </div>
+      
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
         {routing.length === 0 ? (
-          <ThinkingState
-            variant="Steps"
-            active="Waiting for a question"
-            done="No turns yet"
-            rows={[
-              { primary: "Ask from the desk" },
-              { primary: "Orchestration picks a specialist" },
-              { primary: "This rail shows why" },
-            ]}
-          />
-        ) : (
-          routing.map((item, index) => (
+          <div className="rounded-xl border border-line/50 bg-inset/30 p-5">
             <ThinkingState
-              key={`${item.agent}-${item.rationale}-${index}`}
-              variant="Reasoning"
-              active={`${item.intent} → ${item.agent}`}
-              done={`${item.intent} → ${item.agent} · ${Math.round(item.confidence * 100)}%`}
+              variant="Steps"
+              active="Waiting for a question"
+              done="No turns yet"
               rows={[
-                { primary: item.rationale },
-                { primary: `Prompt v${item.promptVersion}`, mono: true },
+                { primary: "Ask a question from your desk" },
+                { primary: "Orchestration selects a specialist" },
+                { primary: "This panel shows the decision trail" },
               ]}
             />
+          </div>
+        ) : (
+          routing.map((item, index) => (
+            <div 
+              key={`${item.agent}-${item.rationale}-${index}`}
+              className="rounded-xl border border-line/50 bg-surface/50 p-4 shadow-sm backdrop-blur-sm transition-all hover:shadow-md"
+            >
+              <ThinkingState
+                variant="Reasoning"
+                active={`${item.intent} → ${item.agent}`}
+                done={`${item.intent} → ${item.agent} · ${Math.round(item.confidence * 100)}%`}
+                rows={[
+                  { primary: item.rationale },
+                  { primary: `Prompt v${item.promptVersion}`, mono: true },
+                ]}
+              />
+            </div>
           ))
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -389,16 +386,49 @@ function EmptyDesk({
   onPick: (text: string) => void;
 }) {
   return (
-    <div className="max-w-lg pt-6">
-      <p className="text-3xl font-semibold tracking-tight">Hello, {name}.</p>
-      <div className="mt-4">
-        <StreamingText
-          fill
-          loop={false}
-          followUps={STARTERS}
-          labels={{ sources: "Syllabus maps", followUps: "Try" }}
-          onFollowUp={(text) => onPick(text)}
-        />
+    <div className="flex min-h-[calc(100vh-16rem)] items-center justify-center py-12">
+      <div className="max-w-2xl text-center">
+        <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-accent/10 p-4">
+          <Icon icon="tutor" size={32} className="text-accent" />
+        </div>
+        <h2 className="text-4xl font-bold tracking-tight text-ink">
+          Hello, {name}
+        </h2>
+        <p className="mt-4 text-lg text-ink-2">
+          Welcome to your personal learning desk. Ask me anything about Mathematics, Physics, or Chemistry.
+        </p>
+        <div className="mt-8">
+          <p className="mb-4 text-sm font-medium uppercase tracking-wider text-ink-3">
+            Try these questions
+          </p>
+          <div className="grid gap-3 sm:grid-cols-1">
+            {STARTERS.map((starter, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => onPick(starter)}
+                className="group relative overflow-hidden rounded-xl border border-line bg-surface p-4 text-left shadow-card transition-all hover:border-accent/30 hover:shadow-raised hover:-translate-y-0.5"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 flex-shrink-0">
+                    <Icon 
+                      icon={starter.includes("differentiate") ? "math" : starter.includes("Convert") ? "physics" : "chemistry"} 
+                      size={18} 
+                      className="text-ink-2 transition-colors group-hover:text-accent" 
+                    />
+                  </div>
+                  <p className="flex-1 text-sm font-medium text-ink transition-colors group-hover:text-accent">
+                    {starter}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-8 flex items-center justify-center gap-2 text-xs text-ink-3">
+          <Icon icon="read" size={14} />
+          <span>Powered by Singapore syllabus maps</span>
+        </div>
       </div>
     </div>
   );

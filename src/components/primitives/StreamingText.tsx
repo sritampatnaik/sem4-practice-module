@@ -4,6 +4,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from "react";
+import { Icon, type MetsIconName } from "@/components/icons";
 
 /* ─────────────────────────────────────────────────────────
  * STREAMING TEXT
@@ -73,12 +74,7 @@ function SourceChip({ source }: { source?: StreamingSource }) {
   );
 }
 
-const ACTION_ICONS: React.ReactNode[] = [
-  <g key="copy"><rect x="9" y="9" width="12" height="12" rx="2.5" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></g>,
-  <path key="retry" d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" />,
-  <path key="up" d="M7 10v12M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88z" />,
-  <path key="down" d="M17 14V2M9 18.12L10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88z" />,
-];
+const ACTION_ICONS: MetsIconName[] = ["copy", "reload", "thumbsUp", "thumbsDown"];
 
 export type StreamingLabels = {
   /** label on the collapsed sources toggle */
@@ -162,17 +158,15 @@ export default function StreamingText({
         className="mt-2 flex items-center gap-0.5 transition-opacity duration-400"
         style={{ opacity: done ? 1 : 0, pointerEvents: done ? "auto" : "none" }}
       >
-        {ACTION_ICONS.map((icon, i) => (
+        {ACTION_ICONS.map((name) => (
           <button
-            key={i}
+            key={name}
             type="button"
             aria-label="Action"
             className="flex size-6 items-center justify-center rounded-[6px] text-ink-3
               transition-colors duration-100 hover:bg-hover-2 hover:text-ink-2"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              {icon}
-            </svg>
+            <Icon icon={name} size={15} strokeWidth={1.8} />
           </button>
         ))}
         <button
@@ -243,10 +237,7 @@ export default function StreamingText({
                   : { opacity: 0 }
               }
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                <path d="M9 10l-5 5 5 5" />
-                <path d="M20 4v7a4 4 0 0 1-4 4H4" />
-              </svg>
+              <Icon icon="reply" size={11} className="shrink-0 text-ink-3" />
               {text}
             </button>
           ))}

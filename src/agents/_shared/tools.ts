@@ -6,7 +6,7 @@ import { searchSyllabus, searchWebStub } from "@/lib/syllabus";
 export function documentSearchTool(subject: Subject) {
   return tool({
     description:
-      "Search curated Singapore syllabus notes for this subject. Use this before claiming a topic is in-syllabus.",
+      "Search official MOE/SEAB learning-outcome maps for this subject (not encyclopedic notes). Use this before claiming a topic is in-syllabus. Pass the student's gradeLevel so Primary, O-Level, and A-Level outcomes rank correctly.",
     inputSchema: z.object({
       query: z.string().describe("Topic or keyword, e.g. 'differentiation' or 'electrolysis'"),
       gradeLevel: z

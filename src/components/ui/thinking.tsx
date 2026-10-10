@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 export function Thinking({
@@ -22,8 +23,8 @@ export function Thinking({
         className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
       >
         <span className="text-sm text-[var(--bui-ink-2)]">{summary}</span>
-        <span className={cn("text-xs text-[var(--bui-ink-3)]", open && "rotate-180")}>
-          ▾
+        <span className={cn("inline-flex text-[var(--bui-ink-3)]", open && "rotate-180")}>
+          <Icon icon="arrowDown" size={12} strokeWidth={2.2} />
         </span>
       </button>
       {open ? (

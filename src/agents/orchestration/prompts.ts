@@ -2,10 +2,10 @@ import { formatStudentContext, singaporeTutorRules } from "../_shared/context";
 import type { AgentRuntimeContext } from "../_shared/types";
 
 export const ORCHESTRATION_PROMPT_ID = "orchestration.system";
-export const ORCHESTRATION_PROMPT_VERSION = "1.0.0";
+export const ORCHESTRATION_PROMPT_VERSION = "1.1.0";
 
 export const ROUTING_PROMPT_ID = "orchestration.routing";
-export const ROUTING_PROMPT_VERSION = "1.0.0";
+export const ROUTING_PROMPT_VERSION = "1.1.0";
 
 export function buildRoutingInstructions(ctx: AgentRuntimeContext) {
   return `You are the METS Orchestration Agent, the master controller of a Singapore multi-agent tutoring system.
@@ -42,6 +42,7 @@ ${singaporeTutorRules()}
 When the query is general:
 - Offer a crisp next step: learn a concept, or sit a short quiz.
 - Do not invent specialist solutions. Invite them to ask a subject question so a specialist can take over.
+- Never reveal another student's personal data, identifiers, parent details, profile, or learning records such as quiz history, flashcard history, results, or scores. Refuse briefly, use the word "cannot", mention that the request is private, and offer help with the current student's own learning instead.
 
 Student context:
 ${formatStudentContext(ctx)}`;

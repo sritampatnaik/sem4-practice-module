@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Icon, type MetsIconName } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
-const TABS = [
-  { href: "/evals/readme", label: "Read me" },
-  { href: "/evals/datasets", label: "Datasets" },
-  { href: "/evals/evaluators", label: "Evaluators" },
-  { href: "/evals/scores", label: "Scores" },
-] as const;
+const TABS: { href: string; label: string; icon: MetsIconName }[] = [
+  { href: "/evals/readme", label: "Read me", icon: "syllabus" },
+  { href: "/evals/datasets", label: "Datasets", icon: "datasets" },
+  { href: "/evals/evaluators", label: "Evaluators", icon: "evaluators" },
+  { href: "/evals/scores", label: "Scores", icon: "evals" },
+];
 
 export function EvalsTabs() {
   const pathname = usePathname();
@@ -26,12 +27,13 @@ export function EvalsTabs() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm no-underline transition-colors",
+              "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm no-underline transition-colors",
               active
                 ? "border-[var(--bui-ink)] font-medium text-[var(--bui-ink)]"
                 : "border-transparent text-[var(--bui-ink-2)] hover:text-[var(--bui-ink)]",
             )}
           >
+            <Icon icon={tab.icon} size={13} />
             {tab.label}
           </Link>
         );

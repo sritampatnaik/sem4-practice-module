@@ -29,10 +29,17 @@ function mergeWithDefaults(rows: Evaluator[]): Evaluator[] {
     ...defaults.map((item) => {
       const saved = rows.find((row) => row.id === item.id);
       if (!saved) return item;
+      const savedConfig = saved.config ?? {};
       return {
         ...item,
         enabled: saved.enabled,
-        config: { ...item.config, ...saved.config },
+        config: {
+          ...item.config,
+          passThreshold:
+            typeof savedConfig.passThreshold === "number"
+              ? savedConfig.passThreshold
+              : item.config.passThreshold,
+        },
         suiteIds: saved.suiteIds.length ? saved.suiteIds : item.suiteIds,
       };
     }),

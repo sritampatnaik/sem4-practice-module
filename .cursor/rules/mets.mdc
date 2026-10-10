@@ -5,7 +5,7 @@ alwaysApply: true
 
 # METS
 
-Hierarchical Singapore tutor: Orchestration routes, then exactly one of Math, Physics, Chemistry, or Testing answers.
+Hierarchical Singapore tutor: Orchestration routes, then exactly one of Math, Physics, Chemistry, or Testing answers. Guardrail monitors in the background and never answers the student.
 
 Explain the system from `docs/HOW-IT-WORKS.md` and `AGENTS.md`. Per-person instructions:
 
@@ -14,5 +14,6 @@ Explain the system from `docs/HOW-IT-WORKS.md` and `AGENTS.md`. Per-person instr
 - Physics: `src/agents/physics/README.md`
 - Chemistry: `src/agents/chemistry/README.md`
 - Testing: `src/agents/testing/README.md`
+- Guardrail: `src/agents/guardrail/README.md`
 
 Stay in the requested agent folder. Specialists must not import each other. Do not add a database unless asked.

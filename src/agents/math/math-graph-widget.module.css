@@ -1,0 +1,57 @@
+.card {
+  margin: 0.9rem 0 1.1rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--bui-ink) 14%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--bui-surface) 92%, white);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--bui-ink) 8%, transparent);
+}
+
+.caption {
+  padding: 1rem 1.1rem 0.8rem;
+  color: var(--bui-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  height: clamp(18rem, 48vw, 25rem);
+  overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, var(--bui-ink) 8%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--bui-accent) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--bui-accent) 5%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--bui-surface) 82%, white);
+  background-size: 1.5rem 1.5rem;
+  touch-action: none;
+}
+
+.board svg text {
+  cursor: default;
+  user-select: none;
+}
+
+.board :global(.JXGtext) {
+  margin: 0;
+  padding: 0;
+  color: var(--bui-ink);
+  background: transparent;
+  font-family: inherit;
+}
+
+.note {
+  padding: 0.6rem 1.1rem 0.9rem;
+  color: var(--bui-ink-2);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.fallback {
+  padding: 1rem 1.1rem;
+  color: var(--bui-red);
+  font-size: 0.8rem;
+}

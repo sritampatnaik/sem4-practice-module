@@ -22,7 +22,8 @@ See [docs/HOW-IT-WORKS.md](./docs/HOW-IT-WORKS.md) for the full walkthrough. Sho
 1. Student message lands on `/api/chat`.
 2. Orchestration classifies intent, subject, and grade band.
 3. The matching specialist streams a reply, using its own tools.
-4. Routing and prompts are logged to `logs/prompts.jsonl`, the UI audit rail, and optionally Langflow.
+4. Guardrail classifies the turn in the background. Hits land on `/admin` for admins (never on the student desk).
+5. Routing and prompts are logged to `logs/prompts.jsonl`, the UI audit rail, and optionally Langflow.
 
 Signed-in profiles, conversations, chat memory, pgvector chat chunks, and eval history persist in that same Supabase project. Syllabus search stays local markdown. The tutor chrome uses Beautiful UI tokens (`src/app/globals.css`).
 
@@ -37,6 +38,7 @@ Each person has a dedicated instruction file. Open yours before editing, and poi
 | Chua Hieng Weih | Physics | [src/agents/physics/README.md](./src/agents/physics/README.md) |
 | Lizabeth Annabel Tukiman | Chemistry | [src/agents/chemistry/README.md](./src/agents/chemistry/README.md) |
 | Muhammad Harun Bin Abdul Rashid | Testing | [src/agents/testing/README.md](./src/agents/testing/README.md) |
+| (unassigned) | Guardrail (hidden) | [src/agents/guardrail/README.md](./src/agents/guardrail/README.md) |
 
 Also see [TEAM.md](./TEAM.md) and [AGENTS.md](./AGENTS.md) (what Cursor/other agents read).
 
@@ -50,6 +52,20 @@ npm run evals -- --suite=routing
 ```
 
 Optional Langfuse sync: `npm run langfuse:seed-evals`. See [langfuse/evals/README.md](./langfuse/evals/README.md). Chat is not traced to Langfuse yet.
+
+## Promptfoo
+
+Promptfoo is configured as a **supplementary eval interface** over the same METS eval catalog and runner. It does not replace the existing `/evals` desk or `npm run evals`.
+
+```bash
+npm run promptfoo:validate
+npm run promptfoo:eval
+npm run promptfoo:prepare
+npx promptfoo eval -c promptfooconfig.yaml --filter-metadata suiteId=testing
+npm run promptfoo:ci
+```
+
+See [promptfoo/README.md](./promptfoo/README.md).
 
 ## Langflow
 

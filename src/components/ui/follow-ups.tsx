@@ -1,3 +1,4 @@
+import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 export function FollowUps({
@@ -20,10 +21,11 @@ export function FollowUps({
               type="button"
               onClick={() => onPick(item)}
               className={cn(
-                "ui-inset w-full px-3 py-2 text-left text-sm text-[var(--bui-ink-2)]",
+                "ui-inset flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--bui-ink-2)]",
                 "transition-colors hover:bg-[var(--bui-hover)] hover:text-[var(--bui-ink)]",
               )}
             >
+              <Icon icon="reply" size={12} className="shrink-0" />
               {item}
             </button>
           </li>

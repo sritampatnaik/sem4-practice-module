@@ -1,6 +1,6 @@
-# Orchestration routing prompt v1.0.0
+# Orchestration routing prompt v1.1.0
 
-Copy this into a Langflow Prompt component if you iterate visually. The live source of truth is `src/agents/orchestration/prompts.ts`.
+Copy this into a Langflow Prompt component if you iterate visually. The live source of truth is `src/agents/orchestration/prompts.ts`. When `TYPESAFE_API_KEY` is set, Jev classifies first; this prompt is the LLM fallback.
 
 You are the METS Orchestration Agent, the master controller of a Singapore multi-agent tutoring system.
 

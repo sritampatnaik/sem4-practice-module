@@ -1,23 +1,67 @@
 import { tool } from "ai";
 import { z } from "zod";
 import type { AgentRuntimeContext } from "../_shared/types";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   buildAssessmentPlan,
   buildMermaidDiagram,
+  DIFFICULTY_LEVELS,
   TESTING_MODES,
   VISUAL_FORMATS,
+  type ScoreContext,
 } from "./assessment-planner";
 import {
+  findTestingAttemptSummary,
+  summariseTestingAttempts,
+  toPersistedTopicScoreContext,
+  type TestingAttemptRecord,
+  type TestingTrend,
+} from "./score-history";
+import {
   appendAssessmentPerformanceEntry,
+  stageAssessmentPerformanceEntry,
   readRecentAssessmentPerformance,
 } from "./performance-log";
-import { buildPhysicsAssessmentSource } from "./subject-source";
+import {
+  type AssessmentSourceBase,
+  buildChemistryAssessmentSource,
+  buildMathAssessmentSource,
+  buildPhysicsAssessmentSource,
+  type ChemistryAssessmentSource,
+  type MathAssessmentSource,
+  type PhysicsAssessmentSource,
+} from "./subject-source";
+import { evaluateRequestedLevelAccess } from "./level-gating";
 
 const subjectSchema = z.enum(["math", "physics", "chemistry"]);
 const gradeLevelSchema = z.enum(["primary", "secondary", "jc"]);
 const testingModeSchema = z.enum(TESTING_MODES);
 const visualFormatSchema = z.enum(VISUAL_FORMATS);
+const difficultyLevelSchema = z.enum(DIFFICULTY_LEVELS);
+const trendSchema = z.enum(["new", "improving", "regressing", "stable"] as const satisfies readonly [TestingTrend, ...TestingTrend[]]);
 const nonEmptyText = z.string().trim().min(1);
+
+type TestingAttemptRow = {
+  id: string;
+  user_id: string;
+  conversation_id: string;
+  subject: z.infer<typeof subjectSchema>;
+  mode: z.infer<typeof testingModeSchema>;
+  topic_key: string;
+  topic_label: string;
+  title: string;
+  score: number;
+  total_questions: number;
+  topics: unknown;
+  completed_at: string;
+};
+
+type StagedAssessmentSource =
+  | PhysicsAssessmentSource
+  | MathAssessmentSource
+  | ChemistryAssessmentSource;
+
+const stagedAssessmentSources = new Map<string, StagedAssessmentSource>();
 
 function findDuplicateIds(values: { id: string }[]) {
   const seen = new Set<string>();
@@ -89,29 +133,405 @@ const mermaidEdgeSchema = z.object({
   label: nonEmptyText.optional(),
 });
 
+function extractTrailingNumericResult(explanation: string) {
+  const matches = [
+    ...explanation.matchAll(/=\s*(?:\$)?(-?\d+(?:\.\d+)?)(?![\d.])/g),
+  ];
+  const last = matches.at(-1)?.[1];
+  return last ? Number(last) : null;
+}
+
+function extractLeadingNumericValue(label: string) {
+  const match = label.match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
+}
+
+function sameNumericValue(left: number, right: number) {
+  return Math.abs(left - right) < 1e-9;
+}
+
+function validatePhysicsMcqCorrectness(items: z.infer<typeof mcqItemSchema>[]) {
+  const issues: string[] = [];
+
+  for (const item of items) {
+    const explanationValue = extractTrailingNumericResult(item.explanation);
+    const numericOptions = item.options
+      .map((option) => ({
+        id: option.id,
+        label: option.label,
+        value: extractLeadingNumericValue(option.label),
+      }))
+      .filter((option) => option.value !== null) as Array<{
+      id: string;
+      label: string;
+      value: number;
+    }>;
+
+    if (explanationValue === null || numericOptions.length < 2) continue;
+
+    const correct = numericOptions.find(
+      (option) => option.id === item.correctOptionId,
+    );
+    if (!correct) continue;
+
+    if (sameNumericValue(correct.value, explanationValue)) continue;
+
+    const matchingOption = numericOptions.find((option) =>
+      sameNumericValue(option.value, explanationValue),
+    );
+
+    if (!matchingOption) continue;
+
+    issues.push(
+      `Item '${item.id}' explanation resolves to ${explanationValue}, but correctOptionId points to '${correct.label}' instead of '${matchingOption.label}'.`,
+    );
+  }
+
+  return issues;
+}
+
 export const planAssessmentTool = tool({
   description:
-    "Plan a Testing response by selecting MCQ vs flashcards, extracting topics, and deciding if a Mermaid diagram would help.",
+    "Plan a Testing response by selecting MCQ vs flashcards, extracting topics, deciding if a Mermaid diagram would help, and recommending difficulty based on score history. Pass latestPercentage and trend if you have topic-scoped score context.",
   inputSchema: z.object({
     request: nonEmptyText,
     subject: subjectSchema.optional(),
     gradeLevel: gradeLevelSchema,
     requestedCount: z.number().int().min(1).max(8).optional(),
+    latestPercentage: z.number().min(0).max(100).optional().describe(
+      "Student's latest score percentage for this specific topic (0–100). Only pass if you have topic-scoped score context.",
+    ),
+    trend: trendSchema.optional().describe(
+      "Score trend for this specific topic. Only pass if you have topic-scoped score context.",
+    ),
   }),
-  execute: async (input) => buildAssessmentPlan(input),
+  execute: async (input) => {
+    const scoreContext: ScoreContext | undefined =
+      input.latestPercentage !== undefined && input.trend !== undefined
+        ? { latestPercentage: input.latestPercentage, trend: input.trend }
+        : undefined;
+    return buildAssessmentPlan({ ...input, scoreContext });
+  },
 });
 
-export const getPhysicsAssessmentSourceTool = tool({
-  description:
-    "Build structured Physics source material for the Testing agent before creating Physics MCQs or flashcards. Use this before generating a Physics widget.",
-  inputSchema: z.object({
-    request: nonEmptyText,
-    gradeLevel: gradeLevelSchema,
-    topics: z.array(nonEmptyText).min(1).max(4).optional(),
-    requestedCount: z.number().int().min(1).max(8).optional(),
-  }),
-  execute: async (input) => buildPhysicsAssessmentSource(input),
+/**
+ * Extract fallback topic-scoped score context from profile notes.
+ * This is used only when persisted score summaries are unavailable.
+ */
+function extractTopicScoreFromNotes(
+  notes: string[],
+  topics: string[],
+): ScoreContext | null {
+  const topicWords = topics
+    .flatMap((t) => t.toLowerCase().split(/\s+/))
+    .filter((w) => w.length >= 3);
+
+  for (const note of notes) {
+    const lower = note.toLowerCase();
+    if (!topicWords.some((word) => lower.includes(word))) continue;
+
+    const percentageMatch = lower.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (!percentageMatch) continue;
+    const latestPercentage = Number(percentageMatch[1]);
+
+    const trendMatch = lower.match(/trend[:\s]+(improving|regressing|stable|new)/);
+    if (!trendMatch) continue;
+    const trend = trendMatch[1] as TestingTrend;
+
+    return { latestPercentage, trend };
+  }
+
+  return null;
+}
+
+function mapAttemptRow(row: TestingAttemptRow): TestingAttemptRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    conversationId: row.conversation_id,
+    subject: row.subject,
+    mode: row.mode,
+    topicKey: row.topic_key,
+    topicLabel: row.topic_label,
+    title: row.title,
+    score: row.score,
+    totalQuestions: row.total_questions,
+    completedAt: row.completed_at,
+    topics: Array.isArray(row.topics)
+      ? row.topics.filter((topic): topic is string => typeof topic === "string")
+      : [],
+  };
+}
+
+function stageAssessmentSource(sessionId: string, source: StagedAssessmentSource) {
+  stagedAssessmentSources.set(sessionId, source);
+}
+
+function peekAssessmentSource(sessionId: string) {
+  return stagedAssessmentSources.get(sessionId) ?? null;
+}
+
+function clearAssessmentSource(sessionId: string) {
+  stagedAssessmentSources.delete(sessionId);
+}
+
+function blockedLevelSource<TSubject extends "math" | "physics" | "chemistry">(options: {
+  subject: TSubject;
+  gradeLevel: z.infer<typeof gradeLevelSchema>;
+  request: string;
+  topics?: string[];
+  requestedCount?: number;
+  supportReason: string;
+}): AssessmentSourceBase & { subject: TSubject } {
+  return {
+    subject: options.subject,
+    gradeLevel: options.gradeLevel,
+    request: options.request,
+    sourceQuery: options.request,
+    topics: options.topics ?? [],
+    requestedCount: options.requestedCount,
+    supported: false,
+    supportReason: options.supportReason,
+    sourceChunks: [],
+    learningOutcomes: [],
+    keyConcepts: [],
+    formulaHints: [],
+    misconceptionSeeds: [],
+    questionAngles: [],
+  };
+}
+
+async function readPersistedTopicScoreContext(
+  ctx: AgentRuntimeContext,
+  subject: z.infer<typeof subjectSchema>,
+  topics: string[],
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const conversation = await supabase
+    .from("conversations")
+    .select("user_id")
+    .eq("id", ctx.sessionId)
+    .maybeSingle();
+
+  const conversationUserId =
+    !conversation.error && typeof conversation.data?.user_id === "string"
+      ? conversation.data.user_id
+      : null;
+
+  let attemptsQuery = supabase
+    .from("testing_attempts")
+    .select(
+      "id, user_id, conversation_id, subject, mode, topic_key, topic_label, title, score, total_questions, topics, completed_at",
+    )
+    .eq("subject", subject)
+    .eq("mode", "mcq")
+    .order("completed_at", { ascending: false })
+    .limit(80);
+
+  attemptsQuery = conversationUserId
+    ? attemptsQuery.eq("user_id", conversationUserId)
+    : attemptsQuery.eq("conversation_id", ctx.sessionId);
+
+  const { data, error } = await attemptsQuery;
+  if (error || !data?.length) return null;
+
+  const summaries = summariseTestingAttempts(
+    (data as TestingAttemptRow[]).map(mapAttemptRow),
+  );
+  const summary = findTestingAttemptSummary(summaries, {
+    subject,
+    mode: "mcq",
+    topics,
+    title: topics.join(" "),
+  });
+  if (!summary) return null;
+
+  return toPersistedTopicScoreContext(summary);
+}
+
+export function getTopicScoreContextTool(ctx: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Look up topic-scoped score history for the student before calling planAssessment. " +
+      "Prefer persisted testing attempt summaries as the source of truth, matched by subject + topic bucket + mcq mode. " +
+      "Fall back to profile-note score hints only when persisted history is unavailable. " +
+      "Returns topic-scoped trend and percentages only for the matching topic — a kinematics score will never affect a heat quiz.",
+    inputSchema: z.object({
+      subject: subjectSchema,
+      topics: z.array(nonEmptyText).min(1).max(4),
+    }),
+    execute: async ({ subject, topics }) => {
+      const persisted = await readPersistedTopicScoreContext(ctx, subject, topics);
+      if (persisted) {
+        return {
+          available: true as const,
+          source: "persisted-score-history" as const,
+          ...persisted,
+        };
+      }
+
+      const allNotes = ctx.profile.notes;
+      const result = extractTopicScoreFromNotes(allNotes, topics);
+      if (!result) return { available: false as const };
+      return {
+        available: true as const,
+        source: "profile-notes" as const,
+        previousPercentage: null,
+        bestPercentage: result.latestPercentage,
+        attemptsCount: 1,
+        topicKey: topics.join("--").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        topicLabel: topics.join(" / "),
+        ...result,
+      };
+    },
+  });
+}
+
+const assessmentSourceInputSchema = z.object({
+  request: nonEmptyText,
+  gradeLevel: gradeLevelSchema,
+  topics: z.array(nonEmptyText).min(1).max(4).optional(),
+  requestedCount: z.number().int().min(1).max(8).optional(),
 });
+
+function buildSourceSupportError(source: StagedAssessmentSource) {
+  return `${source.supportReason} Do not create a widget for this request until the topic is narrowed or brought back into the student's grade band.`;
+}
+
+export function createPhysicsAssessmentSourceTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Build structured Physics source material for the Testing agent before creating Physics MCQs or flashcards. Use this before generating a Physics widget.",
+    inputSchema: assessmentSourceInputSchema,
+    execute: async (input) => {
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "blocked") {
+          const source = blockedLevelSource({
+            subject: "physics",
+            gradeLevel: input.gradeLevel,
+            request: input.request,
+            topics: input.topics,
+            requestedCount: input.requestedCount,
+            supportReason: levelAccess.reason,
+          });
+          stageAssessmentSource(ctx.sessionId, source);
+          return source;
+        }
+      }
+
+      const source = await buildPhysicsAssessmentSource(input);
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "allowed" && levelAccess.levelNote) {
+          source.levelNote = levelAccess.levelNote;
+        }
+      }
+      if (ctx) stageAssessmentSource(ctx.sessionId, source);
+      return source;
+    },
+  });
+}
+
+export function createMathAssessmentSourceTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Build structured Maths source material for the Testing agent before creating Maths MCQs or flashcards. Use this before generating a Maths widget.",
+    inputSchema: assessmentSourceInputSchema,
+    execute: async (input) => {
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "blocked") {
+          const source = blockedLevelSource({
+            subject: "math",
+            gradeLevel: input.gradeLevel,
+            request: input.request,
+            topics: input.topics,
+            requestedCount: input.requestedCount,
+            supportReason: levelAccess.reason,
+          });
+          stageAssessmentSource(ctx.sessionId, source);
+          return source;
+        }
+      }
+
+      const source = await buildMathAssessmentSource(input);
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "allowed" && levelAccess.levelNote) {
+          source.levelNote = levelAccess.levelNote;
+        }
+      }
+      if (ctx) stageAssessmentSource(ctx.sessionId, source);
+      return source;
+    },
+  });
+}
+
+export function createChemistryAssessmentSourceTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description:
+      "Build structured Chemistry source material for the Testing agent before creating Chemistry MCQs or flashcards. Use this before generating a Chemistry widget.",
+    inputSchema: assessmentSourceInputSchema,
+    execute: async (input) => {
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "blocked") {
+          const source = blockedLevelSource({
+            subject: "chemistry",
+            gradeLevel: input.gradeLevel,
+            request: input.request,
+            topics: input.topics,
+            requestedCount: input.requestedCount,
+            supportReason: levelAccess.reason,
+          });
+          stageAssessmentSource(ctx.sessionId, source);
+          return source;
+        }
+      }
+
+      const source = await buildChemistryAssessmentSource(input);
+      if (ctx) {
+        const levelAccess = evaluateRequestedLevelAccess({
+          studentGrade: ctx.profile.grade,
+          studentGradeLevel: ctx.profile.gradeLevel,
+          request: input.request,
+        });
+        if (levelAccess.status === "allowed" && levelAccess.levelNote) {
+          source.levelNote = levelAccess.levelNote;
+        }
+      }
+      if (ctx) stageAssessmentSource(ctx.sessionId, source);
+      return source;
+    },
+  });
+}
+
+export const getPhysicsAssessmentSourceTool = createPhysicsAssessmentSourceTool();
+export const getMathAssessmentSourceTool = createMathAssessmentSourceTool();
+export const getChemistryAssessmentSourceTool = createChemistryAssessmentSourceTool();
 
 export const createMermaidDiagramTool = tool({
   description:
@@ -151,47 +571,96 @@ export const createMermaidDiagramTool = tool({
   }),
 });
 
-export const createMcqSetTool = tool({
-  description: "Build an interactive multiple-choice quiz. The UI renders this as a quiz widget.",
-  inputSchema: z
-    .object({
-      title: nonEmptyText,
-      subject: subjectSchema,
-      items: z.array(mcqItemSchema).min(2).max(6),
-    })
-    .superRefine((set, ctx) => {
-      const duplicateItemIds = findDuplicateIds(set.items);
-      for (const duplicateId of duplicateItemIds) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate item id '${duplicateId}' is not allowed.`,
-          path: ["items"],
-        });
-      }
-    }),
-  execute: async (input) => input,
-});
+export const mcqSetInputSchema = z
+  .object({
+    title: nonEmptyText,
+    subject: subjectSchema,
+    items: z.array(mcqItemSchema).min(2).max(6),
+  })
+  .superRefine((set, ctx) => {
+    const duplicateItemIds = findDuplicateIds(set.items);
+    for (const duplicateId of duplicateItemIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate item id '${duplicateId}' is not allowed.`,
+        path: ["items"],
+      });
+    }
+  });
 
-export const createFlashcardsTool = tool({
-  description: "Build an interactive flashcard deck. The UI renders this as a flip deck.",
-  inputSchema: z
-    .object({
-      title: nonEmptyText,
-      subject: subjectSchema,
-      cards: z.array(flashcardSchema).min(3).max(8),
-    })
-    .superRefine((deck, ctx) => {
-      const duplicateCardIds = findDuplicateIds(deck.cards);
-      for (const duplicateId of duplicateCardIds) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate card id '${duplicateId}' is not allowed.`,
-          path: ["cards"],
-        });
+function validateAssessmentSourceForWidget(
+  ctx: AgentRuntimeContext | undefined,
+  subject: z.infer<typeof subjectSchema>,
+) {
+  if (!ctx) return;
+  const staged = peekAssessmentSource(ctx.sessionId);
+  if (!staged) {
+    throw new Error(
+      "Testing source validation failed: call the matching assessment source tool before building a widget.",
+    );
+  }
+  if (staged.subject !== subject) {
+    throw new Error(
+      `Testing source validation failed: latest staged source is for ${staged.subject}, not ${subject}.`,
+    );
+  }
+  if (!staged.supported) {
+    throw new Error(`Testing source validation failed: ${buildSourceSupportError(staged)}`);
+  }
+  clearAssessmentSource(ctx.sessionId);
+}
+
+export function buildCreateMcqSetTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description: "Build an interactive multiple-choice quiz. The UI renders this as a quiz widget.",
+    inputSchema: mcqSetInputSchema,
+    execute: async (input) => {
+      validateAssessmentSourceForWidget(ctx, input.subject);
+      if (input.subject === "physics") {
+        const issues = validatePhysicsMcqCorrectness(input.items);
+        if (issues.length) {
+          throw new Error(
+            `Physics MCQ validation failed: ${issues.join(" ")}`,
+          );
+        }
       }
-    }),
-  execute: async (input) => input,
-});
+
+      return input;
+    },
+  });
+}
+
+export const createMcqSetTool = buildCreateMcqSetTool();
+
+export const flashcardSetInputSchema = z
+  .object({
+    title: nonEmptyText,
+    subject: subjectSchema,
+    cards: z.array(flashcardSchema).min(3).max(8),
+  })
+  .superRefine((deck, ctx) => {
+    const duplicateCardIds = findDuplicateIds(deck.cards);
+    for (const duplicateId of duplicateCardIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate card id '${duplicateId}' is not allowed.`,
+        path: ["cards"],
+      });
+    }
+  });
+
+export function buildCreateFlashcardsTool(ctx?: AgentRuntimeContext) {
+  return tool({
+    description: "Build an interactive flashcard deck. The UI renders this as a flip deck.",
+    inputSchema: flashcardSetInputSchema,
+    execute: async (input) => {
+      validateAssessmentSourceForWidget(ctx, input.subject);
+      return input;
+    },
+  });
+}
+
+export const createFlashcardsTool = buildCreateFlashcardsTool();
 
 export function getRecentPerformanceTool(ctx: AgentRuntimeContext) {
   return tool({
@@ -204,26 +673,28 @@ export function getRecentPerformanceTool(ctx: AgentRuntimeContext) {
   });
 }
 
+export const recordPerformanceInputSchema = z
+  .object({
+    subject: subjectSchema,
+    mode: testingModeSchema,
+    title: nonEmptyText,
+    topics: z.array(nonEmptyText).min(1).max(8),
+    visualFormat: visualFormatSchema.default("none"),
+    note: nonEmptyText,
+  })
+  .strict();
+
 export function recordPerformanceTool(ctx: AgentRuntimeContext) {
   return tool({
     description:
-      "Persist a compact Testing note for this session. Log real student outcomes only when they are explicitly known.",
-    inputSchema: z.object({
-      subject: subjectSchema,
-      mode: testingModeSchema,
-      title: nonEmptyText,
-      topics: z.array(nonEmptyText).min(1).max(8),
-      visualFormat: visualFormatSchema.default("none"),
-      note: nonEmptyText,
-      outcome: nonEmptyText.optional(),
-    }),
+      "Persist a compact Testing note for this session after a meaningful assessment. This tool is for assessment notes only and must not include outcome or score fields.",
+    inputSchema: recordPerformanceInputSchema,
     execute: async (input) => {
-      const savedPaths = await appendAssessmentPerformanceEntry({
+      stageAssessmentPerformanceEntry({
         sessionId: ctx.sessionId,
         studentName: ctx.profile.name,
         gradeLevel: ctx.profile.gradeLevel,
         ...input,
-        at: new Date().toISOString(),
       });
 
       return {
@@ -232,7 +703,6 @@ export function recordPerformanceTool(ctx: AgentRuntimeContext) {
         studentName: ctx.profile.name,
         gradeLevel: ctx.profile.gradeLevel,
         ...input,
-        ...savedPaths,
       };
     },
   });

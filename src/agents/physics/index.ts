@@ -1,15 +1,30 @@
-import { ToolLoopAgent, stepCountIs } from "ai";
+import { ToolLoopAgent, stepCountIs, wrapLanguageModel } from "ai";
 import { getModel } from "@/lib/llm";
 import { documentSearchTool, webSearchTool } from "../_shared/tools";
 import type { AgentRuntimeContext } from "../_shared/types";
 import { buildPhysicsInstructions, PHYSICS_PROMPT_VERSION } from "./prompts";
-import { formulaLookupTool, unitConverterTool } from "./tools";
+import { drawPhysicsDiagramTool, formulaLookupTool, unitConverterTool } from "./tools";
+import { physicsGuardrails } from "./guardrails";
 
-type PhysicsToolName = "formulaLookup" | "unitConverter" | "documentSearch";
+type PhysicsToolName = "formulaLookup" | "unitConverter" | "documentSearch" | "drawPhysicsDiagram";
 
-function requiredFirstStepTool(messages: Array<{ role?: string; content?: unknown }>) {
+export function requiredFirstStepTool(messages: Array<{ role?: string; content?: unknown }>) {
   const latest = [...messages].reverse().find((message) => message.role === "user");
   const text = typeof latest?.content === "string" ? latest.content : JSON.stringify(latest?.content ?? "");
+
+  if (/\b(draw|diagram|sketch|plot|graph|visualise|visualize)\b/i.test(text)) {
+    const requestedFamilies = [
+      /\b(force|forces|free-body|free body|fbd)\b/i.test(text),
+      /\b(motion|speed|velocity|acceleration|distance[-– ]time|displacement[-– ]time|velocity[-– ]time|speed[-– ]time)\b/i.test(text),
+      /\b(lens|ray)\b/i.test(text),
+    ].filter(Boolean).length;
+
+    // A mixed or unrecognised visual request needs clarification. Disabling
+    // tools for the first step prevents the model from silently choosing one
+    // family (for example, a free-body diagram for "force and speed").
+    if (requestedFamilies !== 1) return "none" as const;
+    return "drawPhysicsDiagram" as const;
+  }
 
   if (/\b(convert|conversion|km\/h|m\/s|celsius|kelvin|unit)\b/i.test(text)) {
     return "unitConverter" as const;
@@ -34,17 +49,19 @@ function requiredFirstStepTool(messages: Array<{ role?: string; content?: unknow
 export function createPhysicsAgent(ctx: AgentRuntimeContext) {
   return new ToolLoopAgent({
     id: "physics",
-    model: getModel(),
+    model: wrapLanguageModel({ model: getModel(), middleware: physicsGuardrails }),
     instructions: buildPhysicsInstructions(ctx),
     tools: {
       formulaLookup: formulaLookupTool,
       unitConverter: unitConverterTool,
+      drawPhysicsDiagram: drawPhysicsDiagramTool,
       documentSearch: documentSearchTool("physics"),
       webSearch: webSearchTool,
     },
     prepareStep: ({ stepNumber, messages }) => {
       if (stepNumber !== 0) return {};
-      const toolName: PhysicsToolName | undefined = requiredFirstStepTool(messages);
+      const toolName: PhysicsToolName | "none" | undefined = requiredFirstStepTool(messages);
+      if (toolName === "none") return { toolChoice: "none" as const };
       return toolName ? { toolChoice: { type: "tool", toolName } } : {};
     },
     stopWhen: stepCountIs(8),

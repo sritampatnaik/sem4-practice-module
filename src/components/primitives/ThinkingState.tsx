@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Icon } from "@/components/icons";
 
 /* ─────────────────────────────────────────────────────────
  * THINKING — expandable agent trace, four variants
@@ -79,10 +80,7 @@ const VARIANTS: Record<
 function Dot({ tone }: { tone: string }) {
   return (
     <span className={`flex size-3.5 shrink-0 items-center justify-center rounded-full text-white ${tone}`}>
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M3.5 12h17M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-      </svg>
+      <Icon icon="globe" size={9} strokeWidth={2.5} />
     </span>
   );
 }
@@ -156,9 +154,7 @@ export default function ThinkingState({
             {icon}
           </span>
         ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={working ? "var(--ink-2)" : "var(--ink-3)"}>
-            <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
-          </svg>
+          <Icon icon="think" size={16} />
         )}
         <span role="status" className="contents">
           {working ? (
@@ -182,13 +178,12 @@ export default function ThinkingState({
             </span>
           )}
         </span>
-        <svg
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-          className="transition-transform duration-300"
+        <span
+          className="inline-flex transition-transform duration-300"
           style={{ transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
         >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+          <Icon icon="arrowDown" size={14} strokeWidth={2.2} />
+        </span>
       </button>
 
       {/* expandable trace */}
@@ -210,10 +205,7 @@ export default function ThinkingState({
             <div ref={traceRef} className="flex flex-col gap-1 py-1">
             {v.query && (
               <div className="flex h-6 items-center gap-2 px-1.5" style={{ animation: expanded ? "fade-up 300ms cubic-bezier(0.23,1,0.32,1) both" : undefined }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="2" strokeLinecap="round" className="shrink-0">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M21 21l-4.3-4.3" />
-                </svg>
+                <Icon icon="search" size={14} />
                 <span className="text-[12.5px] text-ink-2">{v.query}</span>
               </div>
             )}
@@ -223,9 +215,7 @@ export default function ThinkingState({
                 {variant === "Search" && <Dot tone={TONES[i % 3]} />}
                 {variant === "Steps" && (
                   i < visible - 1 || !working ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
+                    <Icon icon="tick" size={14} strokeWidth={2.2} />
                   ) : (
                     <span className="size-3 shrink-0 rounded-full border-[1.5px] border-line-strong border-t-ink-2" style={{ animation: "spin 700ms linear infinite" }} />
                   )

@@ -167,7 +167,7 @@ export function examplePhysicsDataset(): DatasetItemJson {
       },
     },
     output: {
-      must: ["documentSearch", "A-Level / JC, not O-Level"],
+      must: ["documentSearch", "A-Level", "not O-Level"],
       agent: "physics",
       intent: "teaching",
       mustNot: ["dump university quantum content"],

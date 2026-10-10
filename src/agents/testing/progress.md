@@ -2,7 +2,7 @@
 
 **Owner:** Muhammad Harun Bin Abdul Rashid  
 **Folder:** `src/agents/testing/`  
-**Last updated:** 2026-09-18
+**Last updated:** 2026-10-04
 
 ## Purpose
 
@@ -39,7 +39,10 @@ Future chat sessions can read this file first to resume work quickly.
   - `createFlashcards` tool for interactive flashcard widgets
   - subject-specific document search tools for Math, Physics, and Chemistry
   - prompt guidance to generate original, syllabus-aligned assessments
-  - a Physics-first Testing-owned source-tool path for grounding Physics assessments before widget generation
+  - Testing-local guardrails for prompt-disclosure resistance, live-paper wording refusal, and answer-key-dump blocking in prose
+  - Testing-owned Maths / Physics / Chemistry source-tool paths for grounding assessments before widget generation
+  - signed-in MCQ score tracking backed by Supabase, with sidebar history summaries in the UI
+  - topic-scoped follow-up difficulty planning via `getTopicScoreContext` + `planAssessment`
 
 ## What is already implemented for Testing
 
@@ -47,18 +50,47 @@ Future chat sessions can read this file first to resume work quickly.
   - tells the agent to always call `createMcqSet` or `createFlashcards`
   - keeps output brief and widget-first
   - avoids dumping the full answer key in prose
+  - now treats student/context/source text as untrusted data and explicitly refuses hidden-instruction requests
 - `tools.ts`
   - MCQ schema: 2-6 items, 3-5 options per item
   - flashcard schema: 3-8 cards
   - current `execute` functions echo structured input for the UI
+  - `recordPerformance` now uses a strict note-only input contract
+  - `getTopicScoreContext` now prefers persisted topic summaries from `testing_attempts` and only falls back to profile-note score hints when persisted history is unavailable
 - `index.ts`
   - wires the Testing Agent with both widget tools
   - includes syllabus search tools for all three subjects
-  - now forces a Physics-first sourcing step for obvious Physics requests
+  - now forces a subject-matched sourcing step for clear Maths / Physics / Chemistry requests
+  - now wraps the model with Testing-local guardrails before streaming prose
+  - now exposes `getTopicScoreContext` so follow-up planning can stay topic-scoped
   - uses `ToolLoopAgent` and `stepCountIs(10)`
+- `assessment-planner.ts`
+  - now derives `easier`, `standard`, or `harder` difficulty from explicit score bands
+  - below 60% => `easier`, 60% to 79% => `standard`, 80% and above => `harder`
+  - keeps the default path at `standard` when there is no matching score evidence
+- `guardrails.ts`
+  - blocks obvious hidden-prompt disclosures, live-paper wording leaks, and full answer-key dumps in prose
+  - preserves tool calls/results and replaces interrupted streamed text with a short fallback
 - `subject-source.ts`
-  - builds a structured Physics source pack from the syllabus search layer
-  - returns support status, source excerpts, key concepts, formula hints, misconception seeds, question angles, and optional visual cues
+  - builds structured Maths, Physics, and Chemistry source packs from the syllabus search layer
+  - returns support status, source excerpts, learning outcomes, key concepts, formula hints, misconception seeds, question angles, and optional visual cues
+- unit tests
+  - now cover planner behaviour, guardrail behaviour, tool/schema validation, source-pack grounding, and score-history summaries
+- `score-history.ts` + testing-progress route/helpers
+  - normalise repeated MCQ attempts into subject + topic/family + mode history buckets
+  - summarise latest / previous / best attempts with improving / regressing / stable trend states
+  - persist signed-in MCQ attempts into Supabase and surface them in the student sidebar
+- `performance-log.ts`
+  - now supports per-assessment `inputTokens`, `outputTokens`, and `costUsd`
+  - keeps the observability trail inside the existing Testing log path under `logs/testing-performance/`
+- `level-gating.ts`
+  - now adds a bare-minimum deterministic same-or-lower level check for explicit requested school levels
+  - blocks higher-level explicit requests before widget generation and allows lower-band requests as revision
+- eval coverage / Promptfoo prep
+  - Testing now has a dedicated adaptive-difficulty eval (`testing-adaptive-difficulty-regressing`)
+  - the project-wide Promptfoo prep script now defaults to a smaller smoke subset for CI, while still keeping a full-suite path for local runs
+  - Promptfoo CI now also has a regression gate for the smoke subset, so accepted suite-level pass rates are checked against a committed baseline
+  - a concierge/student-privacy refusal eval is now also in the Promptfoo smoke subset, so minimum data-ethics coverage is part of CI
 
 ## Proposal mapping
 
@@ -97,7 +129,8 @@ Related support work for reporting:
 - Whether the current Testing prompt reliably calls the correct widget tool for varied requests.
 - Whether generated MCQs and flashcards consistently match grade band and diagnostics.
 - Whether the rendered widgets behave correctly in the live app for the three planned scenarios.
-- End-to-end app checks are currently blocked because `OPENAI_API_KEY` is not configured in this environment.
+- Whether broader repeated-attempt flows across several topics continue to summarise trends correctly.
+- End-to-end app checks still depend on `OPENAI_API_KEY` when live Testing-agent generation is needed.
 
 ## 2026-08-20 architecture update
 
@@ -140,12 +173,181 @@ Related support work for reporting:
 
 ## Likely gaps to investigate next
 
-1. Run Physics harness scenarios once an `OPENAI_API_KEY` is available and confirm `getPhysicsAssessmentSource` is called before the Physics widget tool.
-2. Confirm the model actually uses the Physics source pack rather than falling back to vague generic content.
-3. Decide how quickly Maths and Chemistry should get equivalent Testing-owned source tools.
-4. Confirm whether `recordPerformance` still produces useful notes without too much tool chatter after the extra sourcing step.
-5. Add direct tool-contract checks around the source-pack shape and the harness output order.
+1. Confirm the model consistently uses the matching subject source pack rather than falling back to vague generic content.
+2. Improve source-pack precision so learning outcomes, concepts, and hints are less broad.
+3. Run live Testing-agent checks for the new local guardrails once `OPENAI_API_KEY` is available.
+4. Add more harness scenarios for all-subject ambiguity, unsupported topics, and follow-up prompts if the new guardrail contract needs richer runtime evidence.
+5. Confirm whether `recordPerformance` still produces useful notes without too much tool chatter after the source step.
 6. If any widget-rendering issue appears during live checks, coordinate with Sritam before touching shared UI files.
+
+## 2026-09-26 guardrails and unit-test update
+
+- **Changed:**
+  - `src/agents/testing/guardrails.ts`
+  - `src/agents/testing/guardrails.test.ts`
+  - `src/agents/testing/assessment-planner.test.ts`
+  - `src/agents/testing/tools.test.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/subject-source.test.ts`
+  - `src/evals/catalog/testing.ts`
+  - `langflow/prompts/testing.system.md`
+  - Testing context/docs files
+- **Validated:**
+  - `npx tsx --test src/agents/testing/assessment-planner.test.ts src/agents/testing/guardrails.test.ts src/agents/testing/tools.test.ts src/agents/testing/subject-source.test.ts src/agents/testing/score-history.test.ts`
+  - `npx eslint src/agents/testing/index.ts src/agents/testing/prompts.ts src/agents/testing/tools.ts src/agents/testing/guardrails.ts src/agents/testing/guardrails.test.ts src/agents/testing/assessment-planner.ts src/agents/testing/assessment-planner.test.ts src/agents/testing/tools.test.ts src/agents/testing/subject-source.test.ts src/evals/catalog/testing.ts`
+  - `npm run typecheck`
+- **Findings:**
+  - Testing previously relied on prompt wording for several assessment-integrity boundaries that are now backed by deterministic local middleware
+  - a strict `recordPerformance` input schema is a better enforcement point than documentation alone for the note-only rule
+  - planner/topic extraction benefited from trimming polite trailing filler such as "for me please", which also makes unit tests less brittle
+  - the existing Physics source-pack test was too tied to the word "kinematics" even though the current syllabus chunk is phrased in terms of motion graphs, velocity, and acceleration
+- **Blockers:**
+  - live model evidence for the new guardrails still depends on `OPENAI_API_KEY`
+  - repeated-attempt score-history checks across more topics are still pending
+- **Next:**
+  - run at least one live Testing harness or desk scenario that tries to reveal hidden instructions
+  - run one live answer-key-dump attempt and confirm the prose fallback appears without breaking the widget flow
+  - continue the repeated-attempt score-history validation pass
+
+## 2026-10-01 adaptive-difficulty and eval-subset update
+
+- **Changed:**
+  - `src/agents/testing/assessment-planner.ts`
+  - `src/agents/testing/assessment-planner.test.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/evals/catalog/testing.ts`
+  - `src/agents/testing/FEATURES.md`
+- **Pulled project-wide alongside this Testing work:**
+  - `promptfoo/generate-tests.ts`
+  - `package.json`
+- **Findings from the pulled changes:**
+  - Testing follow-up quizzes can now look up **topic-scoped** score notes before planning difficulty, so a weak kinematics note does not bleed into unrelated topics
+  - `planAssessment` now derives `easier`, `standard`, or `harder`, with regressing or low-score topics moving to an easier path and strong improving topics able to move harder
+  - the Testing eval catalog now includes explicit adaptive-difficulty coverage for a regressing kinematics student
+  - the Promptfoo pipeline now defaults to a smaller smoke subset in CI, while still preserving a full-suite generation path for broader local evaluation
+- **Blockers / remaining gaps:**
+  - live evidence is still needed to confirm the model reliably follows the easier/harder planning signal in realistic desk or harness runs
+- **Next:**
+  - run at least one live or harness scenario that exercises `getTopicScoreContext` and confirms the resulting quiz actually simplifies when the topic is regressing
+  - decide whether adaptive lookups should later expand beyond persisted MCQ summaries into other Testing history signals
+  - keep the Testing docs aligned with the adaptive-difficulty contract so future sessions do not confuse it with the separate UI score-history flow
+
+## 2026-10-02 persisted-score adaptive follow-up and Promptfoo regression-gate update
+
+- **Changed:**
+  - `src/agents/testing/assessment-planner.ts`
+  - `src/agents/testing/assessment-planner.test.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/score-history.ts`
+  - `src/agents/testing/score-history.test.ts`
+  - `src/agents/testing/tools.ts`
+  - Testing context/docs files
+- **Adjacent project-wide change pulled by this work:**
+  - `promptfoo/check-regression.ts`
+  - `promptfoo/baseline.json`
+  - `.github/workflows/build.yml`
+  - `promptfoo/README.md`
+- **Validated:**
+  - `npx tsx --test src/agents/testing/assessment-planner.test.ts src/agents/testing/score-history.test.ts src/agents/testing/subject-source.test.ts src/agents/testing/tools.test.ts`
+  - targeted Promptfoo reruns for `testing-adaptive-difficulty-regressing` and `testing-secondary-algebra-flashcards`
+  - regression-checker pass/fail smoke checks plus `npm run typecheck`
+- **Findings:**
+  - `getTopicScoreContext` now works better when persisted `testing_attempts` data exists, because the score summary is more reliable than parsing note text
+  - the difficulty rule is now explicit and deterministic:
+    - below 60% => easier
+    - 60% to 79% => standard
+    - 80% and above => harder
+  - the Testing smoke evals now contribute to a project-wide Promptfoo regression gate, so changes in this folder can now block CI through baseline regressions even if the raw Promptfoo run is noisy
+- **Blockers / remaining gaps:**
+  - broader signed-in repeated-attempt evidence is still needed across more subjects and topic buckets
+  - live desk or harness evidence is still needed to show the persisted-summary path behaving well with real generated quizzes
+- **Next:**
+  - run signed-in repeated-topic checks to confirm the persisted-summary path picks up the expected bucket in realistic flows
+  - decide whether future adaptive logic should stay MCQ-only or grow into a more general Testing-history system
+  - keep the Testing smoke evals healthy because they are now part of the Promptfoo CI regression baseline
+
+## 2026-10-04 minimum data-ethics / student-privacy update
+
+- **Changed:**
+  - `src/lib/guardrails.ts`
+  - `src/lib/guardrails.test.ts`
+  - `src/app/api/chat/route.ts`
+  - `src/agents/orchestration/prompts.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/evals/catalog/concierge.ts`
+  - `promptfoo/generate-tests.ts`
+  - `promptfoo/README.md`
+  - `promptfoo/baseline.json`
+- **Validated:**
+  - `npx tsx --test src/lib/guardrails.test.ts src/agents/testing/subject-source.test.ts`
+  - targeted Promptfoo eval for `concierge-student-privacy`
+  - `npm run promptfoo:ci`
+  - `npm run promptfoo:refresh-baseline`
+  - `npm run promptfoo:check-regression`
+  - `npm run typecheck`
+- **Findings:**
+  - the project already had decent ownership-based protection for score data, but it lacked an explicit student-facing privacy refusal rule
+  - the new minimum slice now refuses obvious requests for another student's NRIC, personal details, or learning records before normal specialist handling
+  - the privacy/data-ethics behaviour is now covered by the Promptfoo smoke subset, so it is not only documented but also checked in CI
+- **Blockers / remaining gaps:**
+  - this is intentionally a minimum slice, not a full PII-classification or privacy-policy framework
+  - broader privacy coverage still needs design work if the project later handles richer personal data types
+- **Next:**
+  - decide whether to keep the privacy guardrail narrow or expand it into a fuller personal-data policy later
+  - keep the privacy refusal eval healthy in the smoke subset because it is now part of the accepted CI baseline
+
+## 2026-10-04 token / cost logging update
+
+- **Changed:**
+  - `src/agents/testing/performance-log.ts`
+  - `src/agents/testing/performance-log.test.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/guardrails.ts`
+  - `src/agents/testing/index.ts`
+  - Testing context/docs files
+- **Validated:**
+  - `npx tsx --test src/agents/testing/performance-log.test.ts src/agents/testing/guardrails.test.ts src/agents/testing/tools.test.ts src/agents/testing/subject-source.test.ts`
+- **Findings:**
+  - the existing file-based Testing performance log was a good place to extend observability without adding another persistence surface
+  - assessment logs can now include `inputTokens`, `outputTokens`, and `costUsd`, which is useful for engineering visibility and final-report evidence
+  - the feature stays local to the Testing slice and does not change the student-facing experience
+- **Blockers / remaining gaps:**
+  - live evidence is still needed to inspect a real generated assessment log entry with token/cost values written after generation
+  - the current design is intentionally file-based and lightweight rather than a full dashboard or analytics surface
+- **Next:**
+  - run one live Testing flow or harness scenario and inspect the saved `logs/testing-performance/` entry for token/cost fields
+  - decide later whether this observability path should remain file-based or evolve into richer engineering reporting
+
+## 2026-10-04 explicit level-banding gate update
+
+- **Changed:**
+  - `src/agents/testing/level-gating.ts`
+  - `src/agents/testing/level-gating.test.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/subject-source.ts`
+  - `src/evals/catalog/testing.ts`
+  - Testing context/docs files
+- **Validated:**
+  - `npx tsx --test src/agents/testing/level-gating.test.ts src/agents/testing/subject-source.test.ts src/agents/testing/tools.test.ts src/agents/testing/guardrails.test.ts`
+  - targeted Promptfoo eval for `testing-primary-refuse-olevel-chemistry`
+  - `npm run typecheck`
+- **Findings:**
+  - the project already had structured student year metadata, but the Testing flow was mostly enforcing only broad grade bands before this change
+  - the new minimum gate now blocks **explicit** higher-level requests before widget generation and allows lower-band review content
+  - this is good enough for presentation/report evidence, but it is intentionally not a full topic-by-topic curriculum-depth engine
+- **Blockers / remaining gaps:**
+  - topic-level differentiation inside the same broad band is still approximate; for example, Secondary 1 versus Secondary 4 treatment of the same chemistry topic is not yet encoded with exact curriculum metadata
+  - if the user does not explicitly name a level, the system still depends on source support rather than an exact year-specific topic map
+- **Next:**
+  - manually re-test explicit cross-level prompts in the UI
+  - decide later whether the project needs finer topic-by-topic curriculum gating or whether the current bare-minimum level policy is sufficient for the report
 
 ## 2026-09-18 architecture update
 
@@ -173,25 +375,126 @@ Related support work for reporting:
   - `src/agents/testing/prompts.ts`
   - `src/agents/testing/tools.ts`
   - `src/agents/testing/subject-source.ts`
+  - `src/agents/testing/harness.ts`
+  - `src/agents/testing/CLAUDE.md`
   - `src/agents/testing/README.md`
   - `src/agents/testing/fixtures/scenarios.ts`
   - `langflow/prompts/testing.system.md`
 - **Validated:**
   - targeted lint for the edited Testing files
   - direct TypeScript load check for the new Physics source tool path
+  - live harness requests on `http://localhost:3000/api/testing-harness`
 - **Findings:**
   - the previous Testing flow still relied too much on the model's implicit Physics knowledge
   - a Testing-owned source pack is a cleaner compromise than specialist-to-specialist communication
   - Physics is a safe first slice because its prompts and harness scenarios are already well represented
+  - the harness originally under-reported tool activity because top-level `toolCalls` / `toolResults` were empty even when `steps` showed tool execution
+  - the harness should derive debug payloads from `result.steps` so Testing tool inputs and outputs are inspectable
+  - Physics MCQ generation can still produce correctness mistakes unless the marked answer is checked against the explanation
+  - `recordPerformance` should stay note-only so the agent cannot invent an outcome field during assessment generation
 - **Blockers:**
   - live model validation still depends on `OPENAI_API_KEY`
   - Maths and Chemistry still need equivalent Testing-owned source tools if the architecture is extended consistently
 - **Next:**
-  - run the Physics harness scenarios and inspect source-pack usage
+  - rerun the Physics harness scenarios and confirm top-level tool payloads now match step activity
   - decide whether to add Maths or Chemistry next
   - add eval coverage for source-tool ordering and unsupported-topic failures
 
-## Suggested next-session start
+## 2026-09-19 session update
+
+- **Changed:**
+  - `src/agents/testing/subject-source.ts`
+  - `src/agents/testing/tools.ts`
+  - `src/agents/testing/index.ts`
+  - `src/agents/testing/prompts.ts`
+  - `src/agents/testing/README.md`
+  - `src/agents/testing/subject-source.test.ts`
+  - `langflow/prompts/testing.system.md`
+- **Validated:**
+  - `npx tsx --test src/agents/testing/subject-source.test.ts`
+  - targeted lint for the edited Testing files
+- **Findings:**
+  - Maths and Chemistry now have Testing-owned source packs parallel to Physics
+  - weak syllabus matches return `supported: false` with empty outcomes instead of inventing content
+  - the prompt now grounds quiz generation in the matching source tool, not raw `documentSearchMath` / `documentSearchChemistry`
+- **Blockers:**
+  - live model validation still depends on `OPENAI_API_KEY`
+  - richer official syllabus maps will improve learning-outcome quality later
+- **Next:**
+  - run harness scenarios once an API key is available and confirm the matching source tool is called before the widget
+
+## 2026-09-20 all-subject harness update
+
+- **Validated:**
+  - `npx tsx --test src/agents/testing/subject-source.test.ts`
+  - live harness requests on `http://localhost:3000/api/testing-harness` for:
+    - `secondary-kinematics-mcq`
+    - `secondary-kinematics-followup`
+    - `secondary-physics-waves-flashcards`
+    - `jc-differentiation-quiz`
+    - `secondary-bonding-flashcards`
+- **Findings:**
+  - clear Maths, Physics, and Chemistry prompts now call their matching source tool before widget generation
+  - `recordPerformance` stayed note-only in the successful harness runs
+  - the all-subject source-tool contract is now present in code, tests, and runtime behaviour
+  - source-pack quality is still uneven; some `learningOutcomes`, `keyConcepts`, and `formulaHints` remain broader than ideal
+  - follow-up prompts can fail closed too aggressively, which is safe but may need refinement for better user experience
+- **Blockers:**
+  - the local dev server reports an unrelated `shadow-plugin/unprefixed` module-resolution error under `src/app/beautifui`, even though the Testing harness endpoint still responds
+  - richer official syllabus maps will improve learning-outcome quality later
+- **Next:**
+  - refine all-subject source-pack quality
+  - add more harness and eval coverage for unsupported topics and follow-up prompts
+  - keep docs aligned with the all-subject source-tool architecture
+
+## 2026-09-22 score-tracking update
+
+- **Changed:**
+  - `src/agents/testing/score-history.ts`
+  - `src/agents/testing/score-history.test.ts`
+  - `src/lib/testing-progress.ts`
+  - `src/app/api/testing-progress/route.ts`
+  - `src/components/quiz-widget.tsx`
+  - `src/components/message-thread.tsx`
+  - `src/components/student-sidebar.tsx`
+  - `src/components/testing-progress-panel.tsx`
+  - `src/components/studio-shell.tsx`
+  - `src/lib/database.types.ts`
+  - `supabase/migrations/20260922145000_testing_attempts.sql`
+  - `src/agents/testing/README.md`
+- **Validated:**
+  - score-history unit tests
+  - targeted lint/type checks for the new Testing progress files
+- **Findings:**
+  - quiz scores previously existed only in `QuizWidget` client state and disappeared after the turn
+  - `recordPerformance` should stay note-only; score persistence is cleaner as a separate Supabase-backed attempt model
+  - signed-in MCQ attempts can now be grouped by subject + topic/family + mode to show latest, previous, best, and trend in the UI
+- **Blockers:**
+  - Supabase migration must be applied before live score tracking works end-to-end
+  - guest users are intentionally out of scope for persistent score history in this first slice
+- **Next:**
+  - apply the new Supabase migration
+  - run signed-in end-to-end MCQ checks and confirm the sidebar updates after submission
+  - decide whether Testing-agent follow-up tools should also consume the stored score summaries later
+
+## 2026-09-26 signed-in score-tracking check
+
+- **Validated:**
+  - Supabase `public.testing_attempts` table is now present in the dashboard
+  - initial signed-in score-tracking checks look good so far in the live UI
+- **Findings:**
+  - the earlier schema-cache error was environmental, not a code-path bug; once the table existed, the score-history flow could proceed normally
+  - the Testing sidebar can now read back persisted MCQ progress from Supabase in initial manual checks
+  - this gives a stronger software-engineering story: migration-defined schema, server route for writes/reads, grouped summaries, and a visible UI consumer
+- **Blockers:**
+  - broader repeated-attempt testing is still needed for stronger evidence on improving/regressing trend behaviour across multiple topics
+  - full live Testing-agent generation checks still depend on `OPENAI_API_KEY` when the quiz itself must be generated on demand
+- **Next:**
+  - run a more deliberate same-topic repeated-attempt check and capture the trend behaviour
+  - test at least one more subject/topic path besides the first successful score-tracking case
+  - decide whether to surface score history back into future Testing-agent adaptation
+
+
 
 Start with:
 

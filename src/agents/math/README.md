@@ -4,6 +4,9 @@
 **Folder:** `src/agents/math/`  
 **Syllabus corpus:** `data/syllabus/math.md`
 
+**Results:** [runs/](./runs/) holds a record of every eval run, from the 29 September baseline onwards.  
+**History:** [archive/](./archive/) keeps the September design plan, build plan and review.
+
 Tell a coding agent: *You are working on the METS Math Agent only. Read this file fully. Do not edit other specialist folders. Do not build quizzes here.*
 
 ## Job
@@ -21,18 +24,25 @@ You explain, show working, and verify numbers. If the student wants a quiz, tell
 | File | Purpose |
 | --- | --- |
 | `prompts.ts` | System prompt. Bump `MATH_PROMPT_VERSION` on every edit. |
-| `tools.ts` | `equationSolver` (mathjs evaluate / simplify). |
-| `index.ts` | `createMathAgent` wiring. |
-| `data/syllabus/math.md` | Curriculum map for RAG (topics, not worked solutions). |
-| `langflow/prompts/math.system.md` | Keep in sync with `prompts.ts`. |
+| `index.ts` | `createMathAgent` wiring: tools, guardrails, output cap. |
+| `first-step.ts` | Which tool the first step must use when the question makes it obvious. |
+| `tools.ts` | `equationSolver` and `drawMathGraph` (mathjs). |
+| `exam-facts.ts` | `examFacts`: checked SEAB exam-format facts, each with its source and check date. |
+| `guardrails.ts` | Output repair: abuse, prompt disclosure, self-drawn images, LaTeX delimiters, cut-off replies. |
+| `graph-types.ts`, `math-graph-widget.tsx` | Client rendering of `drawMathGraph` output (JSXGraph). |
+| `runs/` | Eval run records and the gold-answer review. |
+| `src/evals/catalog/math.ts` | Math eval cases. |
+| `langflow/prompts/math.system.md` | Summary of `prompts.ts`; its version must match (tested). |
 
 ## Tools you must keep
 
-- `equationSolver` — verify arithmetic and simple algebra before a final answer
-- `documentSearch` — from `../_shared/tools` with subject `"math"`
-- `webSearch` — optional Wikipedia stub; syllabus search comes first
+- `equationSolver` checks arithmetic and algebra before a final answer. It solves linear, quadratic and cubic equations in one unknown and differentiates. It cannot integrate symbolically, keep surds exact, or solve simultaneous or trigonometric equations: do those by hand and say so. An integral is checked by differentiating the answer.
+- `drawMathGraph` draws y = f(x). The widget gets the plotted points; the model gets only a summary, so it cannot copy the data into its reply.
+- `examFacts` is the source for papers, timing, marks, calculator rules, weightings, supplied formulae and marking of working. Re-check the facts against SEAB when a new exam year is published, and update `EXAM_FACTS_CHECKED_ON`.
+- `documentSearch` is shared, with subject `"math"`, and decides whether a topic is in a syllabus.
+- `webSearch` is optional. Syllabus search and exam facts come first.
 
-Add new math tools in `tools.ts` and register them on the `ToolLoopAgent` in `index.ts`. Use AI SDK `tool({ inputSchema: z.object(...) })`.
+Add new tools in their own file or `tools.ts`, register them in `index.ts`, and add a first-step rule only when the trigger is unambiguous and tested with phrasings outside the eval set.
 
 ## Files you must not change
 
@@ -46,7 +56,7 @@ Add new math tools in `tools.ts` and register them on the `ToolLoopAgent` in `in
 - LaTeX for mathematics (`$...$` / `$$...$$`).
 - Name the method (chain rule, sine rule, completing the square) before using it.
 - Stay inside the band. Do not introduce university content unless the student asks.
-- Quote syllabus coverage only from `documentSearch` results.
+- Quote syllabus coverage only from `documentSearch`, and exam rules only from `examFacts`.
 
 ## How to test
 
@@ -56,4 +66,7 @@ Ask the desk:
 - "What is 3/4 of 12? Show working."
 - "Is Maclaurin series in O-Level?" (should check syllabus and say no)
 
-Confirm the message stamp says **Math** and that `equationSolver` / `documentSearch` appear as tool lines when relevant.
+- "Can I use a calculator in A-Math Paper 1?" (should use exam facts and say yes)
+- "Sketch y = x^2 - 4x + 3" (graph with roots and turning point)
+
+Confirm the message stamp says **Math** and that the expected tool appears as a tool line. Then run the Math suite on `/evals/scores` and compare with the latest record in `runs/`.
