@@ -131,113 +131,247 @@ export const PERIODIC_TABLE: Element[] = [
   { z: 118, symbol: "Og", name: "Oganesson", mass: 295.216, group: "18" },
 ];
 
-function parseFormula(formula: string) {
-  const tokens = formula.match(/[A-Z][a-z]?|\d+|\(|\)/g);
-  if (!tokens) return {};
-  const stack: Array<Record<string, number>> = [{}];
+const ELEMENT_SYMBOLS = new Set(PERIODIC_TABLE.map((element) => element.symbol));
+const MAX_EQUATION_LENGTH = 256;
+const MAX_FORMULA_LENGTH = 80;
+const MAX_ATOM_COUNT = 10_000;
+const MAX_SPECIES = 5;
+const MAX_NESTING_DEPTH = 8;
+const MAX_OUTPUT_COEFFICIENT = 1_000_000;
 
-  for (let i = 0; i < tokens.length; i += 1) {
-    const token = tokens[i];
-    if (token === "(") {
-      stack.push({});
-    } else if (token === ")") {
-      const group = stack.pop() ?? {};
-      const next = tokens[i + 1];
-      const multiplier = next && /^\d+$/.test(next) ? Number(next) : 1;
-      if (next && /^\d+$/.test(next)) i += 1;
-      const parent = stack[stack.length - 1];
-      for (const [el, n] of Object.entries(group)) {
-        parent[el] = (parent[el] ?? 0) + n * multiplier;
+type AtomCounts = Record<string, number>;
+type ParsedSpecies = { atoms: AtomCounts; display: string };
+type BalanceErrorCode =
+  | "EMPTY_INPUT"
+  | "INPUT_TOO_LONG"
+  | "INVALID_SYNTAX"
+  | "UNSUPPORTED_NOTATION"
+  | "UNKNOWN_ELEMENT"
+  | "TOO_MANY_SPECIES"
+  | "ELEMENT_MISMATCH"
+  | "NO_POSITIVE_SOLUTION"
+  | "COEFFICIENT_LIMIT";
+
+type BalanceResult =
+  | { ok: true; balanced: string; coefficients: number[] }
+  | { ok: false; error: string; code: BalanceErrorCode };
+
+const failure = (code: BalanceErrorCode, error: string): BalanceResult => ({
+  ok: false, code, error,
+});
+
+function parseFormula(formula: string): AtomCounts | undefined {
+  if (!formula || formula.length > MAX_FORMULA_LENGTH) return undefined;
+  let position = 0;
+  function multiplier(): number | undefined {
+    const start = position;
+    while (position < formula.length && /[0-9]/.test(formula[position])) position++;
+    if (position === start) return 1;
+    const n = Number(formula.slice(start, position));
+    return Number.isSafeInteger(n) && n >= 1 && n <= MAX_ATOM_COUNT ? n : undefined;
+  }
+  function group(depth: number): AtomCounts | undefined {
+    if (depth > MAX_NESTING_DEPTH) return undefined;
+    const counts: AtomCounts = Object.create(null);
+    let content = false;
+    while (position < formula.length) {
+      if (formula[position] === ")") {
+        if (depth === 0 || !content) return undefined;
+        position++;
+        return counts;
       }
-    } else if (/^[A-Z]/.test(token)) {
-      const next = tokens[i + 1];
-      const multiplier = next && /^\d+$/.test(next) ? Number(next) : 1;
-      if (next && /^\d+$/.test(next)) i += 1;
-      const current = stack[stack.length - 1];
-      current[token] = (current[token] ?? 0) + multiplier;
+      let atoms: AtomCounts;
+      if (formula[position] === "(") {
+        position++;
+        const nested = group(depth + 1);
+        if (!nested) return undefined;
+        atoms = nested;
+      } else {
+        const match = /^[A-Z][a-z]?/.exec(formula.slice(position));
+        if (!match || !ELEMENT_SYMBOLS.has(match[0])) return undefined;
+        position += match[0].length;
+        atoms = { [match[0]]: 1 };
+      }
+      const factor = multiplier();
+      if (factor === undefined) return undefined;
+      for (const [symbol, count] of Object.entries(atoms)) {
+        const total = (counts[symbol] ?? 0) + count * factor;
+        if (!Number.isSafeInteger(total) || total > MAX_ATOM_COUNT) return undefined;
+        counts[symbol] = total;
+      }
+      content = true;
     }
+    return depth === 0 && content ? counts : undefined;
   }
-
-  return stack[0];
+  const atoms = group(0);
+  return atoms && position === formula.length ? atoms : undefined;
 }
 
-function parseSide(side: string) {
-  return side.split("+").map((part) => part.trim()).filter(Boolean);
+function parseSpecies(text: string): ParsedSpecies | undefined {
+  const trimmed = text.trim();
+  const phaseMatch = /\s*\((s|l|g|aq)\)$/i.exec(trimmed);
+  const body = phaseMatch ? trimmed.slice(0, phaseMatch.index).trim() : trimmed;
+  const coefficientMatch = /^(\d+)\s*(.+)$/.exec(body);
+  const coefficient = coefficientMatch ? Number(coefficientMatch[1]) : 1;
+  if (!Number.isSafeInteger(coefficient) || coefficient < 1 || coefficient > MAX_ATOM_COUNT) return undefined;
+  const formula = coefficientMatch ? coefficientMatch[2] : body;
+  const atoms = parseFormula(formula);
+  if (!atoms) return undefined;
+  const phase = phaseMatch ? `(${phaseMatch[1].toLowerCase()})` : "";
+  // Incoming coefficients are deliberately ignored: return the simplest balance.
+  return { atoms, display: `${formula}${phase}` };
 }
 
-function balanceEquation(equation: string) {
-  const [lhsRaw, rhsRaw] = equation.split(/->|=>|=|→/).map((side) => side?.trim());
-  if (!lhsRaw || !rhsRaw) {
-    return { ok: false as const, error: "Use the form H2 + O2 -> H2O" };
-  }
+// Exact rational arithmetic avoids floating-point rounding during elimination.
+type Fraction = { n: bigint; d: bigint };
+function gcd(a: bigint, b: bigint): bigint {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b !== 0n) [a, b] = [b, a % b];
+  return a;
+}
+function fraction(n: bigint, d = 1n): Fraction {
+  if (d === 0n) throw new Error("Zero denominator");
+  if (d < 0n) { n = -n; d = -d; }
+  const divisor = gcd(n, d);
+  return { n: n / divisor, d: d / divisor };
+}
+const add = (a: Fraction, b: Fraction) => fraction(a.n * b.d + b.n * a.d, a.d * b.d);
+const neg = (a: Fraction) => fraction(-a.n, a.d);
+const mul = (a: Fraction, b: Fraction) => fraction(a.n * b.n, a.d * b.d);
+const div = (a: Fraction, b: Fraction) => fraction(a.n * b.d, a.d * b.n);
 
-  const left = parseSide(lhsRaw);
-  const right = parseSide(rhsRaw);
-  const species = [...left, ...right];
-  const parsed = species.map(parseFormula);
-  const elements = Array.from(
-    new Set(parsed.flatMap((row) => Object.keys(row))),
-  );
-
-  const coeffs = new Array(species.length).fill(1);
-  const limit = species.length === 0 ? 0 : Math.pow(8, species.length);
-  for (let n = 0; n < Math.min(limit, 30000); n += 1) {
-    let x = n;
-    for (let i = 0; i < species.length; i += 1) {
-      coeffs[i] = (x % 8) + 1;
-      x = Math.floor(x / 8);
+/** Reduced row-echelon form; columns not containing pivots are free variables. */
+function rref(matrix: Fraction[][], columns: number): number[] {
+  const pivots: number[] = [];
+  let row = 0;
+  for (let col = 0; col < columns && row < matrix.length; col++) {
+    const pivot = matrix.findIndex((r, i) => i >= row && r[col].n !== 0n);
+    if (pivot < 0) continue;
+    [matrix[row], matrix[pivot]] = [matrix[pivot], matrix[row]];
+    const scale = matrix[row][col];
+    matrix[row] = matrix[row].map((v) => div(v, scale));
+    for (let i = 0; i < matrix.length; i++) {
+      if (i === row || matrix[i][col].n === 0n) continue;
+      const factor = matrix[i][col];
+      matrix[i] = matrix[i].map((v, j) => add(v, neg(mul(factor, matrix[row][j]))));
     }
-
-    const balanced = elements.every((el) => {
-      const leftCount = left.reduce(
-        (sum, _species, index) => sum + (parsed[index][el] ?? 0) * coeffs[index],
-        0,
-      );
-      const rightCount = right.reduce(
-        (sum, _species, index) =>
-          sum + (parsed[left.length + index][el] ?? 0) * coeffs[left.length + index],
-        0,
-      );
-      return leftCount === rightCount && leftCount > 0;
-    });
-
-    if (balanced) {
-      const format = (items: string[], offset: number) =>
-        items
-          .map((item, index) => `${coeffs[offset + index] === 1 ? "" : coeffs[offset + index]}${item}`)
-          .join(" + ");
-      return {
-        ok: true as const,
-        balanced: `${format(left, 0)} -> ${format(right, left.length)}`,
-        coefficients: coeffs,
-      };
-    }
+    pivots.push(col);
+    row++;
   }
+  return pivots;
+}
 
-  return { ok: false as const, error: "Could not balance with small integer coefficients." };
+function integerCoefficients(values: Fraction[]): bigint[] | undefined {
+  let denominator = 1n;
+  for (const value of values) denominator = denominator / gcd(denominator, value.d) * value.d;
+  let ints = values.map((value) => value.n * (denominator / value.d));
+  if (ints.some((v) => v <= 0n)) return undefined;
+  const divisor = ints.reduce((acc, v) => gcd(acc, v));
+  ints = ints.map((v) => v / divisor);
+  return ints;
+}
+
+export function balanceEquation(equation: string): BalanceResult {
+  const input = equation.trim();
+  if (!input) return failure("EMPTY_INPUT", "Enter a chemical equation to balance.");
+  if (input.length > MAX_EQUATION_LENGTH)
+    return failure("INPUT_TOO_LONG", `Keep the equation within ${MAX_EQUATION_LENGTH} characters.`);
+  const sides = input.split(/->|=>|=|→/);
+  if (sides.length !== 2 || sides.some((side) => !side.trim()))
+    return failure("INVALID_SYNTAX", "Use the form H2 + O2 -> H2O.");
+  // Ionic charges and hydrates are valid chemistry, but unsupported by this parser.
+  if (/[·.]/.test(input) || /(?:[A-Za-z0-9\)])(?:\^?\d*[+-])(?=\s|\+|->|=>|=|→|$)/.test(input))
+    return failure("UNSUPPORTED_NOTATION", "Charged species and hydrate notation are not supported by this balancer.");
+  const parseSide = (side: string) => side.split("+").map((part) => part.trim());
+  const leftParts = parseSide(sides[0]);
+  const rightParts = parseSide(sides[1]);
+  if ([...leftParts, ...rightParts].some((part) => !part))
+    return failure("INVALID_SYNTAX", "Every reactant and product must have a chemical formula.");
+  const raw = [...leftParts, ...rightParts];
+  if (raw.length > MAX_SPECIES)
+    return failure("TOO_MANY_SPECIES", `Balance at most ${MAX_SPECIES} species at a time.`);
+  const species = raw.map(parseSpecies);
+  if (species.some((item) => !item)) {
+    const symbols = raw.flatMap((part) => part.match(/[A-Z][a-z]?/g) ?? []);
+    const unknown = symbols.find((symbol) => !ELEMENT_SYMBOLS.has(symbol));
+    if (unknown) return failure("UNKNOWN_ELEMENT", `Unknown element symbol: ${unknown}.`);
+    return failure("INVALID_SYNTAX", "Invalid or unsupported chemical formula; check brackets, symbols and subscripts.");
+  }
+  const parsed = species as ParsedSpecies[];
+  const left = parsed.slice(0, leftParts.length);
+  const right = parsed.slice(leftParts.length);
+  const elements = [...new Set(parsed.flatMap((item) => Object.keys(item.atoms)))];
+  if (elements.some((element) => !left.some((s) => s.atoms[element]) || !right.some((s) => s.atoms[element])))
+    return failure("ELEMENT_MISMATCH", "The equation does not conserve its elements.");
+
+  const matrix = elements.map((element) => parsed.map((item, i) =>
+    fraction(BigInt((item.atoms[element] ?? 0) * (i < left.length ? 1 : -1)))));
+  const pivots = rref(matrix, parsed.length);
+  const free = Array.from({ length: parsed.length }, (_, i) => i).filter((i) => !pivots.includes(i));
+  if (!free.length) return failure("NO_POSITIVE_SOLUTION", "No positive balancing coefficients exist.");
+
+  // Ordinary reactions have one free variable. For underdetermined reactions,
+  // try small positive free-variable assignments and choose the smallest solution.
+  // This search is bounded, deterministic, and never claims general completeness.
+  const selection: { best?: bigint[] } = {};
+  const maxAssignments = 10_000;
+  let attempts = 0;
+  const assigned = Array<Fraction>(parsed.length).fill(fraction(0n));
+  function explore(index: number): void {
+    if (attempts >= maxAssignments) return;
+    if (index < free.length) {
+      for (let value = 1; value <= (free.length === 1 ? 1 : 8); value++) {
+        assigned[free[index]] = fraction(BigInt(value));
+        explore(index + 1);
+      }
+      return;
+    }
+    attempts++;
+    for (let row = 0; row < pivots.length; row++) {
+      let sum = fraction(0n);
+      for (const col of free) sum = add(sum, mul(matrix[row][col], assigned[col]));
+      assigned[pivots[row]] = neg(sum);
+    }
+    const candidate = integerCoefficients(assigned);
+    if (!candidate) return;
+    const sum = (arr: bigint[]) => arr.reduce((a, b) => a + b, 0n);
+    const previous = selection.best;
+    if (!previous || sum(candidate) < sum(previous) ||
+      (sum(candidate) === sum(previous) && candidate.join(",") < previous.join(","))) selection.best = candidate;
+  }
+  explore(0);
+  const best = selection.best;
+  if (!best) return failure("NO_POSITIVE_SOLUTION", "No positive solution was found within the supported search limits.");
+  if (best.some((value) => value > BigInt(MAX_OUTPUT_COEFFICIENT)))
+    return failure("COEFFICIENT_LIMIT", `A balancing coefficient exceeds ${MAX_OUTPUT_COEFFICIENT}.`);
+  const coefficients = best.map(Number);
+  const format = (items: ParsedSpecies[], offset: number) => items.map((item, i) =>
+    `${coefficients[offset + i] === 1 ? "" : coefficients[offset + i]}${item.display}`).join(" + ");
+  return { ok: true, balanced: `${format(left, 0)} -> ${format(right, left.length)}`, coefficients };
+}
+
+/** Exact match by element symbol, name, or atomic number (case-insensitive). */
+export function findPeriodicTableElements(query: string): Element[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  return PERIODIC_TABLE.filter((element) =>
+    element.symbol.toLowerCase() === needle ||
+    element.name.toLowerCase() === needle ||
+    String(element.z) === needle);
 }
 
 export const periodicTableTool = tool({
-  description: "Look up an element by symbol, name, or atomic number.",
-  inputSchema: z.object({
-    query: z.string(),
-  }),
-  execute: async ({ query }: { query: string }) => {
-    const needle = query.trim().toLowerCase();
-    const hits = PERIODIC_TABLE.filter(
-      (el) =>
-        el.symbol.toLowerCase() === needle ||
-        el.name.toLowerCase() === needle ||
-        String(el.z) === needle,
-    );
-    return { hits };
-  },
+  description: "Look up an element by exact symbol, name or atomic number. Returns approximate mass and group, not electron configuration.",
+  inputSchema: z.object({ query: z.string().trim().min(1).max(80) }),
+  execute: async ({ query }: { query: string }) => ({ hits: findPeriodicTableElements(query) }),
 });
 
 export const reactionBalancerTool = tool({
-  description: "Balance a chemical equation written as reactants -> products.",
+  description: "Balance neutral chemical equations, including brackets and state symbols. Existing coefficients are recalculated. Charged species and hydrates are unsupported. Returns balanced coefficients or an error.",
   inputSchema: z.object({
-    equation: z.string().describe("Example: Fe + O2 -> Fe2O3"),
+    equation: z.string().trim().min(1).max(MAX_EQUATION_LENGTH)
+      .describe("Example: Fe + O2 -> Fe2O3"),
   }),
   execute: async ({ equation }: { equation: string }) => balanceEquation(equation),
 });

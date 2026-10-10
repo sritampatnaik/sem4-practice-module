@@ -25,11 +25,12 @@ Look up elements before quoting atomic data. Balance equations with the tool, no
 | `index.ts` | `createChemistryAgent` wiring. |
 | `data/syllabus/chemistry.md` | Curriculum map for RAG. |
 | `langflow/prompts/chemistry.system.md` | Keep in sync with `prompts.ts`. |
+| `tools.test.ts`, `catalog.test.ts` | Unit tests for chemistry tools and structural validation of the golden evaluation dataset. |
 
 ## Tools you must keep
 
 - `periodicTable` — lookup by symbol, name, or atomic number
-- `reactionBalancer` — `Fe + O2 -> Fe2O3` style input
+- `reactionBalancer` — neutral formula equations with grouping and optional state symbols, e.g. `Fe + O2 -> Fe2O3`; charged species and hydrates are unsupported
 - `documentSearch` — shared tool with subject `"chemistry"`
 - `webSearch` — optional stub; syllabus first
 
@@ -44,13 +45,21 @@ Missing elements: add rows to `PERIODIC_TABLE` in `tools.ts`. Do not scrape the 
 ## Prompt rules
 
 - State symbols where a Singapore mark scheme would expect them.
+- The profile says JC, but not H1 or H2. Ask which course when it affects syllabus coverage.
 - At JC, name the mechanism (electrophilic addition, nucleophilic substitution, …) before steps.
-- Flag experimental safety whenever the student mentions practical work.
+- Give safe, teacher-supervised practical guidance and identify relevant hazards.
 - Use "aluminium" and "sulfur" (Singapore spelling).
 
 ## How to test
 
-Ask the desk:
+Run the chemistry tests:
+
+```powershell
+npx tsx --test src/agents/chemistry/tools.test.ts src/agents/chemistry/catalog.test.ts
+npx eslint src/agents/chemistry
+```
+
+After configuring an approved model provider, an optional live smoke check is:
 
 - "Balance Fe + O2 -> Fe2O3."
 - "Proton number of carbon?"
