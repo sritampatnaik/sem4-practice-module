@@ -26,6 +26,7 @@ Look up elements before quoting atomic data. Balance equations with the tool, no
 | `data/syllabus/chemistry.md` | Curriculum map for RAG. |
 | `langflow/prompts/chemistry.system.md` | Keep in sync with `prompts.ts`. |
 | `tools.test.ts`, `catalog.test.ts` | Unit tests for chemistry tools and structural validation of the golden evaluation dataset. |
+| `guardrails.ts`, `guardrails.test.ts` | Chemistry-specific output safety, prompt-disclosure, and reply-repair backstops; tests cover both generated and streamed output. |
 
 ## Tools you must keep
 
@@ -50,12 +51,16 @@ Missing elements: add rows to `PERIODIC_TABLE` in `tools.ts`. Do not scrape the 
 - Give safe, teacher-supervised practical guidance and identify relevant hazards.
 - Use "aluminium" and "sulfur" (Singapore spelling).
 
+## Guardrails
+
+The Chemistry middleware buffers complete text blocks before release, so disallowed content split across stream chunks is still filtered. Its chemistry-specific pattern checks are a limited backstop, not comprehensive moderation; the prompt remains the primary policy.
+
 ## How to test
 
 Run the chemistry tests:
 
 ```powershell
-npx tsx --test src/agents/chemistry/tools.test.ts src/agents/chemistry/catalog.test.ts
+npx tsx --test src/agents/chemistry/tools.test.ts src/agents/chemistry/catalog.test.ts src/agents/chemistry/guardrails.test.ts
 npx eslint src/agents/chemistry
 ```
 
